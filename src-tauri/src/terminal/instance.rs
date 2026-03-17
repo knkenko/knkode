@@ -1,7 +1,5 @@
 use alacritty_terminal::event::{Event, Notify, OnResize, WindowSize};
 use alacritty_terminal::event_loop::{EventLoop, Msg, Notifier};
-use alacritty_terminal::grid::Dimensions;
-use alacritty_terminal::index::{Column, Line};
 use alacritty_terminal::sync::FairMutex;
 use alacritty_terminal::term::test::TermSize;
 use alacritty_terminal::term::{Config as TermConfig, Term};
@@ -21,21 +19,23 @@ const CELL_HEIGHT: u16 = 16;
 
 /// A single terminal instance: PTY + alacritty Term + event loop.
 pub struct TerminalInstance {
-    pub id: String,
+    id: String,
     term: Arc<FairMutex<Term<EventProxy>>>,
     notifier: Notifier,
-    cols: u16,
-    rows: u16,
+    pty_thread: Option<
+        JoinHandle<(
+            EventLoop<tty::Pty, EventProxy>,
+            alacritty_terminal::event_loop::State,
+        )>,
+    >,
+    event_thread: Option<JoinHandle<()>>,
 }
 
 impl TerminalInstance {
     /// Spawn a new terminal with the user's default shell.
     pub fn spawn(id: String, app_handle: AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         let pty_config = tty::Options::default();
-        let terminal_size = SizeWrapper {
-            cols: DEFAULT_COLS,
-            rows: DEFAULT_ROWS,
-        };
+        let terminal_size = TermSize::new(DEFAULT_COLS as usize, DEFAULT_ROWS as usize);
         let window_size = WindowSize {
             num_lines: DEFAULT_ROWS,
             num_cols: DEFAULT_COLS,
@@ -56,10 +56,10 @@ impl TerminalInstance {
         let notifier = Notifier(event_loop.channel());
         let pty_notifier = Notifier(event_loop.channel());
 
-        let _pty_thread: JoinHandle<_> = event_loop.spawn();
+        let pty_thread = event_loop.spawn();
 
         let terminal_id = id.clone();
-        let _event_thread = std::thread::Builder::new()
+        let event_thread = std::thread::Builder::new()
             .name(format!("terminal-events-{}", &terminal_id))
             .spawn(move || {
                 Self::event_subscription_loop(event_rx, pty_notifier, app_handle, terminal_id);
@@ -69,8 +69,8 @@ impl TerminalInstance {
             id,
             term,
             notifier,
-            cols: DEFAULT_COLS,
-            rows: DEFAULT_ROWS,
+            pty_thread: Some(pty_thread),
+            event_thread: Some(event_thread),
         })
     }
 
@@ -126,8 +126,6 @@ impl TerminalInstance {
         if cols == 0 || rows == 0 {
             return;
         }
-        self.cols = cols;
-        self.rows = rows;
 
         let window_size = WindowSize {
             num_lines: rows,
@@ -146,10 +144,6 @@ impl TerminalInstance {
         let term = self.term.lock();
         extract_grid(&term)
     }
-
-    pub fn size(&self) -> (u16, u16) {
-        (self.cols, self.rows)
-    }
 }
 
 impl Drop for TerminalInstance {
@@ -157,33 +151,11 @@ impl Drop for TerminalInstance {
         if let Err(e) = self.notifier.0.send(Msg::Shutdown) {
             log::warn!("Terminal {}: failed to send shutdown: {e}", self.id);
         }
-    }
-}
-
-/// Adapter implementing Dimensions for Term::new.
-struct SizeWrapper {
-    cols: u16,
-    rows: u16,
-}
-
-impl Dimensions for SizeWrapper {
-    fn total_lines(&self) -> usize {
-        self.screen_lines()
-    }
-
-    fn screen_lines(&self) -> usize {
-        self.rows as usize
-    }
-
-    fn columns(&self) -> usize {
-        self.cols as usize
-    }
-
-    fn last_column(&self) -> Column {
-        Column(self.cols as usize - 1)
-    }
-
-    fn bottommost_line(&self) -> Line {
-        Line(self.rows as i32 - 1)
+        if let Some(handle) = self.pty_thread.take() {
+            let _ = handle.join();
+        }
+        if let Some(handle) = self.event_thread.take() {
+            let _ = handle.join();
+        }
     }
 }
