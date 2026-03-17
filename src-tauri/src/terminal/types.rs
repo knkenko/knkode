@@ -27,7 +27,7 @@ pub struct CellData {
     pub c: String,
     pub fg: TermColor,
     pub bg: TermColor,
-    pub flags: u16,
+    pub flags: u32,
 }
 
 /// Cursor position and visibility.
@@ -123,7 +123,7 @@ fn cell_to_data(cell: &Cell) -> CellData {
         c: cell.c.to_string(),
         fg: resolve_color(cell.fg),
         bg: resolve_color(cell.bg),
-        flags: cell.flags.bits(),
+        flags: cell.flags.bits() as u32,
     }
 }
 
@@ -147,8 +147,8 @@ pub fn extract_grid(term: &Term<EventProxy>) -> CellGrid {
 
     let cursor = &grid.cursor.point;
     let cursor_state = CursorState {
-        col: cursor.column.0 as u16,
-        line: cursor.line.0 as u16,
+        col: u16::try_from(cursor.column.0).unwrap_or(0),
+        line: u16::try_from(cursor.line.0).unwrap_or(0),
         visible: term
             .mode()
             .contains(alacritty_terminal::term::TermMode::SHOW_CURSOR),
