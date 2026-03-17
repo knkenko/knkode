@@ -102,12 +102,19 @@ export default memo(function WorkspaceTab({
 
 	return (
 		<div
-			className={`group flex h-8 flex-[0_1_200px] min-w-[100px] max-w-[240px] items-center gap-1.5 rounded-t-md border-l-[3px] px-3 text-xs transition-colors ${
+			className={`group flex h-9 flex-[0_1_200px] min-w-[100px] max-w-[240px] cursor-pointer items-center gap-2 rounded-t-md border-l-[3px] px-3 text-xs transition-colors ${
 				isActive
-					? "bg-white/[0.04] text-neutral-200"
+					? "text-neutral-200"
 					: "border-transparent text-neutral-500 hover:bg-white/[0.02] hover:text-neutral-400"
 			}`}
-			style={isActive ? { borderLeftColor: color } : undefined}
+			style={
+				isActive
+					? {
+							borderLeftColor: color,
+							background: `color-mix(in srgb, ${color} 8%, rgba(255 255 255 / 0.04))`,
+						}
+					: undefined
+			}
 			role="tab"
 			tabIndex={0}
 			aria-selected={isActive}
@@ -116,6 +123,12 @@ export default memo(function WorkspaceTab({
 			onKeyDown={handleTabKeyDown}
 			onContextMenu={handleContextMenu}
 		>
+			<span
+				className="size-2.5 shrink-0 rounded-full"
+				style={{ backgroundColor: color }}
+				aria-hidden="true"
+			/>
+
 			{isEditing ? (
 				<input
 					ref={inputRef}
@@ -127,16 +140,17 @@ export default memo(function WorkspaceTab({
 					onKeyDown={handleInputKeyDown}
 				/>
 			) : (
-				<span className="min-w-0 flex-1 truncate">{name}</span>
+				<span className={`min-w-0 flex-1 truncate ${isActive ? "font-medium" : ""}`}>{name}</span>
 			)}
 
 			{paneCount > 1 && (
 				<span
-					className="shrink-0 rounded px-1 text-[10px]"
+					className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium leading-none"
 					style={{
 						backgroundColor: `color-mix(in srgb, ${color} 20%, transparent)`,
 						color,
 					}}
+					title={`${paneCount} panes`}
 				>
 					{paneCount}
 				</span>
@@ -145,14 +159,25 @@ export default memo(function WorkspaceTab({
 			{canClose && (
 				<button
 					type="button"
-					className={`ml-0.5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/10 hover:text-neutral-300 ${
-						isActive ? "inline-flex size-4 opacity-100" : "hidden size-4 group-hover:inline-flex"
+					className={`shrink-0 rounded-sm p-0.5 text-neutral-500 transition-all hover:bg-white/10 hover:text-neutral-300 ${
+						isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
 					}`}
 					onClick={handleClose}
 					aria-label="Close workspace"
 					tabIndex={-1}
 				>
-					×
+					<svg
+						width="12"
+						height="12"
+						viewBox="0 0 12 12"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						aria-hidden="true"
+					>
+						<path d="M3 3l6 6M9 3l-6 6" />
+					</svg>
 				</button>
 			)}
 		</div>

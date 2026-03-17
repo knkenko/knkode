@@ -46,7 +46,7 @@ export default function TabBar() {
 			data-tauri-drag-region=""
 		>
 			<div
-				className="flex items-end gap-0.5 overflow-x-auto overflow-y-hidden px-2 pt-1.5"
+				className="flex flex-1 items-end gap-0.5 overflow-x-auto overflow-y-hidden pl-[72px] pr-2 pt-1.5"
 				role="tablist"
 				aria-label="Workspaces"
 			>
