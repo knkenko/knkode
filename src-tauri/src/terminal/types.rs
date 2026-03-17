@@ -1,11 +1,10 @@
+use alacritty_terminal::event::EventListener;
 use alacritty_terminal::grid::Dimensions;
 use alacritty_terminal::index::{Column, Line};
 use alacritty_terminal::term::cell::Cell;
 use alacritty_terminal::term::Term;
 use alacritty_terminal::vte::ansi::{Color, NamedColor};
 use serde::Serialize;
-
-use crate::terminal::event_proxy::EventProxy;
 
 /// RGB color resolved from terminal palette.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -131,7 +130,7 @@ fn cell_to_data(cell: &Cell) -> CellData {
 }
 
 /// Extract the visible grid from a Term reference into a serializable CellGrid.
-pub fn extract_grid(term: &Term<EventProxy>) -> CellGrid {
+pub fn extract_grid<T: EventListener>(term: &Term<T>) -> CellGrid {
     let grid = term.grid();
     let cols = grid.columns();
     let rows = grid.screen_lines();
