@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 1 complete — single working terminal in a native Tauri window.
+Phase 2 in progress — workspace/pane/tab system. PR #1 (layout types) merged.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -27,10 +27,16 @@ Phase 1 complete — single working terminal in a native Tauri window.
   - Event coalescing, terminal ID filtering, StrictMode guard
   - 10-agent review: 24 findings, all 24 addressed
 - [x] PR #4: Cmd+V paste fix (merged)
+- [x] PR #5: Layout tree types, operations, and presets (merged)
+  - Discriminated union LayoutNode with type: "leaf"/"branch" tag
+  - createLeaf/createBranch factory functions, validateWorkspace
+  - 9 pure recursive tree operations with MAX_DEPTH=20 guard
+  - 6 layout presets with twoPane/threePanel helpers
+  - Workspace.color constrained to palette type
+  - 46 tests, 10-agent review: 32 findings, 29 fixed, 3 skipped (nitpicks)
 
 ## What's Next
-- Phase 2: Port workspace/pane/tab system (store, layout tree, drag-drop)
-  - PR #5 (layout types) — review fixes applied, ready to merge
+- Phase 2 (continued):
   - PR #2: workspace store
   - PR #3: split pane UI (allotment)
   - PR #4: tab bar
@@ -38,7 +44,7 @@ Phase 1 complete — single working terminal in a native Tauri window.
   - PR #6: keybindings
 
 ## Active Branch
-`feature/layout-types`
+`main`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
