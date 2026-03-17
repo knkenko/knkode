@@ -34,9 +34,12 @@ export default function TabBar() {
 		setRenamingId(null);
 	}, []);
 
+	const initWorkspace = useWorkspaceStore((s) => s.initWorkspace);
+
 	const handleCreate = useCallback(() => {
-		createWorkspace();
-	}, [createWorkspace]);
+		const id = createWorkspace();
+		initWorkspace(id).catch(console.error);
+	}, [createWorkspace, initWorkspace]);
 
 	return (
 		<div

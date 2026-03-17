@@ -293,7 +293,8 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 
 			// If no workspaces left, create a new default one
 			if (newOpenIds.length === 0) {
-				get().createWorkspace();
+				const fallbackId = get().createWorkspace();
+				get().initWorkspace(fallbackId).catch(console.error);
 			}
 		},
 

@@ -48,10 +48,13 @@ export default function TabContextMenu({
 		onStartRename(workspaceId);
 	}, [onClose, onStartRename, workspaceId]);
 
+	const initWorkspace = useWorkspaceStore((s) => s.initWorkspace);
+
 	const handleDuplicate = useCallback(() => {
-		duplicateWorkspace(workspaceId);
+		const newId = duplicateWorkspace(workspaceId);
+		if (newId) initWorkspace(newId).catch(console.error);
 		onClose();
-	}, [duplicateWorkspace, workspaceId, onClose]);
+	}, [duplicateWorkspace, initWorkspace, workspaceId, onClose]);
 
 	const handleClose = useCallback(() => {
 		removeWorkspace(workspaceId);
