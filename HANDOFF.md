@@ -53,11 +53,12 @@ Phase 2 in progress — workspace/pane/tab system. PR #8 (tab bar) ready for mer
   - 9-agent review: 17 findings, 15 fixed, 2 skipped (nitpicks)
 
 - [ ] PR #8: Workspace tab bar with context menu (in review)
-  - TabBar with role="tablist", workspace tabs, "+" create button
-  - WorkspaceTab with click-to-switch, double-click rename, close, color dot, pane count badge
+  - TabBar with role="tablist", workspace tabs, "+" create button, data-tauri-drag-region
+  - WorkspaceTab: v1-matching style — rounded-t-md, left border accent, flex 100–240px, color-tinted badge
   - TabContextMenu portal-rendered context menu: Rename, Duplicate, Color picker, Close
   - Pane header with split-right, split-down, close buttons (hover-reveal)
   - Bug fixes: workspace init on create/duplicate, empty pane title fallback
+  - Critical fix: app freeze on workspace close (Rust Drop ordering + mutex held during join)
   - DEFAULT_WORKSPACE_COLOR constant extracted, React.memo on WorkspaceTab
   - Viewport-clamped context menu, full ARIA roles and labels
   - 9-agent review: 19 findings, all 19 addressed
