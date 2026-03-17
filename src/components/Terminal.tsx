@@ -186,6 +186,17 @@ export default function Terminal() {
 		[writeToTerminal],
 	);
 
+	const handlePaste = useCallback(
+		(e: React.ClipboardEvent<HTMLDivElement>) => {
+			const text = e.clipboardData.getData("text/plain");
+			if (text) {
+				e.preventDefault();
+				writeToTerminal(text);
+			}
+		},
+		[writeToTerminal],
+	);
+
 	return (
 		<div
 			ref={containerRef}
@@ -193,6 +204,7 @@ export default function Terminal() {
 			aria-label="Terminal"
 			className="h-full w-full overflow-hidden bg-[#1d1f21] focus:outline-none"
 			onKeyDown={handleKeyDown}
+			onPaste={handlePaste}
 			tabIndex={0}
 		>
 			<canvas ref={canvasRef} />
