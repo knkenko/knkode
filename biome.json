@@ -4,11 +4,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
-			"a11y": {
-				"noNoninteractiveTabindex": "off",
-				"useSemanticElements": "off"
-			}
+			"recommended": true
 		}
 	},
 	"formatter": {
@@ -24,5 +20,18 @@
 	},
 	"files": {
 		"includes": ["**", "!**/dist", "!**/src-tauri/target", "!**/src-tauri/gen", "!**/docs/reviews"]
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/components/Terminal.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noNoninteractiveTabindex": "off",
+						"useSemanticElements": "off"
+					}
+				}
+			}
+		}
+	]
 }
