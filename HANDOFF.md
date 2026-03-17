@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 2 in progress — workspace/pane/tab system. PR #5 (layout types) merged.
+Phase 2 in progress — workspace/pane/tab system. PR #6 (workspace store) merged.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -34,10 +34,18 @@ Phase 2 in progress — workspace/pane/tab system. PR #5 (layout types) merged.
   - 6 layout presets with twoPane/threePanel helpers
   - Workspace.color constrained to palette type
   - 46 tests, 10-agent review: 32 findings, 29 fixed, 3 skipped (nitpicks)
+- [x] PR #6: Multi-workspace Zustand store with per-pane terminal IPC (merged)
+  - Replaced single-terminal store with multi-workspace/multi-pane architecture
+  - Per-pane terminal IPC: create, destroy, write, resize via Tauri invoke
+  - Workspace CRUD: create, duplicate, remove, rename, reorder
+  - Pane actions: split, close, swap with layout tree mutations
+  - Global event routing with terminalToPaneMap reverse lookup
+  - Lazy workspace mounting, TOCTOU guard on initPane
+  - DRY helpers: setPaneTerminal, updateWorkspace, registerWorkspace
+  - 33 tests, 10-agent review: 30 findings, all 30 addressed
 
 ## What's Next
 - Phase 2 (continued):
-  - PR #2: workspace store (PR #6 open, review fixes applied — ready for merge)
   - PR #3: split pane UI (allotment)
   - PR #4: tab bar
   - PR #5: drag-and-drop
@@ -47,7 +55,7 @@ Phase 2 in progress — workspace/pane/tab system. PR #5 (layout types) merged.
 None
 
 ## Active Branch
-`feature/workspace-store`
+`main`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
