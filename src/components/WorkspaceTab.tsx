@@ -102,12 +102,12 @@ export default memo(function WorkspaceTab({
 
 	return (
 		<div
-			className={`group flex h-full items-center gap-1.5 border-b-2 px-3 text-xs transition-colors ${
+			className={`group flex h-8 flex-[0_1_200px] min-w-[100px] max-w-[240px] items-center gap-1.5 rounded-t-md border-l-[3px] px-3 text-xs transition-colors ${
 				isActive
 					? "bg-white/[0.04] text-neutral-200"
 					: "border-transparent text-neutral-500 hover:bg-white/[0.02] hover:text-neutral-400"
 			}`}
-			style={isActive ? { borderBottomColor: color } : undefined}
+			style={isActive ? { borderLeftColor: color } : undefined}
 			role="tab"
 			tabIndex={0}
 			aria-selected={isActive}
@@ -116,15 +116,10 @@ export default memo(function WorkspaceTab({
 			onKeyDown={handleTabKeyDown}
 			onContextMenu={handleContextMenu}
 		>
-			<span
-				className="inline-block size-2 shrink-0 rounded-full"
-				style={{ backgroundColor: color }}
-			/>
-
 			{isEditing ? (
 				<input
 					ref={inputRef}
-					className="w-20 bg-transparent text-xs text-neutral-200 outline-none"
+					className="min-w-0 flex-1 bg-transparent text-xs text-neutral-200 outline-none"
 					value={draft}
 					maxLength={128}
 					onChange={(e) => setDraft(e.target.value)}
@@ -132,11 +127,17 @@ export default memo(function WorkspaceTab({
 					onKeyDown={handleInputKeyDown}
 				/>
 			) : (
-				<span className="max-w-32 truncate">{name}</span>
+				<span className="min-w-0 flex-1 truncate">{name}</span>
 			)}
 
 			{paneCount > 1 && (
-				<span className="rounded bg-white/[0.06] px-1 text-[10px] text-neutral-500">
+				<span
+					className="shrink-0 rounded px-1 text-[10px]"
+					style={{
+						backgroundColor: `color-mix(in srgb, ${color} 20%, transparent)`,
+						color,
+					}}
+				>
 					{paneCount}
 				</span>
 			)}
@@ -144,7 +145,9 @@ export default memo(function WorkspaceTab({
 			{canClose && (
 				<button
 					type="button"
-					className="ml-0.5 hidden size-4 items-center justify-center rounded text-neutral-500 hover:bg-white/10 hover:text-neutral-300 group-hover:inline-flex"
+					className={`ml-0.5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/10 hover:text-neutral-300 ${
+						isActive ? "inline-flex size-4 opacity-100" : "hidden size-4 group-hover:inline-flex"
+					}`}
 					onClick={handleClose}
 					aria-label="Close workspace"
 					tabIndex={-1}
