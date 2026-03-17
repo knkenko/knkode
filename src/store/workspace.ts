@@ -11,7 +11,14 @@ import {
 	updateSizesAtPath,
 } from "../lib/layout-tree";
 import type { CellGrid } from "../types/terminal";
-import type { LayoutBranch, LayoutPreset, PaneConfig, Workspace } from "../types/workspace";
+import type {
+	LayoutBranch,
+	LayoutNode,
+	LayoutPreset,
+	PaneConfig,
+	Workspace,
+	WorkspaceLayout,
+} from "../types/workspace";
 import { WORKSPACE_COLORS } from "../types/workspace";
 
 const EVENT_TERMINAL_OUTPUT = "terminal-output";
@@ -23,6 +30,7 @@ function generateId(): string {
 
 /** Pick the next color from the palette based on workspace count. */
 function nextColor(count: number): (typeof WORKSPACE_COLORS)[number] {
+	// Fallback satisfies noUncheckedIndexedAccess — modulo guarantees a valid index
 	return WORKSPACE_COLORS[count % WORKSPACE_COLORS.length] ?? "#6c63ff";
 }
 
@@ -32,15 +40,29 @@ function findWorkspaceForPane(
 	activeWorkspaceId: string | null,
 	paneId: string,
 ): string | undefined {
-	// Fast path: check active workspace first
 	if (activeWorkspaceId) {
 		const active = workspaces[activeWorkspaceId];
 		if (active && paneId in active.panes) return activeWorkspaceId;
 	}
 	for (const [wsId, ws] of Object.entries(workspaces)) {
-		if (paneId in ws.panes) return wsId;
+		if (wsId !== activeWorkspaceId && paneId in ws.panes) return wsId;
 	}
 	return undefined;
+}
+
+/** Shorthand for { type: "custom", tree } layout. */
+function customLayout(tree: LayoutNode): WorkspaceLayout {
+	return { type: "custom", tree };
+}
+
+/** Fire-and-forget terminal destruction with error logging. */
+function destroyTerminalAsync(terminalId: string): void {
+	invoke("destroy_terminal", { id: terminalId }).catch(console.error);
+}
+
+/** Format an unknown error value for display. */
+function formatError(e: unknown): string {
+	return e instanceof Error ? e.message : String(e);
 }
 
 // -- Per-pane terminal state --
@@ -52,6 +74,13 @@ export interface PaneTerminalState {
 	error: string | null;
 }
 
+const DEFAULT_PANE_TERMINAL: PaneTerminalState = {
+	terminalId: null,
+	grid: null,
+	connected: false,
+	error: null,
+};
+
 // -- Store shape --
 
 export interface WorkspaceStoreState {
@@ -59,7 +88,6 @@ export interface WorkspaceStoreState {
 	openWorkspaceIds: string[];
 	activeWorkspaceId: string | null;
 	activePaneId: string | null;
-	visitedWorkspaceIds: Set<string>;
 	paneTerminals: Record<string, PaneTerminalState>;
 }
 
@@ -89,6 +117,7 @@ export interface WorkspaceStoreActions {
 
 	// Workspace lifecycle
 	initWorkspace: (workspaceId: string) => Promise<void>;
+	destroyAllTerminals: () => void;
 
 	// Global event subscription
 	subscribeToEvents: () => Promise<() => void>;
@@ -97,14 +126,55 @@ export interface WorkspaceStoreActions {
 export type WorkspaceStore = WorkspaceStoreState & WorkspaceStoreActions;
 
 export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
+	// Coalesces rapid terminal-output events into one rAF refresh per pane
 	const pendingRefreshPanes = new Set<string>();
 
+	// Guards against concurrent initPane calls for the same pane (TOCTOU protection)
+	const initializingPanes = new Set<string>();
+
+	// Tracks which workspaces have been initialized (lazy terminal creation)
+	const visitedWorkspaceIds = new Set<string>();
+
+	// Reverse lookup: terminal-output/exit events arrive with terminalId, but store is keyed by paneId
+	const terminalToPaneMap = new Map<string, string>();
+
 	function findPaneByTerminalId(terminalId: string): string | undefined {
-		const terminals = get().paneTerminals;
-		for (const [paneId, state] of Object.entries(terminals)) {
-			if (state.terminalId === terminalId) return paneId;
-		}
-		return undefined;
+		return terminalToPaneMap.get(terminalId);
+	}
+
+	/** Update a single pane's terminal state with a partial patch. */
+	function setPaneTerminal(paneId: string, patch: Partial<PaneTerminalState>): void {
+		set((state) => {
+			const current = state.paneTerminals[paneId];
+			return {
+				paneTerminals: {
+					...state.paneTerminals,
+					[paneId]: { ...DEFAULT_PANE_TERMINAL, ...current, ...patch },
+				},
+			};
+		});
+	}
+
+	/** Update a single workspace field atomically via set() callback. */
+	function updateWorkspace(workspaceId: string, patch: Partial<Workspace>): void {
+		set((state) => {
+			const ws = state.workspaces[workspaceId];
+			if (!ws) return state;
+			return {
+				workspaces: { ...state.workspaces, [workspaceId]: { ...ws, ...patch } },
+			};
+		});
+	}
+
+	/** Register a new workspace and make it active. */
+	function registerWorkspace(id: string, workspace: Workspace, tree: LayoutNode): void {
+		visitedWorkspaceIds.add(id);
+		set((state) => ({
+			workspaces: { ...state.workspaces, [id]: workspace },
+			openWorkspaceIds: [...state.openWorkspaceIds, id],
+			activeWorkspaceId: id,
+			activePaneId: getFirstPaneId(tree) ?? null,
+		}));
 	}
 
 	return {
@@ -113,7 +183,6 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 		openWorkspaceIds: [],
 		activeWorkspaceId: null,
 		activePaneId: null,
-		visitedWorkspaceIds: new Set<string>(),
 		paneTerminals: {},
 
 		// -- Workspace CRUD --
@@ -132,14 +201,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 				panes,
 			};
 
-			set((state) => ({
-				workspaces: { ...state.workspaces, [id]: workspace },
-				openWorkspaceIds: [...state.openWorkspaceIds, id],
-				activeWorkspaceId: id,
-				activePaneId: getFirstPaneId(layout.tree) ?? null,
-				visitedWorkspaceIds: new Set([...state.visitedWorkspaceIds, id]),
-			}));
-
+			registerWorkspace(id, workspace, layout.tree);
 			return id;
 		},
 
@@ -173,43 +235,38 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 				panes: newPanes,
 			};
 
-			set((state) => ({
-				workspaces: { ...state.workspaces, [newId]: newWorkspace },
-				openWorkspaceIds: [...state.openWorkspaceIds, newId],
-				activeWorkspaceId: newId,
-				activePaneId: getFirstPaneId(newTree) ?? null,
-				visitedWorkspaceIds: new Set([...state.visitedWorkspaceIds, newId]),
-			}));
-
+			registerWorkspace(newId, newWorkspace, newTree);
 			return newId;
 		},
 
 		removeWorkspace: (workspaceId: string) => {
-			const workspace = get().workspaces[workspaceId];
+			const { workspaces, openWorkspaceIds, activeWorkspaceId, activePaneId, paneTerminals } =
+				get();
+			const workspace = workspaces[workspaceId];
 			if (!workspace) return;
 
 			// Collect terminal IDs for async cleanup
 			const paneIds = Object.keys(workspace.panes);
-			const terminalIds: string[] = [];
-			for (const paneId of paneIds) {
-				const tid = get().paneTerminals[paneId]?.terminalId;
-				if (tid) terminalIds.push(tid);
-			}
+			const terminalIds = paneIds
+				.map((id) => paneTerminals[id]?.terminalId)
+				.filter((tid): tid is string => tid != null);
 
 			// Build new state
-			const { [workspaceId]: _, ...remainingWorkspaces } = get().workspaces;
-			const newOpenIds = get().openWorkspaceIds.filter((id) => id !== workspaceId);
-			const newPaneTerminals = { ...get().paneTerminals };
+			const { [workspaceId]: _removedWorkspace, ...remainingWorkspaces } = workspaces;
+			const newOpenIds = openWorkspaceIds.filter((id) => id !== workspaceId);
+			const newPaneTerminals = { ...paneTerminals };
 			for (const paneId of paneIds) {
+				const tid = newPaneTerminals[paneId]?.terminalId;
+				if (tid) terminalToPaneMap.delete(tid);
 				delete newPaneTerminals[paneId];
 			}
 
 			// Determine new active workspace
-			let newActiveId = get().activeWorkspaceId;
-			let newActivePaneId = get().activePaneId;
+			let newActiveId = activeWorkspaceId;
+			let newActivePaneId = activePaneId;
 
 			if (newActiveId === workspaceId) {
-				const oldIndex = get().openWorkspaceIds.indexOf(workspaceId);
+				const oldIndex = openWorkspaceIds.indexOf(workspaceId);
 				newActiveId = newOpenIds[Math.min(oldIndex, newOpenIds.length - 1)] ?? null;
 				if (newActiveId) {
 					const nextWs = remainingWorkspaces[newActiveId];
@@ -219,21 +276,19 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 				}
 			}
 
-			const newVisited = new Set(get().visitedWorkspaceIds);
-			newVisited.delete(workspaceId);
+			visitedWorkspaceIds.delete(workspaceId);
 
 			set({
 				workspaces: remainingWorkspaces,
 				openWorkspaceIds: newOpenIds,
 				activeWorkspaceId: newActiveId,
 				activePaneId: newActivePaneId,
-				visitedWorkspaceIds: newVisited,
 				paneTerminals: newPaneTerminals,
 			});
 
-			// Async cleanup — fire and forget
+			// Async cleanup
 			for (const tid of terminalIds) {
-				invoke("destroy_terminal", { id: tid }).catch(console.error);
+				destroyTerminalAsync(tid);
 			}
 
 			// If no workspaces left, create a new default one
@@ -243,22 +298,17 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 		},
 
 		renameWorkspace: (workspaceId: string, name: string) => {
-			const workspace = get().workspaces[workspaceId];
-			if (!workspace) return;
-			set((state) => ({
-				workspaces: { ...state.workspaces, [workspaceId]: { ...workspace, name } },
-			}));
+			updateWorkspace(workspaceId, { name });
 		},
 
 		setWorkspaceColor: (workspaceId: string, color: Workspace["color"]) => {
-			const workspace = get().workspaces[workspaceId];
-			if (!workspace) return;
-			set((state) => ({
-				workspaces: { ...state.workspaces, [workspaceId]: { ...workspace, color } },
-			}));
+			updateWorkspace(workspaceId, { color });
 		},
 
 		reorderWorkspaces: (ids: string[]) => {
+			const { workspaces } = get();
+			const valid = ids.every((id) => id in workspaces);
+			if (!valid) return;
 			set({ openWorkspaceIds: ids });
 		},
 
@@ -268,17 +318,17 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			const workspace = get().workspaces[workspaceId];
 			if (!workspace) return;
 
-			const wasVisited = get().visitedWorkspaceIds.has(workspaceId);
+			const wasVisited = visitedWorkspaceIds.has(workspaceId);
 			const firstPaneId = getFirstPaneId(workspace.layout.tree) ?? null;
 
-			set((state) => ({
+			visitedWorkspaceIds.add(workspaceId);
+			set({
 				activeWorkspaceId: workspaceId,
 				activePaneId: firstPaneId,
-				visitedWorkspaceIds: new Set([...state.visitedWorkspaceIds, workspaceId]),
-			}));
+			});
 
 			if (!wasVisited) {
-				get().initWorkspace(workspaceId);
+				get().initWorkspace(workspaceId).catch(console.error);
 			}
 		},
 
@@ -308,20 +358,24 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 				startupCommand: null,
 			};
 
-			set((state) => ({
-				workspaces: {
-					...state.workspaces,
-					[workspaceId]: {
-						...workspace,
-						layout: { type: "custom", tree: newTree },
-						panes: { ...workspace.panes, [newPaneId]: newPaneConfig },
+			set((state) => {
+				const current = state.workspaces[workspaceId];
+				if (!current) return state;
+				return {
+					workspaces: {
+						...state.workspaces,
+						[workspaceId]: {
+							...current,
+							layout: customLayout(newTree),
+							panes: { ...current.panes, [newPaneId]: newPaneConfig },
+						},
 					},
-				},
-				activePaneId: newPaneId,
-			}));
+					activePaneId: newPaneId,
+				};
+			});
 
 			// Initialize terminal for the new pane
-			get().initPane(newPaneId);
+			get().initPane(newPaneId).catch(console.error);
 		},
 
 		closePane: (paneId: string) => {
@@ -346,77 +400,72 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			// No change (pane not found)
 			if (newTree === workspace.layout.tree) return;
 
-			const { [paneId]: _removedPane, ...remainingPanes } = workspace.panes;
-			const { [paneId]: _removedTerminal, ...remainingPaneTerminals } = get().paneTerminals;
+			if (terminalId) terminalToPaneMap.delete(terminalId);
 
-			let newActivePaneId = get().activePaneId;
-			if (newActivePaneId === paneId) {
-				newActivePaneId = getFirstPaneId(newTree) ?? null;
-			}
+			set((state) => {
+				const current = state.workspaces[workspaceId];
+				if (!current) return state;
+				const { [paneId]: _removedPane, ...remainingPanes } = current.panes;
+				const { [paneId]: _removedTerminal, ...remainingPaneTerminals } = state.paneTerminals;
 
-			set({
-				workspaces: {
-					...get().workspaces,
-					[workspaceId]: {
-						...workspace,
-						layout: { type: "custom", tree: newTree },
-						panes: remainingPanes,
+				let newActivePaneId = state.activePaneId;
+				if (newActivePaneId === paneId) {
+					newActivePaneId = getFirstPaneId(newTree) ?? null;
+				}
+
+				return {
+					workspaces: {
+						...state.workspaces,
+						[workspaceId]: {
+							...current,
+							layout: customLayout(newTree),
+							panes: remainingPanes,
+						},
 					},
-				},
-				activePaneId: newActivePaneId,
-				paneTerminals: remainingPaneTerminals,
+					activePaneId: newActivePaneId,
+					paneTerminals: remainingPaneTerminals,
+				};
 			});
 
 			// Async cleanup
 			if (terminalId) {
-				invoke("destroy_terminal", { id: terminalId }).catch(console.error);
+				destroyTerminalAsync(terminalId);
 			}
 		},
 
 		updatePaneSizes: (workspaceId: string, path: readonly number[], sizes: readonly number[]) => {
-			const workspace = get().workspaces[workspaceId];
-			if (!workspace) return;
+			set((state) => {
+				const workspace = state.workspaces[workspaceId];
+				if (!workspace) return state;
 
-			const newTree = updateSizesAtPath(workspace.layout.tree, path, sizes);
-			if (newTree === workspace.layout.tree) return;
+				const newTree = updateSizesAtPath(workspace.layout.tree, path, sizes);
+				if (newTree === workspace.layout.tree) return state;
 
-			set((state) => ({
-				workspaces: {
-					...state.workspaces,
-					[workspaceId]: {
-						...workspace,
-						layout: { type: "custom", tree: newTree },
+				return {
+					workspaces: {
+						...state.workspaces,
+						[workspaceId]: { ...workspace, layout: customLayout(newTree) },
 					},
-				},
-			}));
+				};
+			});
 		},
 
 		// -- Per-pane terminal IPC --
 
 		initPane: async (paneId: string) => {
 			if (get().paneTerminals[paneId]?.terminalId) return;
+			if (initializingPanes.has(paneId)) return;
+			initializingPanes.add(paneId);
 
 			try {
 				const terminalId = await invoke<string>("create_terminal");
-				set((state) => ({
-					paneTerminals: {
-						...state.paneTerminals,
-						[paneId]: { terminalId, grid: null, connected: true, error: null },
-					},
-				}));
+				terminalToPaneMap.set(terminalId, paneId);
+				setPaneTerminal(paneId, { terminalId, connected: true });
 				await get().refreshPaneGrid(paneId);
 			} catch (e) {
-				set((state) => ({
-					paneTerminals: {
-						...state.paneTerminals,
-						[paneId]: {
-							terminalId: null,
-							grid: null,
-							connected: false,
-							error: `Failed to create terminal: ${e}`,
-						},
-					},
-				}));
+				setPaneTerminal(paneId, { error: `Failed to create terminal: ${formatError(e)}` });
+			} finally {
+				initializingPanes.delete(paneId);
 			}
 		},
 
@@ -426,18 +475,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			try {
 				await invoke("write_to_terminal", { id: terminalId, data });
 			} catch (e) {
-				set((state) => ({
-					paneTerminals: {
-						...state.paneTerminals,
-						[paneId]: {
-							...state.paneTerminals[paneId],
-							terminalId: state.paneTerminals[paneId]?.terminalId ?? null,
-							grid: state.paneTerminals[paneId]?.grid ?? null,
-							connected: false,
-							error: `Write failed: ${e}`,
-						},
-					},
-				}));
+				setPaneTerminal(paneId, { connected: false, error: `Write failed: ${formatError(e)}` });
 			}
 		},
 
@@ -447,7 +485,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			try {
 				await invoke("resize_terminal", { id: terminalId, cols, rows });
 			} catch (e) {
-				console.error(`Failed to resize pane ${paneId}:`, e);
+				setPaneTerminal(paneId, { connected: false, error: `Resize failed: ${formatError(e)}` });
 			}
 		},
 
@@ -456,20 +494,12 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			if (!terminalId) return;
 			try {
 				const grid = await invoke<CellGrid>("get_terminal_state", { id: terminalId });
-				set((state) => ({
-					paneTerminals: {
-						...state.paneTerminals,
-						[paneId]: {
-							...state.paneTerminals[paneId],
-							terminalId: state.paneTerminals[paneId]?.terminalId ?? null,
-							connected: state.paneTerminals[paneId]?.connected ?? false,
-							error: state.paneTerminals[paneId]?.error ?? null,
-							grid,
-						},
-					},
-				}));
+				setPaneTerminal(paneId, { grid });
 			} catch (e) {
-				console.error(`Failed to refresh grid for pane ${paneId}:`, e);
+				setPaneTerminal(paneId, {
+					connected: false,
+					error: `Grid refresh failed: ${formatError(e)}`,
+				});
 			}
 		},
 
@@ -480,16 +510,25 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			if (!workspace) return;
 
 			const paneIds = getPaneIdsInOrder(workspace.layout.tree);
-			for (const paneId of paneIds) {
-				await get().initPane(paneId);
+			await Promise.all(paneIds.map((paneId) => get().initPane(paneId)));
+		},
+
+		destroyAllTerminals: () => {
+			const { paneTerminals } = get();
+			for (const pts of Object.values(paneTerminals)) {
+				if (pts.terminalId) {
+					destroyTerminalAsync(pts.terminalId);
+				}
 			}
+			terminalToPaneMap.clear();
 		},
 
 		// -- Global event subscription --
 
 		subscribeToEvents: async () => {
 			const unlistenOutput = await listen<unknown>(EVENT_TERMINAL_OUTPUT, (event) => {
-				const terminalId = event.payload as string;
+				if (typeof event.payload !== "string") return;
+				const terminalId = event.payload;
 				const paneId = findPaneByTerminalId(terminalId);
 				if (!paneId) return;
 
@@ -502,22 +541,13 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => {
 			});
 
 			const unlistenExit = await listen<unknown>(EVENT_TERMINAL_EXIT, (event) => {
-				const terminalId = event.payload as string;
+				if (typeof event.payload !== "string") return;
+				const terminalId = event.payload;
 				const paneId = findPaneByTerminalId(terminalId);
 				if (!paneId) return;
 
-				set((state) => ({
-					paneTerminals: {
-						...state.paneTerminals,
-						[paneId]: {
-							...state.paneTerminals[paneId],
-							terminalId: null,
-							grid: state.paneTerminals[paneId]?.grid ?? null,
-							connected: false,
-							error: null,
-						},
-					},
-				}));
+				terminalToPaneMap.delete(terminalId);
+				setPaneTerminal(paneId, { terminalId: null, connected: false });
 			});
 
 			return () => {

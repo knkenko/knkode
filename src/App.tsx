@@ -4,8 +4,11 @@ import { useWorkspaceStore } from "./store/workspace";
 
 export default function App() {
 	const activePaneId = useWorkspaceStore((s) => s.activePaneId);
-	const paneTerminal = useWorkspaceStore((s) =>
-		activePaneId ? s.paneTerminals[activePaneId] : undefined,
+	const connected = useWorkspaceStore((s) =>
+		activePaneId ? (s.paneTerminals[activePaneId]?.connected ?? false) : false,
+	);
+	const error = useWorkspaceStore((s) =>
+		activePaneId ? (s.paneTerminals[activePaneId]?.error ?? null) : null,
 	);
 	const initedRef = useRef(false);
 
@@ -18,6 +21,7 @@ export default function App() {
 
 		async function init() {
 			const workspaceId = store.createWorkspace();
+			// Subscribe before initializing panes to avoid missing terminal output events
 			unsubscribe = await store.subscribeToEvents();
 			await store.initWorkspace(workspaceId);
 		}
@@ -26,11 +30,9 @@ export default function App() {
 
 		return () => {
 			unsubscribe?.();
+			useWorkspaceStore.getState().destroyAllTerminals();
 		};
 	}, []);
-
-	const connected = paneTerminal?.connected ?? false;
-	const error = paneTerminal?.error ?? null;
 
 	return (
 		<div className="flex h-screen w-screen flex-col bg-[#1d1f21]">

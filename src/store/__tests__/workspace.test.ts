@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WORKSPACE_COLORS } from "../../types/workspace";
 import { useWorkspaceStore } from "../workspace";
+
+let terminalIdCounter = 0;
 
 // Mock Tauri IPC — all terminal operations are async and call invoke/listen
 vi.mock("@tauri-apps/api/core", () => ({
 	invoke: vi.fn(async (cmd: string) => {
-		if (cmd === "create_terminal") return "mock-terminal-id";
+		if (cmd === "create_terminal") return `mock-terminal-${++terminalIdCounter}`;
 		if (cmd === "get_terminal_state")
 			return {
 				rows: 24,
@@ -20,7 +23,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 	listen: vi.fn(async () => () => {}),
 }));
 
-/** Get activePaneId with a preceding assertion so Biome doesn't require non-null assertions. */
+/** Get activePaneId, throwing if null — avoids non-null assertions that Biome flags. */
 function getActivePaneId(): string {
 	const id = useWorkspaceStore.getState().activePaneId;
 	if (!id) throw new Error("Expected activePaneId to be set");
@@ -33,7 +36,6 @@ function resetStore() {
 		openWorkspaceIds: [],
 		activeWorkspaceId: null,
 		activePaneId: null,
-		visitedWorkspaceIds: new Set<string>(),
 		paneTerminals: {},
 	});
 }
@@ -41,6 +43,8 @@ function resetStore() {
 describe("workspace store", () => {
 	beforeEach(() => {
 		resetStore();
+		vi.clearAllMocks();
+		terminalIdCounter = 0;
 	});
 
 	// -- createWorkspace --
@@ -54,7 +58,6 @@ describe("workspace store", () => {
 			expect(state.openWorkspaceIds).toContain(id);
 			expect(state.activeWorkspaceId).toBe(id);
 			expect(state.activePaneId).toBeTruthy();
-			expect(state.visitedWorkspaceIds.has(id)).toBe(true);
 		});
 
 		it("creates workspace with custom name and preset", () => {
@@ -123,7 +126,6 @@ describe("workspace store", () => {
 			const state = useWorkspaceStore.getState();
 
 			expect(state.workspaces[id]).toBeUndefined();
-			// Auto-creates a new workspace when last one is removed
 			expect(state.openWorkspaceIds).toHaveLength(1);
 			expect(state.activeWorkspaceId).toBeTruthy();
 		});
@@ -139,6 +141,21 @@ describe("workspace store", () => {
 
 			expect(state.activeWorkspaceId).toBe(id2);
 			expect(state.openWorkspaceIds).toEqual([id1, id2]);
+		});
+
+		it("calls destroy_terminal for each pane's terminal", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			const id = useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+
+			await useWorkspaceStore.getState().initPane(paneId);
+			const terminalId = useWorkspaceStore.getState().paneTerminals[paneId]?.terminalId;
+			expect(terminalId).toBeTruthy();
+
+			useWorkspaceStore.getState().removeWorkspace(id);
+
+			expect(vi.mocked(invoke)).toHaveBeenCalledWith("destroy_terminal", { id: terminalId });
+			expect(useWorkspaceStore.getState().paneTerminals[paneId]).toBeUndefined();
 		});
 
 		it("does nothing for non-existent workspace", () => {
@@ -163,7 +180,6 @@ describe("workspace store", () => {
 
 		it("does nothing for non-existent workspace", () => {
 			useWorkspaceStore.getState().renameWorkspace("non-existent", "Name");
-			// No error thrown
 		});
 	});
 
@@ -172,9 +188,10 @@ describe("workspace store", () => {
 	describe("setWorkspaceColor", () => {
 		it("changes workspace color", () => {
 			const id = useWorkspaceStore.getState().createWorkspace();
-			useWorkspaceStore.getState().setWorkspaceColor(id, "#e74c3c");
+			const targetColor = WORKSPACE_COLORS[1];
+			useWorkspaceStore.getState().setWorkspaceColor(id, targetColor);
 
-			expect(useWorkspaceStore.getState().workspaces[id]?.color).toBe("#e74c3c");
+			expect(useWorkspaceStore.getState().workspaces[id]?.color).toBe(targetColor);
 		});
 	});
 
@@ -189,6 +206,17 @@ describe("workspace store", () => {
 			useWorkspaceStore.getState().reorderWorkspaces([id3, id1, id2]);
 
 			expect(useWorkspaceStore.getState().openWorkspaceIds).toEqual([id3, id1, id2]);
+		});
+
+		it("rejects invalid workspace IDs", () => {
+			const id1 = useWorkspaceStore.getState().createWorkspace();
+			useWorkspaceStore.getState().createWorkspace();
+
+			useWorkspaceStore.getState().reorderWorkspaces([id1, "non-existent"]);
+
+			// Order should not change
+			expect(useWorkspaceStore.getState().openWorkspaceIds[0]).toBe(id1);
+			expect(useWorkspaceStore.getState().openWorkspaceIds).toHaveLength(2);
 		});
 	});
 
@@ -276,7 +304,6 @@ describe("workspace store", () => {
 			useWorkspaceStore.getState().closePane(paneId);
 
 			const after = useWorkspaceStore.getState();
-			// Workspace was removed but a new default one was auto-created
 			expect(after.workspaces[id]).toBeUndefined();
 			expect(after.openWorkspaceIds).toHaveLength(1);
 		});
@@ -298,6 +325,7 @@ describe("workspace store", () => {
 			useWorkspaceStore.getState().updatePaneSizes(id, [], [60, 40]);
 
 			const after = useWorkspaceStore.getState().workspaces[id];
+			expect(after?.layout.tree.type).toBe("branch");
 			if (after?.layout.tree.type === "branch") {
 				expect(after.layout.tree.children[0]?.size).toBe(60);
 				expect(after.layout.tree.children[1]?.size).toBe(40);
@@ -316,7 +344,7 @@ describe("workspace store", () => {
 
 			const terminal = useWorkspaceStore.getState().paneTerminals[paneId];
 			expect(terminal).toBeDefined();
-			expect(terminal?.terminalId).toBe("mock-terminal-id");
+			expect(terminal?.terminalId).toBe("mock-terminal-1");
 			expect(terminal?.connected).toBe(true);
 			expect(terminal?.grid).toBeDefined();
 		});
@@ -330,8 +358,91 @@ describe("workspace store", () => {
 			const callCount = vi.mocked(invoke).mock.calls.length;
 
 			await useWorkspaceStore.getState().initPane(paneId);
-			// No additional create_terminal call
 			expect(vi.mocked(invoke).mock.calls.length).toBe(callCount);
+		});
+
+		it("sets error state when create_terminal fails", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			vi.mocked(invoke).mockRejectedValueOnce(new Error("Backend unavailable"));
+
+			useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+
+			await useWorkspaceStore.getState().initPane(paneId);
+
+			const terminal = useWorkspaceStore.getState().paneTerminals[paneId];
+			expect(terminal?.connected).toBe(false);
+			expect(terminal?.error).toContain("Backend unavailable");
+			expect(terminal?.terminalId).toBeNull();
+		});
+	});
+
+	// -- writeToPane --
+
+	describe("writeToPane", () => {
+		it("calls invoke with correct arguments", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+			await useWorkspaceStore.getState().initPane(paneId);
+
+			await useWorkspaceStore.getState().writeToPane(paneId, "ls\r");
+
+			expect(vi.mocked(invoke)).toHaveBeenCalledWith("write_to_terminal", {
+				id: "mock-terminal-1",
+				data: "ls\r",
+			});
+		});
+
+		it("no-ops when pane has no terminal", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+
+			await useWorkspaceStore.getState().writeToPane(paneId, "data");
+
+			expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("write_to_terminal", expect.anything());
+		});
+
+		it("sets error state on write failure", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+			await useWorkspaceStore.getState().initPane(paneId);
+
+			vi.mocked(invoke).mockRejectedValueOnce(new Error("IPC broken"));
+			await useWorkspaceStore.getState().writeToPane(paneId, "data");
+
+			const terminal = useWorkspaceStore.getState().paneTerminals[paneId];
+			expect(terminal?.connected).toBe(false);
+			expect(terminal?.error).toContain("IPC broken");
+		});
+	});
+
+	// -- initWorkspace --
+
+	describe("initWorkspace", () => {
+		it("initializes all panes in a multi-pane workspace", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			const id = useWorkspaceStore.getState().createWorkspace("2-column");
+
+			await useWorkspaceStore.getState().initWorkspace(id);
+
+			const paneIds = Object.keys(useWorkspaceStore.getState().workspaces[id]?.panes ?? {});
+			expect(paneIds).toHaveLength(2);
+			for (const paneId of paneIds) {
+				expect(useWorkspaceStore.getState().paneTerminals[paneId]?.connected).toBe(true);
+			}
+			// create_terminal should be called twice (once per pane)
+			const createCalls = vi.mocked(invoke).mock.calls.filter((c) => c[0] === "create_terminal");
+			expect(createCalls).toHaveLength(2);
+		});
+
+		it("no-ops for non-existent workspace", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			await useWorkspaceStore.getState().initWorkspace("non-existent");
+
+			expect(vi.mocked(invoke)).not.toHaveBeenCalledWith("create_terminal");
 		});
 	});
 
@@ -342,6 +453,23 @@ describe("workspace store", () => {
 			const unsub = await useWorkspaceStore.getState().subscribeToEvents();
 			expect(typeof unsub).toBe("function");
 			unsub();
+		});
+	});
+
+	// -- destroyAllTerminals --
+
+	describe("destroyAllTerminals", () => {
+		it("calls destroy_terminal for every active terminal", async () => {
+			const { invoke } = await import("@tauri-apps/api/core");
+			useWorkspaceStore.getState().createWorkspace();
+			const paneId = getActivePaneId();
+			await useWorkspaceStore.getState().initPane(paneId);
+
+			useWorkspaceStore.getState().destroyAllTerminals();
+
+			expect(vi.mocked(invoke)).toHaveBeenCalledWith("destroy_terminal", {
+				id: "mock-terminal-1",
+			});
 		});
 	});
 });
