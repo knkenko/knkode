@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 2 (IPC adapter layer) implemented on `feature/ipc-adapter-layer`. PR #9 open, review complete.
+Phase 2 complete and merged. Ready for Phase 3.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -13,10 +13,9 @@ Phase 2 (IPC adapter layer) implemented on `feature/ipc-adapter-layer`. PR #9 op
 - [x] Rust backend compiles (Tauri 2)
 - [x] Old knktx boards/notes/plans archived (clean slate)
 - [x] PROJECT_DESCRIPTION.md updated with new approach
-- [x] Phase 2: IPC adapter layer — shared types + tauri-api.ts + shell plugin
+- [x] Phase 2: IPC adapter layer — shared types + tauri-api.ts + shell plugin (PR #9 merged)
 
 ## What's Next
-- [ ] PR #9 review fixes (race condition, error handling, naming conventions)
 - [ ] Phase 3: Rust commands (config, PTY, app)
 - [ ] Phase 4: Rust PTY manager (portable-pty)
 - [ ] Phase 5: Terminal emulation (wezterm-term + canvas renderer)
@@ -26,20 +25,12 @@ Phase 2 (IPC adapter layer) implemented on `feature/ipc-adapter-layer`. PR #9 op
 - [ ] Phase 9: Native menu
 - [ ] Phase 10: Frontend changes (port v1 React code)
 
-## Active Reviews
-
-### PR #9 — feat: IPC adapter layer + shared types (Phase 2)
-- State: `docs/reviews/PR-9/_state.json`
-- Agents: 10/10 completed
-- Phase: done (compiled report ready)
-- Top findings: race condition in event listeners, silent error swallowing, openExternal URL validation
-
 ## Key Reference
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Branch
-`feature/ipc-adapter-layer`
+`main`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
