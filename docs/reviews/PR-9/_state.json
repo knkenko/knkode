@@ -1,0 +1,23 @@
+{
+  "type": "watch-pr",
+  "pr_number": 9,
+  "pr_title": "feat: IPC adapter layer + shared types (Phase 2)",
+  "branch": "feature/ipc-adapter-layer",
+  "base_branch": "main",
+  "head_sha": "72da186c4f0298eefa15a9ddd3f79bc8ab7d4c38",
+  "started_at": "2026-03-17T20:02:00.000Z",
+  "agents": {
+    "code-reviewer": { "status": "completed", "file": "code-reviewer.md" },
+    "security-auditor": { "status": "completed", "file": "security-auditor.md" },
+    "silent-failure-hunter": { "status": "completed", "file": "silent-failure-hunter.md" },
+    "code-simplifier": { "status": "completed", "file": "code-simplifier.md" },
+    "dry-reuse": { "status": "completed", "file": "dry-reuse.md" },
+    "comment-analyzer": { "status": "completed", "file": "comment-analyzer.md" },
+    "type-design-analyzer": { "status": "completed", "file": "type-design-analyzer.md" },
+    "typescript-pro": { "status": "completed", "file": "typescript-pro.md" },
+    "rust-reviewer": { "status": "completed", "file": "rust-reviewer.md" },
+    "efficiency": { "status": "completed", "file": "efficiency.md" }
+  },
+  "phase": "done",
+  "compiled": true
+}
