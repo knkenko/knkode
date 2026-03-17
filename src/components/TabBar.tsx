@@ -42,11 +42,11 @@ export default function TabBar() {
 
 	return (
 		<div
-			className="flex shrink-0 items-end border-b border-neutral-700/50 bg-neutral-900/80"
+			className="flex shrink-0 items-end border-b border-neutral-700/50 bg-neutral-900"
 			data-tauri-drag-region=""
 		>
 			<div
-				className="flex flex-1 items-end gap-0.5 overflow-x-auto overflow-y-hidden pl-[72px] pr-2 pt-1.5"
+				className="flex flex-1 items-end gap-0.5 overflow-x-auto overflow-y-hidden pl-[90px] pr-2 pt-1.5"
 				role="tablist"
 				aria-label="Workspaces"
 			>

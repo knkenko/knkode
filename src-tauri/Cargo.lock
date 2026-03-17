@@ -1714,6 +1714,7 @@ version = "0.1.0"
 dependencies = [
  "alacritty_terminal",
  "log",
+ "parking_lot",
  "serde",
  "serde_json",
  "tauri",
