@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 2 in progress — workspace/pane/tab system. PR #6 (workspace store) merged.
+Phase 2 in progress — workspace/pane/tab system. PR #7 (split pane renderer) merged.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -44,9 +44,16 @@ Phase 2 in progress — workspace/pane/tab system. PR #6 (workspace store) merge
   - DRY helpers: setPaneTerminal, updateWorkspace, registerWorkspace
   - 33 tests, 10-agent review: 30 findings, all 30 addressed
 
+- [x] PR #7: Recursive split pane layout with allotment (merged)
+  - SplitPaneLayout with recursive LayoutNodeRenderer + BranchRenderer
+  - Allotment-based resizable splits with debounced size persistence
+  - Pane component with store-derived color/label, a11y attributes
+  - String-encoded paths + React.memo for efficient re-rendering
+  - Shared useDebouncedCallback hook extracted to src/hooks/
+  - 9-agent review: 17 findings, 15 fixed, 2 skipped (nitpicks)
+
 ## What's Next
 - Phase 2 (continued):
-  - PR #7: split pane UI (allotment) — review fixes applied, ready to merge
   - PR #8: tab bar
   - PR #9: drag-and-drop
   - PR #10: keybindings
@@ -55,7 +62,7 @@ Phase 2 in progress — workspace/pane/tab system. PR #6 (workspace store) merge
 None
 
 ## Active Branch
-`feature/split-pane-renderer` (PR #7)
+`main`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
