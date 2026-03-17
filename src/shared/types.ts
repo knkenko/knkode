@@ -1,10 +1,10 @@
-/** Default unfocused pane dimming (moderate). */
+/** Default unfocused pane dimming opacity. */
 export const DEFAULT_UNFOCUSED_DIM = 0.3;
 /** Maximum unfocused dim overlay opacity. UI clamps to [0, MAX_UNFOCUSED_DIM]. */
 export const MAX_UNFOCUSED_DIM = 0.9;
 
 /** Default pane background opacity (fully opaque). */
-export const DEFAULT_PANE_OPACITY = 1 as const;
+export const DEFAULT_PANE_OPACITY = 1;
 /** Minimum pane background opacity. UI clamps to [MIN_PANE_OPACITY, 1]. */
 export const MIN_PANE_OPACITY = 0.05;
 
@@ -19,12 +19,12 @@ export type EffectLevel = (typeof EFFECT_LEVELS)[number];
  *  glow box-shadow alpha values, scanline overlay opacity, noise overlay opacity,
  *  and scrollbar accent color alpha.
  *  All values are in [0, 1] so they can be used directly as CSS opacity. */
-export const EFFECT_MULTIPLIERS: Record<EffectLevel, number> = {
+export const EFFECT_MULTIPLIERS = {
 	off: 0,
 	subtle: 0.4,
 	medium: 0.7,
 	intense: 1.0,
-} as const;
+} as const satisfies Record<EffectLevel, number>;
 
 export function isEffectLevel(v: unknown): v is EffectLevel {
 	return typeof v === "string" && (EFFECT_LEVELS as readonly string[]).includes(v);
@@ -73,46 +73,46 @@ export interface AnsiColors {
 }
 
 export interface PaneTheme {
-	background: string;
-	foreground: string;
-	fontSize: number;
-	/** Black overlay opacity on unfocused panes. Clamped to [0, MAX_UNFOCUSED_DIM] by the UI. */
-	unfocusedDim: number;
-	fontFamily?: string;
+	readonly background: string;
+	readonly foreground: string;
+	readonly fontSize: number;
+	/** Overlay opacity on unfocused panes. Clamped to [0, MAX_UNFOCUSED_DIM] by the UI. */
+	readonly unfocusedDim: number;
+	readonly fontFamily?: string;
 	/** Terminal scrollback buffer size in lines. Valid: 500–50000. Defaults to DEFAULT_SCROLLBACK if omitted. */
-	scrollback?: number;
+	readonly scrollback?: number;
 	/** Terminal cursor style. Defaults to DEFAULT_CURSOR_STYLE if omitted. */
-	cursorStyle?: CursorStyle;
+	readonly cursorStyle?: CursorStyle;
 	/** Terminal background opacity. MIN_PANE_OPACITY = near-transparent, 1 = fully opaque. Clamped to [MIN_PANE_OPACITY, 1] by the UI. Defaults to DEFAULT_PANE_OPACITY. */
-	paneOpacity?: number;
+	readonly paneOpacity?: number;
 	/** ANSI 16-color palette. When omitted, terminal uses built-in defaults. */
-	ansiColors?: AnsiColors;
+	readonly ansiColors?: AnsiColors;
 	/** UI accent color (buttons, focus rings, active tab indicators). Auto-derived if omitted. */
-	accent?: string;
+	readonly accent?: string;
 	/** Glow color for theme effects (box-shadow). No glow when omitted. */
-	glow?: string;
+	readonly glow?: string;
 	/** CSS gradient overlay on terminal panes. Applied as a low-opacity overlay. */
-	gradient?: string;
+	readonly gradient?: string;
 	/** Gradient overlay intensity. Controls the div opacity via EFFECT_MULTIPLIERS. */
-	gradientLevel?: EffectLevel;
+	readonly gradientLevel?: EffectLevel;
 	/** Glow effect intensity. Controls box-shadow alpha scaling via EFFECT_MULTIPLIERS. */
-	glowLevel?: EffectLevel;
+	readonly glowLevel?: EffectLevel;
 	/** CRT scanline overlay intensity. Controls scanline opacity via EFFECT_MULTIPLIERS. */
-	scanlineLevel?: EffectLevel;
+	readonly scanlineLevel?: EffectLevel;
 	/** Noise/grain overlay intensity. Static texture for film/CRT aesthetic. */
-	noiseLevel?: EffectLevel;
+	readonly noiseLevel?: EffectLevel;
 	/** Scrollbar thumb accent color intensity. Uses glow/accent color. */
-	scrollbarAccent?: EffectLevel;
+	readonly scrollbarAccent?: EffectLevel;
 	/** Custom cursor color (hex). Falls back to foreground when omitted. */
-	cursorColor?: string;
+	readonly cursorColor?: string;
 	/** Custom selection highlight color (hex). Falls back to foreground+alpha when omitted. */
-	selectionColor?: string;
+	readonly selectionColor?: string;
 	/** Terminal line height multiplier. Range [1.0, 2.0]. Defaults to DEFAULT_LINE_HEIGHT. */
-	lineHeight?: number;
-	/** Theme preset name — links to THEME_PRESETS for full identity. */
-	preset?: string;
+	readonly lineHeight?: number;
+	/** Theme preset name. Identifies which built-in theme this config was derived from. */
+	readonly preset?: string;
 	/** Status bar position. Defaults to 'top' */
-	statusBarPosition?: "top" | "bottom";
+	readonly statusBarPosition?: "top" | "bottom";
 }
 
 export interface PaneConfig {
@@ -193,9 +193,9 @@ export interface ScrollDebugEvent {
 	readonly details?: Record<string, unknown>;
 }
 
-// --- v2 additions: terminal grid rendering ---
+// --- Terminal grid rendering ---
 
-/** A single cell in the terminal grid, serialized from Rust (wezterm-term). */
+/** A single cell in the terminal grid. Designed to be serialized from Rust (wezterm-term). */
 export interface CellSnapshot {
 	readonly text: string;
 	readonly fg: string;
@@ -206,21 +206,21 @@ export interface CellSnapshot {
 	readonly strikethrough: boolean;
 }
 
-/** Full terminal grid state, emitted by Rust via `terminal:render` event.
- *  Replaces raw PTY data — the frontend never sees escape sequences. */
+/** Full terminal grid state, designed to be emitted by Rust via `terminal:render` event.
+ *  The frontend receives pre-rendered grid snapshots, never raw escape sequences. */
 export interface GridSnapshot {
 	readonly rows: readonly (readonly CellSnapshot[])[];
-	readonly cursor_row: number;
-	readonly cursor_col: number;
-	readonly cursor_visible: boolean;
+	readonly cursorRow: number;
+	readonly cursorCol: number;
+	readonly cursorVisible: boolean;
 	readonly cols: number;
-	readonly total_rows: number;
-	readonly scrollback_rows: number;
+	readonly totalRows: number;
+	readonly scrollbackRows: number;
 }
 
-// --- API interface (implemented by tauri-api.ts) ---
+// --- API interface ---
 
-type Unsubscribe = () => void;
+export type Unsubscribe = () => void;
 
 export interface KnkodeApi {
 	// App
@@ -243,7 +243,7 @@ export interface KnkodeApi {
 	resizePty(id: string, cols: number, rows: number): Promise<void>;
 	killPty(id: string): Promise<void>;
 
-	// Terminal render events (replaces onPtyData — raw bytes no longer sent to frontend)
+	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered snapshots
 	onTerminalRender(cb: (id: string, grid: GridSnapshot) => void): Unsubscribe;
 	onPtyExit(cb: (id: string, exitCode: number) => void): Unsubscribe;
 	onPtyCwdChanged(cb: (paneId: string, cwd: string) => void): Unsubscribe;
