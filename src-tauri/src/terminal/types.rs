@@ -68,7 +68,10 @@ fn named_color_to_rgb(color: NamedColor) -> TermColor {
         NamedColor::BrightWhite => TermColor::new(0xff, 0xff, 0xff),
         NamedColor::Foreground => TermColor::new(0xc5, 0xc8, 0xc6),
         NamedColor::Background => TermColor::new(0x1d, 0x1f, 0x21),
-        _ => TermColor::new(0xc5, 0xc8, 0xc6),
+        other => {
+            log::debug!("Unknown named color {other:?}, falling back to foreground");
+            TermColor::new(0xc5, 0xc8, 0xc6)
+        }
     }
 }
 
@@ -127,7 +130,7 @@ fn cell_to_data(cell: &Cell) -> CellData {
     }
 }
 
-/// Extract the visible grid from a locked Term into a serializable CellGrid.
+/// Extract the visible grid from a Term reference into a serializable CellGrid.
 pub fn extract_grid(term: &Term<EventProxy>) -> CellGrid {
     let grid = term.grid();
     let cols = grid.columns();

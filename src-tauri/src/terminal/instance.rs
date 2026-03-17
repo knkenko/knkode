@@ -83,21 +83,35 @@ impl TerminalInstance {
         loop {
             let event = match event_rx.recv() {
                 Ok(e) => e,
-                Err(_) => break,
+                Err(_) => {
+                    log::warn!("Terminal {terminal_id}: event channel disconnected");
+                    if let Err(e) = app_handle.emit("terminal-exit", &terminal_id) {
+                        log::warn!(
+                            "Terminal {terminal_id}: failed to emit exit on disconnect: {e}"
+                        );
+                    }
+                    break;
+                }
             };
 
             match &event {
                 Event::Exit | Event::ChildExit(_) => {
-                    let _ = app_handle.emit("terminal-exit", &terminal_id);
+                    if let Err(e) = app_handle.emit("terminal-exit", &terminal_id) {
+                        log::warn!("Terminal {terminal_id}: failed to emit exit: {e}");
+                    }
                     break;
                 }
                 Event::PtyWrite(text) => {
                     pty_notifier.notify(text.clone().into_bytes());
                 }
                 Event::Wakeup => {
-                    let _ = app_handle.emit("terminal-output", &terminal_id);
+                    if let Err(e) = app_handle.emit("terminal-output", &terminal_id) {
+                        log::warn!("Terminal {terminal_id}: failed to emit output: {e}");
+                    }
                 }
-                _ => {}
+                other => {
+                    log::trace!("Terminal {terminal_id}: unhandled event: {other:?}");
+                }
             }
         }
     }
@@ -140,7 +154,9 @@ impl TerminalInstance {
 
 impl Drop for TerminalInstance {
     fn drop(&mut self) {
-        let _ = self.notifier.0.send(Msg::Shutdown);
+        if let Err(e) = self.notifier.0.send(Msg::Shutdown) {
+            log::warn!("Terminal {}: failed to send shutdown: {e}", self.id);
+        }
     }
 }
 
