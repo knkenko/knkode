@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Ensure full-viewport app with no scrollbars — Tailwind Preflight handles margin/padding reset */
+#root {
+	overflow: hidden;
+}

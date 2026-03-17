@@ -1,0 +1,15 @@
+[package]
+name = "knkode-v2"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "knkode_v2_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
