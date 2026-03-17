@@ -200,6 +200,8 @@ export default function Terminal() {
 	return (
 		<div
 			ref={containerRef}
+			role="application"
+			aria-label="Terminal"
 			className="h-full w-full overflow-hidden bg-[#1d1f21] focus:outline-none"
 			onKeyDown={handleKeyDown}
 			tabIndex={0}

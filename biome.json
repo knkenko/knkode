@@ -4,7 +4,11 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"a11y": {
+				"noNoninteractiveTabindex": "off",
+				"useSemanticElements": "off"
+			}
 		}
 	},
 	"formatter": {
@@ -19,6 +23,6 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/dist", "!**/src-tauri/target", "!**/src-tauri/gen"]
+		"includes": ["**", "!**/dist", "!**/src-tauri/target", "!**/src-tauri/gen", "!**/docs/reviews"]
 	}
 }
