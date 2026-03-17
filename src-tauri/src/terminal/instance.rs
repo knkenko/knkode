@@ -79,6 +79,7 @@ impl TerminalInstance {
         })
     }
 
+    /// Receive alacritty events and forward them as Tauri events to the frontend.
     fn event_subscription_loop(
         event_rx: mpsc::Receiver<Event>,
         pty_notifier: Notifier,
