@@ -5,6 +5,8 @@ use tauri::AppHandle;
 use crate::terminal::instance::TerminalInstance;
 use crate::terminal::types::CellGrid;
 
+const MAX_TERMINALS: usize = 16;
+
 /// Manages all active terminal instances.
 pub struct TerminalManager {
     terminals: Mutex<HashMap<String, TerminalInstance>>,
@@ -18,11 +20,15 @@ impl TerminalManager {
     }
 
     pub fn create(&self, app_handle: AppHandle) -> Result<String, String> {
+        let mut terminals = self.terminals.lock().map_err(|e| e.to_string())?;
+        if terminals.len() >= MAX_TERMINALS {
+            return Err(format!("Maximum terminal limit reached ({MAX_TERMINALS})"));
+        }
+
         let id = uuid::Uuid::new_v4().to_string();
         let instance =
             TerminalInstance::spawn(id.clone(), app_handle).map_err(|e| e.to_string())?;
 
-        let mut terminals = self.terminals.lock().map_err(|e| e.to_string())?;
         terminals.insert(id.clone(), instance);
         Ok(id)
     }

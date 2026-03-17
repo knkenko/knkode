@@ -37,3 +37,8 @@ pub fn get_terminal_state(
 ) -> Result<CellGrid, String> {
     manager.get_state(&id)
 }
+
+#[tauri::command]
+pub fn destroy_terminal(id: String, manager: State<'_, TerminalManager>) -> Result<(), String> {
+    manager.remove(&id)
+}
