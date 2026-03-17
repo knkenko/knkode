@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import SplitPaneLayout from "./components/SplitPaneLayout";
+import TabBar from "./components/TabBar";
 import { useWorkspaceStore } from "./store/workspace";
 
 export default function App() {
@@ -29,7 +30,10 @@ export default function App() {
 
 	return (
 		<div className="flex h-screen w-screen flex-col bg-[#1d1f21]">
-			<ActiveWorkspace />
+			<TabBar />
+			<div className="min-h-0 flex-1">
+				<ActiveWorkspace />
+			</div>
 		</div>
 	);
 }
