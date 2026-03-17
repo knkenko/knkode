@@ -59,10 +59,14 @@ Phase 2 in progress — workspace/pane/tab system. PR #7 (split pane renderer) m
   - PR #10: keybindings
 
 ## Active Reviews
-None
+
+### PR #8 — feat: workspace tab bar with context menu
+- State: `docs/reviews/PR-8/_state.json`
+- Agents: 9/9 completed
+- Phase: done — review complete, awaiting fixes
 
 ## Active Branch
-`main`
+`feature/tab-bar` (PR #8)
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
