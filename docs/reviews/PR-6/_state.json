@@ -1,0 +1,23 @@
+{
+  "type": "watch-pr",
+  "pr_number": 6,
+  "pr_title": "feat: multi-workspace Zustand store with per-pane terminal IPC",
+  "branch": "feature/workspace-store",
+  "base_branch": "main",
+  "head_sha": "12eace56f21f34b8f9be35dafda6a3c330d8d12d",
+  "started_at": "2026-03-17T15:47:00Z",
+  "agents": {
+    "code-reviewer": { "status": "completed", "file": "code-reviewer.md" },
+    "security-auditor": { "status": "completed", "file": "security-auditor.md" },
+    "silent-failure-hunter": { "status": "completed", "file": "silent-failure-hunter.md" },
+    "code-simplifier": { "status": "completed", "file": "code-simplifier.md" },
+    "dry-reuse": { "status": "completed", "file": "dry-reuse.md" },
+    "comment-analyzer": { "status": "completed", "file": "comment-analyzer.md" },
+    "type-design-analyzer": { "status": "completed", "file": "type-design-analyzer.md" },
+    "pr-test-analyzer": { "status": "completed", "file": "pr-test-analyzer.md" },
+    "typescript-reviewer": { "status": "completed", "file": "typescript-reviewer.md" },
+    "efficiency": { "status": "completed", "file": "efficiency.md" }
+  },
+  "phase": "done",
+  "compiled": true
+}
