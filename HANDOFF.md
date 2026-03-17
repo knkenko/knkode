@@ -28,16 +28,9 @@ Phase 1 complete — single working terminal in a native Tauri window.
   - 10-agent review: 24 findings, all 24 addressed
 - [x] PR #4: Cmd+V paste fix (merged)
 
-## Active Reviews
-
-### PR #5 — feat: layout tree types, operations, and presets
-- State: `docs/reviews/PR-5/_state.json`
-- Agents: 10/10 completed
-- Phase: done (compiled report ready)
-
 ## What's Next
 - Phase 2: Port workspace/pane/tab system (store, layout tree, drag-drop)
-  - PR #5 (layout types) — under review, fixes pending
+  - PR #5 (layout types) — review fixes applied, ready to merge
   - PR #2: workspace store
   - PR #3: split pane UI (allotment)
   - PR #4: tab bar
