@@ -37,18 +37,14 @@ Phase 2 in progress — workspace/pane/tab system. PR #5 (layout types) merged.
 
 ## What's Next
 - Phase 2 (continued):
-  - PR #2: workspace store (PR #6 open, review complete)
+  - PR #2: workspace store (PR #6 open, review fixes applied — ready for merge)
   - PR #3: split pane UI (allotment)
   - PR #4: tab bar
   - PR #5: drag-and-drop
   - PR #6: keybindings
 
 ## Active Reviews
-
-### PR #6 — feat: multi-workspace Zustand store with per-pane terminal IPC
-- State: `docs/reviews/PR-6/_state.json`
-- Agents: 10/10 completed
-- Phase: done — review complete, awaiting fixes
+None
 
 ## Active Branch
 `feature/workspace-store`
