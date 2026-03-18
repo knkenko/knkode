@@ -118,15 +118,28 @@ impl ConfigStore {
     }
 
     /// Read and parse a JSON file, returning `None` on NotFound.
+    /// On corrupt JSON, backs up the file to `{path}.corrupt` and returns `None`.
     fn read_file(&self, path: &Path) -> Result<Option<Value>, String> {
-        match fs::read_to_string(path) {
-            Ok(content) => {
-                let parsed: Value = serde_json::from_str(&content)
-                    .map_err(|e| format!("Invalid JSON in {}: {e}", path.display()))?;
-                Ok(Some(parsed))
+        let content = match fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(e) => return Err(format!("Failed to read {}: {e}", path.display())),
+        };
+
+        match serde_json::from_str(&content) {
+            Ok(parsed) => Ok(Some(parsed)),
+            Err(e) => {
+                eprintln!(
+                    "[config-store] Corrupt JSON in {}, backing up: {e}",
+                    path.display()
+                );
+                let mut backup = path.as_os_str().to_owned();
+                backup.push(".corrupt");
+                if let Err(copy_err) = fs::copy(path, &backup) {
+                    eprintln!("[config-store] Failed to backup corrupt file: {copy_err}");
+                }
+                Ok(None)
             }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(format!("Failed to read {}: {e}", path.display())),
         }
     }
 
