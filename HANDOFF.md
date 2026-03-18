@@ -31,7 +31,11 @@ Phase 6a complete — Config store hardening merged (PR #14).
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-None.
+
+### PR #15 — feat: CWD tracker with git branch and PR detection
+- State: `docs/reviews/PR-15/_state.json`
+- Agents: 8/8 completed
+- Phase: done — review compiled, awaiting fix pass
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
