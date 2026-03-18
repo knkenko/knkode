@@ -1,12 +1,11 @@
 use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
+use tauri::AppHandle;
 
 /// Build the native application menu.
 ///
-/// - macOS: App name (About, Services, Hide, Quit) + Edit + View + Window
-/// - Windows/Linux: Edit + View + Window
-pub fn build_menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
-    let handle = app.handle();
-
+/// - macOS: App name (standard app menu) + Edit + View + Window
+/// - Windows/Linux: Edit + Window
+pub fn build_menu(handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let edit_menu = Submenu::with_items(
         handle,
         "Edit",
@@ -57,15 +56,11 @@ pub fn build_menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
 
     #[cfg(target_os = "macos")]
     let menu = {
-        let app_name = handle
-            .config()
-            .product_name
-            .clone()
-            .unwrap_or_else(|| "knkode".to_string());
+        let app_name = handle.config().product_name.as_deref().unwrap_or("knkode");
 
         let app_menu = Submenu::with_items(
             handle,
-            &app_name,
+            app_name,
             true,
             &[
                 &PredefinedMenuItem::about(handle, None, None)?,

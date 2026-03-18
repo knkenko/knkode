@@ -40,7 +40,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::log_scroll_debug,
         ])
         .setup(|app| {
-            let menu = menu::build_menu(app)?;
+            let menu = menu::build_menu(app.handle())?;
             app.set_menu(menu)?;
             window::setup_window(app);
             Ok(())
