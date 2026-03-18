@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 5a complete — Rust terminal emulation layer (PR #12 merged). Phase 5b next.
+Phase 5b in progress — Frontend canvas terminal renderer (PR #13 open).
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -29,6 +29,16 @@ Phase 5a complete — Rust terminal emulation layer (PR #12 merged). Phase 5b ne
 ## Key Reference
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
+
+## Active Branch
+`feature/canvas-terminal`
+
+## Active Reviews
+
+### PR #13 — feat: frontend canvas terminal renderer (Phase 5b)
+- State: `docs/reviews/PR-13/_state.json`
+- Agents: 8/8 completed
+- Phase: done — all 21 findings fixed and pushed, ready to merge
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
