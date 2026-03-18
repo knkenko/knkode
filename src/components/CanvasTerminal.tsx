@@ -4,10 +4,10 @@ import type { CellSnapshot, GridSnapshot } from "../shared/types";
 import {
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
-	DEFAULT_FONT_FAMILY,
 	DEFAULT_FONT_SIZE,
 	DEFAULT_LINE_HEIGHT,
 } from "../shared/types";
+import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 
 export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;

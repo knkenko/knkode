@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 8 complete — Native menu merged (PR #17).
+Phase 9 in progress — PR #18 (frontend foundation) under review.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -32,7 +32,10 @@ Phase 8 complete — Native menu merged (PR #17).
 
 ## Active Reviews
 
-None.
+### PR #18 — feat: port frontend foundation (store, utils, hooks, data)
+- State: `docs/reviews/PR-18/_state.json`
+- Agents: 9/9 completed
+- Phase: fixes applied
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
