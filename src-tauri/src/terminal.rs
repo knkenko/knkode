@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tattoy_termwiz::surface::CursorVisibility;
 use tattoy_wezterm_term::color::ColorPalette;
+use tattoy_wezterm_term::config::TerminalConfiguration;
 use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
 
 const DEFAULT_DPI: u32 = 96;
@@ -61,7 +62,7 @@ pub struct GridSnapshot {
 pub struct TerminalState {
     terminals: Mutex<HashMap<String, Terminal>>,
     palette: ColorPalette,
-    config: Arc<TermConfig>,
+    config: Arc<dyn TerminalConfiguration + Send + Sync>,
 }
 
 impl TerminalState {
