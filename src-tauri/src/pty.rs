@@ -245,6 +245,8 @@ impl PtyManager {
                 .resize(pty_size(cols, rows))
                 .map_err(|e| format!("PTY resize failed: {e}"))?;
         }
+        // Also resize the terminal state machine so GridSnapshot dimensions match
+        self.terminal_state.resize(id, cols as usize, rows as usize);
         Ok(())
     }
 
