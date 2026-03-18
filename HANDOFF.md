@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 3 complete and merged. Ready for Phase 4.
+Phase 4 complete and merged. Ready for Phase 5.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -15,9 +15,9 @@ Phase 3 complete and merged. Ready for Phase 4.
 - [x] PROJECT_DESCRIPTION.md updated with new approach
 - [x] Phase 2: IPC adapter layer — shared types + tauri-api.ts + shell plugin (PR #9 merged)
 - [x] Phase 3: Rust backend commands + ConfigStore (PR #10 merged)
+- [x] Phase 4: Rust PTY manager with portable-pty 0.9 (PR #11 merged)
 
 ## What's Next
-- [ ] Phase 4: Rust PTY manager (portable-pty)
 - [ ] Phase 5: Terminal emulation (wezterm-term + canvas renderer)
 - [ ] Phase 6: Config store (Rust, ~/.knkode/)
 - [ ] Phase 7: CWD tracker (Rust)
