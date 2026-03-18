@@ -399,21 +399,35 @@ impl ConfigStore {
         self.read_json_object(&self.path(APP_STATE_FILE))
     }
 
+    /// Merge the provided object into app-state.json (read-modify-write under write lock).
+    /// Frontend-originated saves go through this path to avoid clobbering backend-written fields.
     pub fn save_app_state(&self, state: Value) -> Result<(), String> {
-        if !state.is_object() {
-            return Err("Expected JSON object for app state".to_string());
-        }
+        let incoming = match state {
+            Value::Object(obj) => obj,
+            _ => return Err("Expected JSON object for app state".to_string()),
+        };
         let _guard = self.acquire_write()?;
-        self.write_json_atomic(&self.path(APP_STATE_FILE), &state)
+        let path = self.path(APP_STATE_FILE);
+        let mut current = match self.read_file(&path)? {
+            Some(Value::Object(obj)) => obj,
+            Some(_) => return Err(format!("Expected JSON object in {}", path.display())),
+            None => serde_json::Map::new(),
+        };
+        // Merge incoming fields into existing state
+        for (k, v) in incoming {
+            current.insert(k, v);
+        }
+        self.write_json_atomic(&path, &Value::Object(current))
     }
 
-    /// Update a single top-level field in app-state.json without replacing the entire object.
+    /// Update a single top-level field in app-state.json (read-modify-write under write lock).
     pub fn update_app_state_field(&self, key: &str, value: Value) -> Result<(), String> {
         let _guard = self.acquire_write()?;
         let path = self.path(APP_STATE_FILE);
         let mut state = match self.read_file(&path)? {
             Some(Value::Object(obj)) => obj,
-            _ => serde_json::Map::new(),
+            Some(_) => return Err(format!("Expected JSON object in {}", path.display())),
+            None => serde_json::Map::new(),
         };
         state.insert(key.to_string(), value);
         self.write_json_atomic(&path, &Value::Object(state))
