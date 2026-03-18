@@ -127,12 +127,12 @@ const MAX_UI_FONT_SIZE = 15
 const DEFAULT_UI_FONT_SIZE = 13
 
 export interface ThemeVarOptions {
-	bg?: string
-	fg?: string
-	fontFamily?: string
-	fontSize?: number
-	accent?: string
-	glow?: string
+	bg?: string | undefined
+	fg?: string | undefined
+	fontFamily?: string | undefined
+	fontSize?: number | undefined
+	accent?: string | undefined
+	glow?: string | undefined
 }
 
 /**

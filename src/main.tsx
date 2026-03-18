@@ -1,7 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import { App } from "./App";
 import { api } from "./lib/tauri-api";
+import "./components/pane-chrome/all-variants";
 import "./styles.css";
 
 // One-time global assignment for v1-compatible components that reference window.api
