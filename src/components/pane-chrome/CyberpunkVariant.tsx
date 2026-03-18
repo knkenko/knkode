@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,29 +23,29 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const glowColor = theme.glow ?? theme.accent
-	const c1 = theme.accent
-	const c2 = theme.glow || '#05d9e8'
+	const glowColor = theme.glow ?? theme.accent;
+	const c1 = theme.accent;
+	const c2 = theme.glow || "#05d9e8";
 
 	// If not focused, we dull the colors to simulate power-saving
-	const activeC1 = isFocused ? c1 : `${c1}88`
-	const activeC2 = isFocused ? c2 : `${c2}88`
+	const activeC1 = isFocused ? c1 : `${c1}88`;
+	const activeC2 = isFocused ? c2 : `${c2}88`;
 
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} w-full flex items-center gap-2 px-4 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest shrink-0 select-none transition-all duration-300 z-20`}
+			className={`${headerProps.className || ""} w-full flex items-center gap-2 px-4 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest shrink-0 select-none transition-all duration-300 z-20`}
 			style={{
 				...headerProps.style,
 				height: 32,
 				color: theme.foreground,
-				backgroundColor: '#0d0221',
-				borderTop: isBottom ? `1px solid ${activeC1}88` : 'none',
-				borderBottom: isBottom ? 'none' : `1px solid ${activeC1}88`,
+				backgroundColor: "#0d0221",
+				borderTop: isBottom ? `1px solid ${activeC1}88` : "none",
+				borderBottom: isBottom ? "none" : `1px solid ${activeC1}88`,
 				background: `linear-gradient(90deg, ${activeC1}26 0%, ${activeC2}14 100%), #0d0221`,
-				boxShadow: isFocused ? `0 ${isBottom ? '-1px' : '1px'} 8px ${glowColor}44` : 'none',
+				boxShadow: isFocused ? `0 ${isBottom ? "-1px" : "1px"} 8px ${glowColor}44` : "none",
 			}}
 		>
 			{isEditing ? (
@@ -58,7 +58,7 @@ function Frame({
 				<span
 					onDoubleClick={onDoubleClickLabel}
 					className="cursor-default shrink-0"
-					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${activeC1}` : 'none' }}
+					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${activeC1}` : "none" }}
 				>
 					{label}
 				</span>
@@ -67,7 +67,7 @@ function Frame({
 			<span className="opacity-30">/</span>
 
 			<span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap opacity-60 text-[9px]">
-				{'// '}
+				{"// "}
 				{cwd}
 			</span>
 
@@ -79,8 +79,8 @@ function Frame({
 					style={{
 						color: theme.background,
 						backgroundColor: activeC1,
-						clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)',
-						textShadow: isFocused ? `0 0 2px ${theme.background}` : 'none',
+						clipPath: "polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)",
+						textShadow: isFocused ? `0 0 2px ${theme.background}` : "none",
 					}}
 				>
 					{branch}
@@ -92,7 +92,7 @@ function Frame({
 					pr={pr}
 					onOpenExternal={onOpenExternal}
 					className="bg-transparent text-[9px] font-bold uppercase tracking-widest px-1 leading-none opacity-50 hover:opacity-100 transition-opacity"
-					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${glowColor}88` : 'none' }}
+					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${glowColor}88` : "none" }}
 				/>
 			)}
 
@@ -100,7 +100,7 @@ function Frame({
 				className={`bg-transparent border-none cursor-pointer px-1 leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
 				style={{ color: activeC2 }}
 			>
-				{'>_'}
+				{">_"}
 			</SnippetTrigger>
 
 			<button
@@ -137,7 +137,7 @@ function Frame({
 			)}
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
@@ -148,11 +148,11 @@ function Frame({
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
-	const glowColor = theme.glow ?? theme.accent
+	const glowColor = theme.glow ?? theme.accent;
 	return (
 		<button
 			type="button"
@@ -163,15 +163,15 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 				backgroundColor: `${theme.background}dd`,
 				color: theme.accent,
 				border: `1px solid ${theme.accent}66`,
-				clipPath: 'polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)',
+				clipPath: "polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%)",
 				boxShadow: `0 0 12px ${glowColor}44`,
 				textShadow: `0 0 6px ${glowColor}66`,
 			}}
 		>
 			↓ BOTTOM
 		</button>
-	)
+	);
 }
 
-const CyberpunkVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Cyberpunk', CyberpunkVariant)
+const CyberpunkVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Cyberpunk", CyberpunkVariant);

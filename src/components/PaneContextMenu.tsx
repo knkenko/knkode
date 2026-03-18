@@ -1,49 +1,44 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import {
-	MAX_FONT_SIZE,
-	MIN_FONT_SIZE,
-	type PaneConfig,
-	type PaneTheme,
-} from '../shared/types'
-import { useClickOutside } from '../hooks/useClickOutside'
-import { type ScreenPosition, VIEWPORT_MARGIN, getPortalRoot } from '../lib/ui-constants'
-import { useStore } from '../store'
-import { isValidCwd } from '../utils/validation'
-import { FontPicker } from './FontPicker'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { getPortalRoot, type ScreenPosition, VIEWPORT_MARGIN } from "../lib/ui-constants";
+import { MAX_FONT_SIZE, MIN_FONT_SIZE, type PaneConfig, type PaneTheme } from "../shared/types";
+import { useStore } from "../store";
+import { isValidCwd } from "../utils/validation";
+import { FontPicker } from "./FontPicker";
 
-type ContextPanelKind = 'cwd' | 'cmd' | 'theme' | 'move'
+type ContextPanelKind = "cwd" | "cmd" | "theme" | "move";
 
 interface ThemeInputFields {
-	background: string
-	foreground: string
-	fontSize: string
-	fontFamily: string
+	background: string;
+	foreground: string;
+	fontSize: string;
+	fontFamily: string;
 }
 
 function initThemeInput(override: Partial<PaneTheme> | null | undefined): ThemeInputFields {
 	return {
-		background: override?.background ?? '',
-		foreground: override?.foreground ?? '',
-		fontSize: override?.fontSize?.toString() ?? '',
-		fontFamily: override?.fontFamily ?? '',
-	}
+		background: override?.background ?? "",
+		foreground: override?.foreground ?? "",
+		fontSize: override?.fontSize?.toString() ?? "",
+		fontFamily: override?.fontFamily ?? "",
+	};
 }
 
 interface PaneContextMenuProps {
-	paneId: string
-	workspaceId: string
-	config: PaneConfig
-	workspaceTheme: PaneTheme
-	canClose: boolean
-	anchorPos: ScreenPosition
-	onUpdateConfig: (updates: Partial<PaneConfig>) => void
-	onSplitVertical: () => void
-	onSplitHorizontal: () => void
-	onClose: () => void
-	onRename: () => void
-	onFocus: () => void
-	onDismiss: () => void
+	paneId: string;
+	workspaceId: string;
+	config: PaneConfig;
+	workspaceTheme: PaneTheme;
+	canClose: boolean;
+	anchorPos: ScreenPosition;
+	onUpdateConfig: (updates: Partial<PaneConfig>) => void;
+	onSplitVertical: () => void;
+	onSplitHorizontal: () => void;
+	onClose: () => void;
+	onRename: () => void;
+	onFocus: () => void;
+	onDismiss: () => void;
 }
 
 export function PaneContextMenu({
@@ -61,46 +56,45 @@ export function PaneContextMenu({
 	onFocus,
 	onDismiss,
 }: PaneContextMenuProps) {
-	const [clampedPos, setClampedPos] = useState<ScreenPosition | null>(null)
-	const [contextPanel, setContextPanel] = useState<ContextPanelKind | null>(null)
-	const contextRef = useRef<HTMLDivElement>(null)
-	const [cwdInput, setCwdInput] = useState(config.cwd)
-	const [cmdInput, setCmdInput] = useState(config.startupCommand ?? '')
-	const [themeInput, setThemeInput] = useState(() => initThemeInput(config.themeOverride))
+	const [clampedPos, setClampedPos] = useState<ScreenPosition | null>(null);
+	const [contextPanel, setContextPanel] = useState<ContextPanelKind | null>(null);
+	const contextRef = useRef<HTMLDivElement>(null);
+	const [cwdInput, setCwdInput] = useState(config.cwd);
+	const [cmdInput, setCmdInput] = useState(config.startupCommand ?? "");
+	const [themeInput, setThemeInput] = useState(() => initThemeInput(config.themeOverride));
 
-	const movePaneToWorkspace = useStore((s) => s.movePaneToWorkspace)
-	const workspaces = useStore((s) => s.workspaces)
-	const openWorkspaceIds = useStore((s) => s.appState.openWorkspaceIds)
-	const ensurePty = useStore((s) => s.ensurePty)
-	const killPtys = useStore((s) => s.killPtys)
+	const movePaneToWorkspace = useStore((s) => s.movePaneToWorkspace);
+	const workspaces = useStore((s) => s.workspaces);
+	const openWorkspaceIds = useStore((s) => s.appState.openWorkspaceIds);
+	const ensurePty = useStore((s) => s.ensurePty);
+	const killPtys = useStore((s) => s.killPtys);
 
 	const otherOpenWorkspaces = useMemo(
 		() => workspaces.filter((w) => openWorkspaceIds.includes(w.id) && w.id !== workspaceId),
 		[workspaces, openWorkspaceIds, workspaceId],
-	)
+	);
 
 	const closeContext = useCallback(() => {
-		onDismiss()
-		setContextPanel(null)
-	}, [onDismiss])
+		onDismiss();
+		setContextPanel(null);
+	}, [onDismiss]);
 
-
-	useClickOutside(contextRef, closeContext, true)
+	useClickOutside(contextRef, closeContext, true);
 
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') closeContext()
-		}
-		document.addEventListener('keydown', handler)
-		return () => document.removeEventListener('keydown', handler)
-	}, [closeContext])
+			if (e.key === "Escape") closeContext();
+		};
+		document.addEventListener("keydown", handler);
+		return () => document.removeEventListener("keydown", handler);
+	}, [closeContext]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: contextPanel intentionally triggers re-clamp on sub-panel toggle
 	useLayoutEffect(() => {
-		const el = contextRef.current
-		if (!el) return
+		const el = contextRef.current;
+		if (!el) return;
 		const clamp = () => {
-			const { width, height } = el.getBoundingClientRect()
+			const { width, height } = el.getBoundingClientRect();
 			setClampedPos({
 				x: Math.max(
 					VIEWPORT_MARGIN,
@@ -110,12 +104,12 @@ export function PaneContextMenu({
 					VIEWPORT_MARGIN,
 					Math.min(anchorPos.y, window.innerHeight - height - VIEWPORT_MARGIN),
 				),
-			})
-		}
-		clamp()
-		window.addEventListener('resize', clamp)
-		return () => window.removeEventListener('resize', clamp)
-	}, [anchorPos.x, anchorPos.y, contextPanel])
+			});
+		};
+		clamp();
+		window.addEventListener("resize", clamp);
+		return () => window.removeEventListener("resize", clamp);
+	}, [anchorPos.x, anchorPos.y, contextPanel]);
 
 	// Portalled to escape pane stacking context — z-order breaks without this
 	return createPortal(
@@ -123,10 +117,10 @@ export function PaneContextMenu({
 			ref={contextRef}
 			className="ctx-menu"
 			style={{
-				position: 'fixed',
+				position: "fixed",
 				left: clampedPos?.x ?? 0,
 				top: clampedPos?.y ?? 0,
-				visibility: clampedPos ? 'visible' : 'hidden',
+				visibility: clampedPos ? "visible" : "hidden",
 			}}
 			onMouseDown={(e) => e.stopPropagation()}
 		>
@@ -134,8 +128,8 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					onSplitVertical()
-					closeContext()
+					onSplitVertical();
+					closeContext();
 				}}
 			>
 				Split Vertical
@@ -144,8 +138,8 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					onSplitHorizontal()
-					closeContext()
+					onSplitHorizontal();
+					closeContext();
 				}}
 			>
 				Split Horizontal
@@ -156,11 +150,11 @@ export function PaneContextMenu({
 					<button
 						type="button"
 						className="ctx-item"
-						onClick={() => setContextPanel(contextPanel === 'move' ? null : 'move')}
+						onClick={() => setContextPanel(contextPanel === "move" ? null : "move")}
 					>
 						Move to Workspace
 					</button>
-					{contextPanel === 'move' && (
+					{contextPanel === "move" && (
 						<div className="flex flex-col gap-0.5 px-1 py-1">
 							{otherOpenWorkspaces.map((ws) => (
 								<button
@@ -168,8 +162,8 @@ export function PaneContextMenu({
 									key={ws.id}
 									className="ctx-item flex items-center gap-2"
 									onClick={() => {
-										movePaneToWorkspace(workspaceId, paneId, ws.id)
-										closeContext()
+										movePaneToWorkspace(workspaceId, paneId, ws.id);
+										closeContext();
 									}}
 								>
 									<span
@@ -189,8 +183,8 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					onRename()
-					closeContext()
+					onRename();
+					closeContext();
 				}}
 			>
 				Rename
@@ -199,22 +193,22 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					setCwdInput(config.cwd)
-					setContextPanel(contextPanel === 'cwd' ? null : 'cwd')
+					setCwdInput(config.cwd);
+					setContextPanel(contextPanel === "cwd" ? null : "cwd");
 				}}
 			>
 				Change Directory
 			</button>
-			{contextPanel === 'cwd' && (
+			{contextPanel === "cwd" && (
 				<form
 					className="flex gap-1 px-3 py-1 pb-2"
 					onSubmit={(e) => {
-						e.preventDefault()
-						const cwd = cwdInput.trim()
+						e.preventDefault();
+						const cwd = cwdInput.trim();
 						if (cwd && isValidCwd(cwd)) {
-							onUpdateConfig({ cwd })
+							onUpdateConfig({ cwd });
 						}
-						closeContext()
+						closeContext();
 					}}
 				>
 					<input
@@ -234,21 +228,21 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					setCmdInput(config.startupCommand ?? '')
-					setContextPanel(contextPanel === 'cmd' ? null : 'cmd')
+					setCmdInput(config.startupCommand ?? "");
+					setContextPanel(contextPanel === "cmd" ? null : "cmd");
 				}}
 			>
 				Set Startup Command
 			</button>
-			{contextPanel === 'cmd' && (
+			{contextPanel === "cmd" && (
 				<form
 					className="flex gap-1 px-3 py-1 pb-2"
 					onSubmit={(e) => {
-						e.preventDefault()
+						e.preventDefault();
 						onUpdateConfig({
 							startupCommand: cmdInput.trim() || null,
-						})
-						closeContext()
+						});
+						closeContext();
 					}}
 				>
 					<input
@@ -268,13 +262,13 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					setThemeInput(initThemeInput(config.themeOverride))
-					setContextPanel(contextPanel === 'theme' ? null : 'theme')
+					setThemeInput(initThemeInput(config.themeOverride));
+					setContextPanel(contextPanel === "theme" ? null : "theme");
 				}}
 			>
 				Theme Override
 			</button>
-			{contextPanel === 'theme' && (
+			{contextPanel === "theme" && (
 				<div className="flex flex-col gap-1.5 px-3 py-1 pb-2">
 					<label className="flex items-center justify-between gap-2 text-[11px] text-content-muted">
 						<span>Background</span>
@@ -309,8 +303,8 @@ export function PaneContextMenu({
 								type="button"
 								onClick={() =>
 									setThemeInput((t) => {
-										const cur = Number(t.fontSize) || workspaceTheme.fontSize
-										return { ...t, fontSize: String(Math.max(MIN_FONT_SIZE, cur - 1)) }
+										const cur = Number(t.fontSize) || workspaceTheme.fontSize;
+										return { ...t, fontSize: String(Math.max(MIN_FONT_SIZE, cur - 1)) };
 									})
 								}
 								aria-label="Decrease font size"
@@ -325,8 +319,8 @@ export function PaneContextMenu({
 								type="button"
 								onClick={() =>
 									setThemeInput((t) => {
-										const cur = Number(t.fontSize) || workspaceTheme.fontSize
-										return { ...t, fontSize: String(Math.min(MAX_FONT_SIZE, cur + 1)) }
+										const cur = Number(t.fontSize) || workspaceTheme.fontSize;
+										return { ...t, fontSize: String(Math.min(MAX_FONT_SIZE, cur + 1)) };
 									})
 								}
 								aria-label="Increase font size"
@@ -341,22 +335,20 @@ export function PaneContextMenu({
 							type="button"
 							className="ctx-submit"
 							onClick={() => {
-								const fields: Record<string, string | number> = {}
-								if (themeInput.background) fields.background = themeInput.background
-								if (themeInput.foreground) fields.foreground = themeInput.foreground
+								const fields: Record<string, string | number> = {};
+								if (themeInput.background) fields.background = themeInput.background;
+								if (themeInput.foreground) fields.foreground = themeInput.foreground;
 								if (themeInput.fontSize) {
-									const fs = Number(themeInput.fontSize)
+									const fs = Number(themeInput.fontSize);
 									if (Number.isFinite(fs) && fs >= MIN_FONT_SIZE && fs <= MAX_FONT_SIZE)
-										fields.fontSize = fs
+										fields.fontSize = fs;
 								}
-								if (themeInput.fontFamily) fields.fontFamily = themeInput.fontFamily
+								if (themeInput.fontFamily) fields.fontFamily = themeInput.fontFamily;
 								onUpdateConfig({
 									themeOverride:
-										Object.keys(fields).length > 0
-											? (fields as Partial<PaneTheme>)
-											: null,
-								})
-								closeContext()
+										Object.keys(fields).length > 0 ? (fields as Partial<PaneTheme>) : null,
+								});
+								closeContext();
 							}}
 						>
 							Apply
@@ -365,8 +357,8 @@ export function PaneContextMenu({
 							type="button"
 							className="ctx-submit text-content-muted"
 							onClick={() => {
-								onUpdateConfig({ themeOverride: null })
-								closeContext()
+								onUpdateConfig({ themeOverride: null });
+								closeContext();
 							}}
 						>
 							Reset
@@ -379,10 +371,10 @@ export function PaneContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					killPtys([paneId])
-					ensurePty(paneId, config.cwd, config.startupCommand)
-					closeContext()
-					onFocus()
+					killPtys([paneId]);
+					ensurePty(paneId, config.cwd, config.startupCommand);
+					closeContext();
+					onFocus();
 				}}
 			>
 				Restart Pane
@@ -392,8 +384,8 @@ export function PaneContextMenu({
 					type="button"
 					className="ctx-item text-danger"
 					onClick={() => {
-						onClose()
-						closeContext()
+						onClose();
+						closeContext();
 					}}
 				>
 					Close Pane
@@ -401,5 +393,5 @@ export function PaneContextMenu({
 			)}
 		</div>,
 		getPortalRoot(),
-	)
+	);
 }

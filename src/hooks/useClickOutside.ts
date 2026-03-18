@@ -1,4 +1,4 @@
-import { type RefObject, useEffect } from 'react'
+import { type RefObject, useEffect } from "react";
 
 /**
  * Calls `onClose` when a mousedown occurs outside `ref`.
@@ -15,20 +15,20 @@ export function useClickOutside(
 	portalRef?: RefObject<HTMLElement | null>,
 ): void {
 	useEffect(() => {
-		if (!active) return
-		const el = ref.current
+		if (!active) return;
+		const el = ref.current;
 		const handler = (e: MouseEvent) => {
 			if (!e.target || !(e.target instanceof Node)) {
-				onClose()
-				return
+				onClose();
+				return;
 			}
 			if (el && !el.contains(e.target)) {
-				if (portalRef?.current?.contains(e.target)) return
-				onClose()
+				if (portalRef?.current?.contains(e.target)) return;
+				onClose();
 			}
-		}
+		};
 		// Capture phase: fires before any child element can swallow the event
-		document.addEventListener('mousedown', handler, true)
-		return () => document.removeEventListener('mousedown', handler, true)
-	}, [ref, onClose, active, portalRef])
+		document.addEventListener("mousedown", handler, true);
+		return () => document.removeEventListener("mousedown", handler, true);
+	}, [ref, onClose, active, portalRef]);
 }

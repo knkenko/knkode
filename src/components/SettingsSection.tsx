@@ -1,7 +1,7 @@
 interface SettingsSectionProps {
-	label: string
-	gap?: number
-	children: React.ReactNode
+	label: string;
+	gap?: number;
+	children: React.ReactNode;
 }
 
 export function SettingsSection({ label, gap = 12, children }: SettingsSectionProps) {
@@ -14,5 +14,5 @@ export function SettingsSection({ label, gap = 12, children }: SettingsSectionPr
 				{children}
 			</div>
 		</div>
-	)
+	);
 }

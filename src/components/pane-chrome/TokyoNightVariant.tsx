@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,23 +23,23 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} flex items-center gap-2 px-3 text-[10px] font-light shrink-0 select-none transition-all duration-300 z-20`}
+			className={`${headerProps.className || ""} flex items-center gap-2 px-3 text-[10px] font-light shrink-0 select-none transition-all duration-300 z-20`}
 			style={{
 				...headerProps.style,
 				height: 26,
 				color: theme.foreground,
 				borderTop: isBottom
 					? `1px solid ${isFocused ? `${theme.accent}66` : `${theme.foreground}11`}`
-					: 'none',
+					: "none",
 				borderBottom: isBottom
-					? 'none'
+					? "none"
 					: `1px solid ${isFocused ? `${theme.accent}66` : `${theme.foreground}11`}`,
-				backgroundColor: isFocused ? '#16161e' : 'transparent',
+				backgroundColor: isFocused ? "#16161e" : "transparent",
 			}}
 		>
 			{isEditing ? (
@@ -82,7 +82,7 @@ function Frame({
 				className={`bg-transparent border-none cursor-pointer text-[10px] px-0.5 leading-none ${FOCUS_VIS}`}
 				style={{ color: theme.foreground }}
 			>
-				{'>_'}
+				{">_"}
 			</SnippetTrigger>
 
 			<div className="flex items-center gap-0.5 opacity-0 hover:opacity-60 focus-within:opacity-60 has-[:focus-visible]:opacity-60 transition-opacity duration-300">
@@ -121,7 +121,7 @@ function Frame({
 			</div>
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
@@ -132,7 +132,7 @@ function Frame({
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
@@ -144,14 +144,14 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 			className={`absolute bottom-3 right-3 z-30 w-6 h-6 flex items-center justify-center text-sm cursor-pointer hover:brightness-125 ${FOCUS_VIS}`}
 			style={{
 				color: theme.accent,
-				backgroundColor: 'transparent',
-				border: 'none',
+				backgroundColor: "transparent",
+				border: "none",
 			}}
 		>
 			↓
 		</button>
-	)
+	);
 }
 
-const TokyoNightVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Tokyo Night', TokyoNightVariant)
+const TokyoNightVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Tokyo Night", TokyoNightVariant);

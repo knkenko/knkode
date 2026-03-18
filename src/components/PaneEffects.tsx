@@ -1,15 +1,11 @@
-import { useMemo } from 'react'
-import {
-	DEFAULT_PANE_OPACITY,
-	type PaneTheme,
-	effectMul,
-} from '../shared/types'
-import { findPreset } from '../data/theme-presets'
-import { hexToRgba, isValidGradient, resolveBackground } from '../utils/colors'
+import { useMemo } from "react";
+import { findPreset } from "../data/theme-presets";
+import { DEFAULT_PANE_OPACITY, effectMul, type PaneTheme } from "../shared/types";
+import { hexToRgba, isValidGradient, resolveBackground } from "../utils/colors";
 
 interface PaneBackgroundEffectsProps {
-	theme: PaneTheme
-	isFocused: boolean
+	theme: PaneTheme;
+	isFocused: boolean;
 }
 
 /**
@@ -25,12 +21,12 @@ interface PaneBackgroundEffectsProps {
  */
 export function PaneBackgroundEffects({ theme, isFocused }: PaneBackgroundEffectsProps) {
 	const { wrapperBg, blurPx } = useMemo(() => {
-		const opacity = theme.paneOpacity ?? DEFAULT_PANE_OPACITY
+		const opacity = theme.paneOpacity ?? DEFAULT_PANE_OPACITY;
 		return {
 			wrapperBg: resolveBackground(theme.background, opacity),
 			blurPx: opacity < 1 ? Math.round((1 - opacity) * 24) : 0,
-		}
-	}, [theme.paneOpacity, theme.background])
+		};
+	}, [theme.paneOpacity, theme.background]);
 
 	const { gradientMul, glowMul } = useMemo(
 		() => ({
@@ -38,23 +34,23 @@ export function PaneBackgroundEffects({ theme, isFocused }: PaneBackgroundEffect
 			glowMul: effectMul(theme.glowLevel),
 		}),
 		[theme.gradientLevel, theme.glowLevel],
-	)
+	);
 
 	const { effectGlow, effectGradient } = useMemo(() => {
-		const glow = theme.glow ?? theme.accent
+		const glow = theme.glow ?? theme.accent;
 		const gradient =
 			theme.gradient ??
-			(glow ? `linear-gradient(180deg, ${hexToRgba(glow, 0.25)} 0%, transparent 50%)` : null)
-		return { effectGlow: glow, effectGradient: gradient }
-	}, [theme.glow, theme.accent, theme.gradient])
+			(glow ? `linear-gradient(180deg, ${hexToRgba(glow, 0.25)} 0%, transparent 50%)` : null);
+		return { effectGlow: glow, effectGradient: gradient };
+	}, [theme.glow, theme.accent, theme.gradient]);
 
-	const glowInnerAlpha = 0.5 * glowMul
-	const glowOuterAlpha = 0.7 * glowMul
+	const glowInnerAlpha = 0.5 * glowMul;
+	const glowOuterAlpha = 0.7 * glowMul;
 
 	const presetDecoration = useMemo(
 		() => (theme.preset ? findPreset(theme.preset)?.decoration : undefined),
 		[theme.preset],
-	)
+	);
 
 	return (
 		<div
@@ -71,14 +67,14 @@ export function PaneBackgroundEffects({ theme, isFocused }: PaneBackgroundEffect
 					style={{
 						background: effectGradient,
 						opacity: gradientMul,
-						contain: 'layout paint style',
+						contain: "layout paint style",
 					}}
 				/>
 			)}
 			{presetDecoration && (
 				<div
 					className="absolute inset-0 pointer-events-none z-[1]"
-					style={{ background: presetDecoration, contain: 'layout paint style' }}
+					style={{ background: presetDecoration, contain: "layout paint style" }}
 				/>
 			)}
 			{glowMul > 0 && effectGlow && (
@@ -87,16 +83,16 @@ export function PaneBackgroundEffects({ theme, isFocused }: PaneBackgroundEffect
 					style={{
 						opacity: isFocused ? 1 : 0.5,
 						boxShadow: `inset 0 0 18px ${hexToRgba(effectGlow, glowInnerAlpha)}, inset 0 0 12px ${hexToRgba(effectGlow, glowOuterAlpha)}`,
-						contain: 'layout paint style',
+						contain: "layout paint style",
 					}}
 				/>
 			)}
 		</div>
-	)
+	);
 }
 
 interface PaneOverlayEffectsProps {
-	theme: PaneTheme
+	theme: PaneTheme;
 }
 
 /**
@@ -114,24 +110,24 @@ export function PaneOverlayEffects({ theme }: PaneOverlayEffectsProps) {
 			noiseMul: effectMul(theme.noiseLevel),
 		}),
 		[theme.scanlineLevel, theme.noiseLevel],
-	)
+	);
 
-	if (scanlineMul === 0 && noiseMul === 0) return null
+	if (scanlineMul === 0 && noiseMul === 0) return null;
 
 	return (
 		<div className="absolute inset-0 pointer-events-none z-20 overflow-hidden rounded-sm">
 			{scanlineMul > 0 && (
 				<div
 					className="pane-scanline absolute inset-0"
-					style={{ opacity: scanlineMul, contain: 'layout paint style' }}
+					style={{ opacity: scanlineMul, contain: "layout paint style" }}
 				/>
 			)}
 			{noiseMul > 0 && (
 				<div
 					className="pane-noise absolute inset-0"
-					style={{ opacity: noiseMul * 0.5, contain: 'layout paint style' }}
+					style={{ opacity: noiseMul * 0.5, contain: "layout paint style" }}
 				/>
 			)}
 		</div>
-	)
+	);
 }

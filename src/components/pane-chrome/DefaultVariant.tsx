@@ -1,5 +1,5 @@
-import { FOCUS_VIS, FolderIcon, GitIcon, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { FOCUS_VIS, FolderIcon, GitIcon, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 // DefaultVariant intentionally uses Tailwind semantic classes (bg-elevated, text-accent, etc.)
 // instead of the theme prop, so it adapts via CSS custom properties rather than inline styles.
@@ -24,14 +24,14 @@ function Frame({
 	contextMenu,
 	theme,
 }: FrameProps) {
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} flex items-center gap-2 px-2 text-[11px] shrink-0 select-none transition-colors duration-200 ${
-				isFocused ? 'bg-elevated border-b border-accent' : 'bg-sunken border-b border-edge'
-			} ${isBottom ? 'border-b-0 border-t' : ''}`}
+			className={`${headerProps.className || ""} flex items-center gap-2 px-2 text-[11px] shrink-0 select-none transition-colors duration-200 ${
+				isFocused ? "bg-elevated border-b border-accent" : "bg-sunken border-b border-edge"
+			} ${isBottom ? "border-b-0 border-t" : ""}`}
 			style={{ ...headerProps.style, height: 30 }}
 		>
 			{isEditing ? (
@@ -77,7 +77,7 @@ function Frame({
 			<SnippetTrigger
 				className={`bg-transparent border-none text-content-muted cursor-pointer px-0.5 text-[11px] leading-none hover:text-content ${FOCUS_VIS}`}
 			>
-				{'>_'}
+				{">_"}
 			</SnippetTrigger>
 
 			<span className="text-content-muted text-[10px]">·</span>
@@ -113,7 +113,7 @@ function Frame({
 			)}
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<>
@@ -121,7 +121,7 @@ function Frame({
 			{children}
 			{isBottom && header}
 		</>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
@@ -135,12 +135,12 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 				backgroundColor: `${theme.background}e6`,
 				color: theme.foreground,
 				border: `1px solid ${theme.foreground}22`,
-				boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+				boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
 			}}
 		>
 			↓ Scroll to bottom
 		</button>
-	)
+	);
 }
 
-export const DefaultVariant: PaneVariant = { Frame, ScrollButton }
+export const DefaultVariant: PaneVariant = { Frame, ScrollButton };

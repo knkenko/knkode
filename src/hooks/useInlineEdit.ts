@@ -1,29 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useInlineEdit(currentValue: string, onSubmit: (value: string) => void) {
-	const [isEditing, setIsEditing] = useState(false)
-	const [editValue, setEditValue] = useState(currentValue)
-	const inputRef = useRef<HTMLInputElement>(null)
+	const [isEditing, setIsEditing] = useState(false);
+	const [editValue, setEditValue] = useState(currentValue);
+	const inputRef = useRef<HTMLInputElement>(null);
 
 	const handleSubmit = useCallback(() => {
-		const trimmed = editValue.trim()
+		const trimmed = editValue.trim();
 		if (trimmed && trimmed !== currentValue) {
-			onSubmit(trimmed)
+			onSubmit(trimmed);
 		}
-		setIsEditing(false)
-	}, [editValue, currentValue, onSubmit])
+		setIsEditing(false);
+	}, [editValue, currentValue, onSubmit]);
 
 	const startEditing = useCallback(() => {
-		setEditValue(currentValue)
-		setIsEditing(true)
-	}, [currentValue])
+		setEditValue(currentValue);
+		setIsEditing(true);
+	}, [currentValue]);
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
-			inputRef.current.focus()
-			inputRef.current.select()
+			inputRef.current.focus();
+			inputRef.current.select();
 		}
-	}, [isEditing])
+	}, [isEditing]);
 
 	const inputProps = {
 		ref: inputRef,
@@ -31,10 +31,10 @@ export function useInlineEdit(currentValue: string, onSubmit: (value: string) =>
 		onChange: (e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value),
 		onBlur: handleSubmit,
 		onKeyDown: (e: React.KeyboardEvent) => {
-			if (e.key === 'Enter') handleSubmit()
-			if (e.key === 'Escape') setIsEditing(false)
+			if (e.key === "Enter") handleSubmit();
+			if (e.key === "Escape") setIsEditing(false);
 		},
-	}
+	};
 
-	return { isEditing, editValue, startEditing, inputProps }
+	return { isEditing, editValue, startEditing, inputProps };
 }

@@ -1,41 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { findPreset, mergeThemeWithPreset } from "../data/theme-presets";
+import { useInlineEdit } from "../hooks/useInlineEdit";
+import { usePaneDragDrop } from "../hooks/usePaneDragDrop";
+import { ZONE_STYLES } from "../lib/pane-drag-utils";
+import type { ScreenPosition } from "../lib/ui-constants";
 import {
 	type GridSnapshot,
 	MAX_UNFOCUSED_DIM,
 	type PaneConfig,
 	type PaneTheme,
 	type PrInfo,
-} from '../shared/types'
-import { findPreset, mergeThemeWithPreset } from '../data/theme-presets'
-import { useInlineEdit } from '../hooks/useInlineEdit'
-import { usePaneDragDrop } from '../hooks/usePaneDragDrop'
-import { ZONE_STYLES } from '../lib/pane-drag-utils'
-import type { ScreenPosition } from '../lib/ui-constants'
-import { useStore } from '../store'
-import { modKey } from '../utils/platform'
-import { CanvasTerminal } from './CanvasTerminal'
-import { PaneContextMenu } from './PaneContextMenu'
-import { PaneBackgroundEffects, PaneOverlayEffects } from './PaneEffects'
-import { SnippetDropdown } from './SnippetDropdown'
-import { type VariantTheme, getVariant } from './pane-chrome'
-import { buildVariantTheme } from './pane-chrome/shared'
+} from "../shared/types";
+import { useStore } from "../store";
+import { modKey } from "../utils/platform";
+import { CanvasTerminal } from "./CanvasTerminal";
+import { PaneContextMenu } from "./PaneContextMenu";
+import { PaneBackgroundEffects, PaneOverlayEffects } from "./PaneEffects";
+import { getVariant, type VariantTheme } from "./pane-chrome";
+import { buildVariantTheme } from "./pane-chrome/shared";
+import { SnippetDropdown } from "./SnippetDropdown";
 
 interface PaneProps {
-	paneId: string
-	workspaceId: string
-	config: PaneConfig
-	workspaceTheme: PaneTheme
-	onUpdateConfig: (paneId: string, updates: Partial<PaneConfig>) => void
-	onSplitHorizontal: (paneId: string) => void
-	onSplitVertical: (paneId: string) => void
-	onClose: (paneId: string) => void
-	canClose: boolean
+	paneId: string;
+	workspaceId: string;
+	config: PaneConfig;
+	workspaceTheme: PaneTheme;
+	onUpdateConfig: (paneId: string, updates: Partial<PaneConfig>) => void;
+	onSplitHorizontal: (paneId: string) => void;
+	onSplitVertical: (paneId: string) => void;
+	onClose: (paneId: string) => void;
+	canClose: boolean;
 	/** Current git branch for this pane, or null if unavailable. */
-	branch: string | null
+	branch: string | null;
 	/** Current PR info for this pane's branch, or null if no PR. */
-	pr: PrInfo | null
-	isFocused: boolean
-	onFocus: (paneId: string) => void
+	pr: PrInfo | null;
+	isFocused: boolean;
+	onFocus: (paneId: string) => void;
 }
 
 export function Pane({
@@ -53,9 +53,9 @@ export function Pane({
 	isFocused,
 	onFocus,
 }: PaneProps) {
-	const [showContext, setShowContext] = useState(false)
-	const [contextPos, setContextPos] = useState<ScreenPosition>({ x: 0, y: 0 })
-	const [grid, setGrid] = useState<GridSnapshot | null>(null)
+	const [showContext, setShowContext] = useState(false);
+	const [contextPos, setContextPos] = useState<ScreenPosition>({ x: 0, y: 0 });
+	const [grid, setGrid] = useState<GridSnapshot | null>(null);
 
 	const {
 		isDragging,
@@ -68,58 +68,58 @@ export function Pane({
 		handlePaneDragEnter,
 		handlePaneDragLeave,
 		handlePaneDrop,
-	} = usePaneDragDrop({ paneId, workspaceId, onFocus })
+	} = usePaneDragDrop({ paneId, workspaceId, onFocus });
 
-	const ensurePty = useStore((s) => s.ensurePty)
-	const initialCwdRef = useRef(config.cwd)
-	const initialCmdRef = useRef(config.startupCommand)
+	const ensurePty = useStore((s) => s.ensurePty);
+	const initialCwdRef = useRef(config.cwd);
+	const initialCmdRef = useRef(config.startupCommand);
 	useEffect(() => {
-		ensurePty(paneId, initialCwdRef.current, initialCmdRef.current)
-	}, [paneId, ensurePty])
+		ensurePty(paneId, initialCwdRef.current, initialCmdRef.current);
+	}, [paneId, ensurePty]);
 
 	// Subscribe to grid snapshots from Rust PTY renderer
 	useEffect(() => {
 		const unsub = window.api.onTerminalRender((id, snapshot) => {
-			if (id === paneId) setGrid(snapshot)
-		})
+			if (id === paneId) setGrid(snapshot);
+		});
 		return () => {
-			unsub()
-		}
-	}, [paneId])
+			unsub();
+		};
+	}, [paneId]);
 
 	const handleWrite = useCallback(
 		(data: string) => {
 			window.api.writePty(paneId, data).catch((err: unknown) => {
-				console.error(`[pane] writePty failed for ${paneId}:`, err)
-			})
+				console.error(`[pane] writePty failed for ${paneId}:`, err);
+			});
 		},
 		[paneId],
-	)
+	);
 
 	const handleResize = useCallback(
 		(cols: number, rows: number) => {
 			window.api.resizePty(paneId, cols, rows).catch((err: unknown) => {
-				console.error(`[pane] resizePty failed for ${paneId}:`, err)
-			})
+				console.error(`[pane] resizePty failed for ${paneId}:`, err);
+			});
 		},
 		[paneId],
-	)
+	);
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(config.label, (label) =>
 		onUpdateConfig(paneId, { label }),
-	)
+	);
 
 	const handleContextMenu = useCallback((e: React.MouseEvent) => {
-		e.preventDefault()
-		setContextPos({ x: e.clientX, y: e.clientY })
-		setShowContext(true)
-	}, [])
+		e.preventDefault();
+		setContextPos({ x: e.clientX, y: e.clientY });
+		setShowContext(true);
+	}, []);
 
-	const shortCwd = config.cwd.replace(/^\/Users\/[^/]+/, '~')
-	const statusBarPosition = workspaceTheme.statusBarPosition ?? 'top'
+	const shortCwd = config.cwd.replace(/^\/Users\/[^/]+/, "~");
+	const statusBarPosition = workspaceTheme.statusBarPosition ?? "top";
 
-	const preset = workspaceTheme.preset ? findPreset(workspaceTheme.preset) : undefined
-	const variant = getVariant(workspaceTheme.preset)
+	const preset = workspaceTheme.preset ? findPreset(workspaceTheme.preset) : undefined;
+	const variant = getVariant(workspaceTheme.preset);
 	const variantTheme = useMemo<VariantTheme>(
 		() =>
 			buildVariantTheme(
@@ -141,34 +141,32 @@ export function Pane({
 			workspaceTheme.statusBarPosition,
 			preset,
 		],
-	)
+	);
 
 	const mergedTheme = useMemo(
 		() => mergeThemeWithPreset(workspaceTheme, config.themeOverride),
 		[workspaceTheme, config.themeOverride],
-	)
+	);
 
 	const handleOpenExternal = useCallback((url: string) => {
 		window.api.openExternal(url).catch((err: unknown) => {
-			console.error('[pane] Failed to open URL:', url, err)
-		})
-	}, [])
+			console.error("[pane] Failed to open URL:", url, err);
+		});
+	}, []);
 
 	const PaneSnippetTrigger = useMemo(
 		() =>
 			function SnippetTrigger(props: {
-				className?: string | undefined
-				style?: React.CSSProperties | undefined
-				children?: React.ReactNode
+				className?: string | undefined;
+				style?: React.CSSProperties | undefined;
+				children?: React.ReactNode;
 			}) {
-				return (
-					<SnippetDropdown paneId={paneId} statusBarPosition={statusBarPosition} {...props} />
-				)
+				return <SnippetDropdown paneId={paneId} statusBarPosition={statusBarPosition} {...props} />;
 			},
 		[paneId, statusBarPosition],
-	)
+	);
 
-	const handleFocus = useCallback(() => onFocus(paneId), [paneId, onFocus])
+	const handleFocus = useCallback(() => onFocus(paneId), [paneId, onFocus]);
 
 	return (
 		<div
@@ -206,12 +204,12 @@ export function Pane({
 					}}
 					headerProps={{
 						draggable: !isEditing,
-						'aria-roledescription': 'draggable pane',
+						"aria-roledescription": "draggable pane",
 						onDragStart: handleDragStart,
 						onDragEnd: handleDragEnd,
 						onContextMenu: handleContextMenu,
 						onMouseDown: handleHeaderMouseDown,
-						className: `shrink-0 relative select-none ${isDragging ? 'opacity-40' : ''}`,
+						className: `shrink-0 relative select-none ${isDragging ? "opacity-40" : ""}`,
 					}}
 					contextMenu={null}
 				>
@@ -227,7 +225,7 @@ export function Pane({
 						{/* Dim overlay for unfocused panes — always rendered for CSS transition */}
 						<div
 							className={`absolute inset-0 bg-black pointer-events-none transition-opacity duration-150 ${
-								!isFocused && workspaceTheme.unfocusedDim > 0 ? '' : 'opacity-0'
+								!isFocused && workspaceTheme.unfocusedDim > 0 ? "" : "opacity-0"
 							}`}
 							style={
 								!isFocused && workspaceTheme.unfocusedDim > 0
@@ -269,5 +267,5 @@ export function Pane({
 				/>
 			)}
 		</div>
-	)
+	);
 }

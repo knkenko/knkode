@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,22 +23,22 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const glowColor = theme.glow ?? theme.accent
-	const c1 = theme.accent
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const glowColor = theme.glow ?? theme.accent;
+	const c1 = theme.accent;
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} flex items-center gap-2 px-4 py-1 text-[11px] font-light shrink-0 select-none transition-all duration-300 z-20`}
+			className={`${headerProps.className || ""} flex items-center gap-2 px-4 py-1 text-[11px] font-light shrink-0 select-none transition-all duration-300 z-20`}
 			style={{
 				...headerProps.style,
 				height: 30,
 				color: theme.foreground,
-				backgroundColor: '#020b14',
-				borderTop: isBottom ? `1px solid ${c1}28` : 'none',
-				borderBottom: isBottom ? 'none' : `1px solid ${c1}28`,
-				boxShadow: isFocused ? `0 ${isBottom ? '-' : ''}2px 8px ${glowColor}11` : 'none',
+				backgroundColor: "#020b14",
+				borderTop: isBottom ? `1px solid ${c1}28` : "none",
+				borderBottom: isBottom ? "none" : `1px solid ${c1}28`,
+				boxShadow: isFocused ? `0 ${isBottom ? "-" : ""}2px 8px ${glowColor}11` : "none",
 			}}
 		>
 			{isEditing ? (
@@ -56,8 +56,8 @@ function Frame({
 			<span
 				className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap opacity-50"
 				style={{
-					maskImage: 'linear-gradient(90deg, black 80%, transparent)',
-					WebkitMaskImage: 'linear-gradient(90deg, black 80%, transparent)',
+					maskImage: "linear-gradient(90deg, black 80%, transparent)",
+					WebkitMaskImage: "linear-gradient(90deg, black 80%, transparent)",
 				}}
 			>
 				~ {cwd}
@@ -93,7 +93,7 @@ function Frame({
 				className={`bg-transparent border-none cursor-pointer text-[11px] px-0.5 leading-none ${FOCUS_VIS}`}
 				style={{ color: theme.accent }}
 			>
-				{'>_'}
+				{">_"}
 			</SnippetTrigger>
 
 			<div className="flex items-center gap-0.5 opacity-0 hover:opacity-70 focus-within:opacity-70 has-[:focus-visible]:opacity-70 transition-opacity duration-200">
@@ -132,7 +132,7 @@ function Frame({
 			</div>
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
@@ -140,18 +140,18 @@ function Frame({
 
 			{/* Terminal Content */}
 			<div
-				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent px-2 ${isBottom ? 'mb-1' : 'mt-1'}`}
+				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent px-2 ${isBottom ? "mb-1" : "mt-1"}`}
 			>
 				{children}
 			</div>
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
-	const glowColor = theme.glow ?? theme.accent
+	const glowColor = theme.glow ?? theme.accent;
 	return (
 		<button
 			type="button"
@@ -162,13 +162,13 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 				backgroundColor: `${theme.accent}22`,
 				color: theme.accent,
 				boxShadow: `0 0 12px ${glowColor}33`,
-				backdropFilter: 'blur(4px)',
+				backdropFilter: "blur(4px)",
 			}}
 		>
 			↓
 		</button>
-	)
+	);
 }
 
-const OceanVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Ocean', OceanVariant)
+const OceanVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Ocean", OceanVariant);

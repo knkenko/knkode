@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,25 +23,25 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const fg = isFocused ? theme.accent : theme.foreground
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const fg = isFocused ? theme.accent : theme.foreground;
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase shrink-0 select-none transition-colors duration-200 z-20`}
+			className={`${headerProps.className || ""} flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase shrink-0 select-none transition-colors duration-200 z-20`}
 			style={{
 				...headerProps.style,
 				height: 28,
 				color: fg,
-				backgroundColor: '#0c0800',
+				backgroundColor: "#0c0800",
 				borderTop: isBottom
 					? `1px dashed ${isFocused ? `${theme.accent}66` : `${theme.accent}33`}`
-					: 'none',
+					: "none",
 				borderBottom: isBottom
-					? 'none'
+					? "none"
 					: `1px dashed ${isFocused ? `${theme.accent}66` : `${theme.accent}33`}`,
-				textShadow: isFocused ? `0 0 8px ${theme.accent}66` : 'none',
+				textShadow: isFocused ? `0 0 8px ${theme.accent}66` : "none",
 			}}
 		>
 			{isEditing ? (
@@ -127,7 +127,7 @@ function Frame({
 			)}
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
@@ -135,14 +135,14 @@ function Frame({
 
 			{/* Terminal Content */}
 			<div
-				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent px-1 ${isBottom ? 'mb-1' : 'mt-1'}`}
+				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent px-1 ${isBottom ? "mb-1" : "mt-1"}`}
 			>
 				{children}
 			</div>
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
@@ -159,10 +159,10 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 				textShadow: `0 0 6px ${theme.accent}44`,
 			}}
 		>
-			{'>>> SCROLL DOWN <<<'}
+			{">>> SCROLL DOWN <<<"}
 		</button>
-	)
+	);
 }
 
-const AmberVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Amber', AmberVariant)
+const AmberVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Amber", AmberVariant);

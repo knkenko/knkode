@@ -1,28 +1,28 @@
-import { useCallback, useRef, useState } from 'react'
-import type { Workspace } from '../shared/types'
-import { useClickOutside } from '../hooks/useClickOutside'
-import { useInlineEdit } from '../hooks/useInlineEdit'
+import { useCallback, useRef, useState } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { useInlineEdit } from "../hooks/useInlineEdit";
+import type { Workspace } from "../shared/types";
 
-const INACTIVE_TAB_STYLE: React.CSSProperties = { borderLeft: '3px solid transparent' }
+const INACTIVE_TAB_STYLE: React.CSSProperties = { borderLeft: "3px solid transparent" };
 
 interface TabProps {
-	workspace: Workspace
-	isActive: boolean
-	index: number
+	workspace: Workspace;
+	isActive: boolean;
+	index: number;
 	/** Number of panes in this workspace. Always >= 1. Badge shown when > 1. */
-	paneCount: number
-	onActivate: (id: string) => void
-	onClose: (id: string) => void
-	onRename: (id: string, name: string) => void
-	onChangeColor: (id: string, color: string) => void
-	onDuplicate: (id: string) => void
-	onDragStart: (index: number) => void
-	onDragOver: (e: React.DragEvent, index: number) => void
-	onDrop: (index: number) => void
-	onDragEnd: () => void
-	isDragOver: boolean
-	isDragging: boolean
-	colors: readonly string[]
+	paneCount: number;
+	onActivate: (id: string) => void;
+	onClose: (id: string) => void;
+	onRename: (id: string, name: string) => void;
+	onChangeColor: (id: string, color: string) => void;
+	onDuplicate: (id: string) => void;
+	onDragStart: (index: number) => void;
+	onDragOver: (e: React.DragEvent, index: number) => void;
+	onDrop: (index: number) => void;
+	onDragEnd: () => void;
+	isDragOver: boolean;
+	isDragging: boolean;
+	colors: readonly string[];
 }
 
 export function Tab({
@@ -43,39 +43,39 @@ export function Tab({
 	isDragging,
 	colors,
 }: TabProps) {
-	const [showContext, setShowContext] = useState(false)
-	const [showColorPicker, setShowColorPicker] = useState(false)
-	const contextRef = useRef<HTMLDivElement>(null)
+	const [showContext, setShowContext] = useState(false);
+	const [showColorPicker, setShowColorPicker] = useState(false);
+	const contextRef = useRef<HTMLDivElement>(null);
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(workspace.name, (name) =>
 		onRename(workspace.id, name),
-	)
+	);
 
 	const handleContextMenu = useCallback((e: React.MouseEvent) => {
-		e.preventDefault()
-		setShowContext(true)
-	}, [])
+		e.preventDefault();
+		setShowContext(true);
+	}, []);
 
 	const closeContext = useCallback(() => {
-		setShowContext(false)
-		setShowColorPicker(false)
-	}, [])
+		setShowContext(false);
+		setShowColorPicker(false);
+	}, []);
 
-	useClickOutside(contextRef, closeContext, showContext)
+	useClickOutside(contextRef, closeContext, showContext);
 
 	const tabStyle: React.CSSProperties = isActive
 		? {
 				borderLeft: `3px solid ${workspace.color}`,
 				background: `color-mix(in srgb, ${workspace.color} 8%, var(--color-overlay-active))`,
 			}
-		: INACTIVE_TAB_STYLE
+		: INACTIVE_TAB_STYLE;
 
-	const bgClass = isActive ? '' : 'bg-overlay hover:bg-overlay-hover'
-	const dragOverClass = isDragOver ? 'shadow-[inset_2px_0_0_var(--color-accent)]' : ''
-	const draggingClass = isDragging ? 'opacity-40' : ''
+	const bgClass = isActive ? "" : "bg-overlay hover:bg-overlay-hover";
+	const dragOverClass = isDragOver ? "shadow-[inset_2px_0_0_var(--color-accent)]" : "";
+	const draggingClass = isDragging ? "opacity-40" : "";
 	const closeVisibility = isActive
-		? 'opacity-100'
-		: 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'
+		? "opacity-100"
+		: "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
 
 	return (
 		<div
@@ -87,38 +87,38 @@ export function Tab({
 			draggable={!isEditing}
 			onClick={() => onActivate(workspace.id)}
 			onKeyDown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault()
-					onActivate(workspace.id)
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					onActivate(workspace.id);
 				}
 				if (
-					e.key === 'ArrowRight' ||
-					e.key === 'ArrowLeft' ||
-					e.key === 'Home' ||
-					e.key === 'End'
+					e.key === "ArrowRight" ||
+					e.key === "ArrowLeft" ||
+					e.key === "Home" ||
+					e.key === "End"
 				) {
-					e.preventDefault()
+					e.preventDefault();
 					const tabs = e.currentTarget
 						.closest('[role="tablist"]')
-						?.querySelectorAll<HTMLElement>('[role="tab"]')
-					if (!tabs) return
-					const count = tabs.length
-					let target = index
-					if (e.key === 'ArrowRight') target = (index + 1) % count
-					else if (e.key === 'ArrowLeft') target = (index - 1 + count) % count
-					else if (e.key === 'Home') target = 0
-					else if (e.key === 'End') target = count - 1
-					tabs[target]?.focus()
+						?.querySelectorAll<HTMLElement>('[role="tab"]');
+					if (!tabs) return;
+					const count = tabs.length;
+					let target = index;
+					if (e.key === "ArrowRight") target = (index + 1) % count;
+					else if (e.key === "ArrowLeft") target = (index - 1 + count) % count;
+					else if (e.key === "Home") target = 0;
+					else if (e.key === "End") target = count - 1;
+					tabs[target]?.focus();
 					// Dispatch activation directly instead of synthetic .click()
-					const wsId = tabs[target]?.dataset.workspaceId
-					if (wsId) onActivate(wsId)
+					const wsId = tabs[target]?.dataset.workspaceId;
+					if (wsId) onActivate(wsId);
 				}
 			}}
 			onContextMenu={handleContextMenu}
 			onDragStart={(e) => {
-				e.dataTransfer.effectAllowed = 'move'
-				e.dataTransfer.setData('text/plain', workspace.id)
-				onDragStart(index)
+				e.dataTransfer.effectAllowed = "move";
+				e.dataTransfer.setData("text/plain", workspace.id);
+				onDragStart(index);
 			}}
 			onDragOver={(e) => onDragOver(e, index)}
 			onDrop={() => onDrop(index)}
@@ -143,7 +143,7 @@ export function Tab({
 			) : (
 				<span
 					className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0 ${
-						isActive ? 'text-content font-medium' : 'text-content-secondary'
+						isActive ? "text-content font-medium" : "text-content-secondary"
 					}`}
 				>
 					{workspace.name}
@@ -168,8 +168,8 @@ export function Tab({
 			<button
 				type="button"
 				onClick={(e) => {
-					e.stopPropagation()
-					onClose(workspace.id)
+					e.stopPropagation();
+					onClose(workspace.id);
 				}}
 				aria-label={`Close ${workspace.name}`}
 				className={`bg-transparent border-none text-content-muted cursor-pointer p-0.5 rounded-sm shrink-0 hover:text-content hover:bg-overlay focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none transition-all duration-200 ${closeVisibility}`}
@@ -194,16 +194,16 @@ export function Tab({
 					ref={contextRef}
 					className="ctx-menu top-tab left-0"
 					onKeyDown={(e) => {
-						if (e.key === 'Escape') closeContext()
+						if (e.key === "Escape") closeContext();
 					}}
 				>
 					<button
 						type="button"
 						className="ctx-item"
 						onClick={(e) => {
-							e.stopPropagation()
-							startEditing()
-							closeContext()
+							e.stopPropagation();
+							startEditing();
+							closeContext();
 						}}
 					>
 						Rename
@@ -212,8 +212,8 @@ export function Tab({
 						type="button"
 						className="ctx-item"
 						onClick={(e) => {
-							e.stopPropagation()
-							setShowColorPicker((v) => !v)
+							e.stopPropagation();
+							setShowColorPicker((v) => !v);
 						}}
 					>
 						Change Color
@@ -226,13 +226,13 @@ export function Tab({
 									key={c}
 									aria-label={`Color ${c}`}
 									className={`size-4.5 rounded-full border-none cursor-pointer p-0 ${
-										c === workspace.color ? 'outline-2 outline-content outline-offset-1' : ''
+										c === workspace.color ? "outline-2 outline-content outline-offset-1" : ""
 									}`}
 									style={{ background: c }}
 									onClick={(e) => {
-										e.stopPropagation()
-										onChangeColor(workspace.id, c)
-										closeContext()
+										e.stopPropagation();
+										onChangeColor(workspace.id, c);
+										closeContext();
 									}}
 								/>
 							))}
@@ -242,9 +242,9 @@ export function Tab({
 						type="button"
 						className="ctx-item"
 						onClick={(e) => {
-							e.stopPropagation()
-							onDuplicate(workspace.id)
-							closeContext()
+							e.stopPropagation();
+							onDuplicate(workspace.id);
+							closeContext();
 						}}
 					>
 						Duplicate
@@ -254,9 +254,9 @@ export function Tab({
 						type="button"
 						className="ctx-item text-danger"
 						onClick={(e) => {
-							e.stopPropagation()
-							onClose(workspace.id)
-							closeContext()
+							e.stopPropagation();
+							onClose(workspace.id);
+							closeContext();
 						}}
 					>
 						Close Tab
@@ -264,5 +264,5 @@ export function Tab({
 				</div>
 			)}
 		</div>
-	)
+	);
 }

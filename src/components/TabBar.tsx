@@ -1,60 +1,60 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import type { Workspace } from '../shared/types'
-import { useClickOutside } from '../hooks/useClickOutside'
-import { WORKSPACE_COLORS, useStore } from '../store'
-import { isMac, modKey } from '../utils/platform'
-import { Tab } from './Tab'
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
+import type { Workspace } from "../shared/types";
+import { useStore, WORKSPACE_COLORS } from "../store";
+import { isMac, modKey } from "../utils/platform";
+import { Tab } from "./Tab";
 
 interface TabBarProps {
-	onOpenSettings: () => void
+	onOpenSettings: () => void;
 }
 
 export function TabBar({ onOpenSettings }: TabBarProps) {
-	const workspaces = useStore((s) => s.workspaces)
-	const appState = useStore((s) => s.appState)
-	const setActiveWorkspace = useStore((s) => s.setActiveWorkspace)
-	const closeWorkspaceTab = useStore((s) => s.closeWorkspaceTab)
-	const createDefaultWorkspace = useStore((s) => s.createDefaultWorkspace)
-	const updateWorkspace = useStore((s) => s.updateWorkspace)
-	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace)
-	const openWorkspace = useStore((s) => s.openWorkspace)
-	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs)
+	const workspaces = useStore((s) => s.workspaces);
+	const appState = useStore((s) => s.appState);
+	const setActiveWorkspace = useStore((s) => s.setActiveWorkspace);
+	const closeWorkspaceTab = useStore((s) => s.closeWorkspaceTab);
+	const createDefaultWorkspace = useStore((s) => s.createDefaultWorkspace);
+	const updateWorkspace = useStore((s) => s.updateWorkspace);
+	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
+	const openWorkspace = useStore((s) => s.openWorkspace);
+	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
 
-	const [showClosedMenu, setShowClosedMenu] = useState(false)
-	const [dragFromIndex, setDragFromIndex] = useState<number | null>(null)
-	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-	const dragFromRef = useRef<number | null>(null)
-	const closedMenuRef = useRef<HTMLDivElement>(null)
-	useClickOutside(closedMenuRef, () => setShowClosedMenu(false), showClosedMenu)
+	const [showClosedMenu, setShowClosedMenu] = useState(false);
+	const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+	const dragFromRef = useRef<number | null>(null);
+	const closedMenuRef = useRef<HTMLDivElement>(null);
+	useClickOutside(closedMenuRef, () => setShowClosedMenu(false), showClosedMenu);
 
 	const resetDragState = useCallback(() => {
-		setDragFromIndex(null)
-		setDragOverIndex(null)
-		dragFromRef.current = null
-	}, [])
+		setDragFromIndex(null);
+		setDragOverIndex(null);
+		dragFromRef.current = null;
+	}, []);
 
 	const handleDragStart = useCallback((index: number) => {
-		setDragFromIndex(index)
-		dragFromRef.current = index
-	}, [])
+		setDragFromIndex(index);
+		dragFromRef.current = index;
+	}, []);
 	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-		e.preventDefault()
-		e.dataTransfer.dropEffect = 'move'
-		setDragOverIndex((prev) => (prev === index ? prev : index))
-	}, [])
+		e.preventDefault();
+		e.dataTransfer.dropEffect = "move";
+		setDragOverIndex((prev) => (prev === index ? prev : index));
+	}, []);
 	const handleDrop = useCallback(
 		(toIndex: number) => {
-			const from = dragFromRef.current
+			const from = dragFromRef.current;
 			if (from !== null && from !== toIndex) {
-				reorderWorkspaceTabs(from, toIndex)
+				reorderWorkspaceTabs(from, toIndex);
 			}
-			resetDragState()
+			resetDragState();
 		},
 		[reorderWorkspaceTabs, resetDragState],
-	)
+	);
 	const handleDragEnd = useCallback(() => {
-		resetDragState()
-	}, [resetDragState])
+		resetDragState();
+	}, [resetDragState]);
 
 	const openTabs = useMemo(
 		() =>
@@ -62,50 +62,50 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 				.map((id) => workspaces.find((w) => w.id === id))
 				.filter((w): w is Workspace => w !== undefined),
 		[appState.openWorkspaceIds, workspaces],
-	)
+	);
 
 	const closedWorkspaces = useMemo(
 		() => workspaces.filter((w) => !appState.openWorkspaceIds.includes(w.id)),
 		[appState.openWorkspaceIds, workspaces],
-	)
+	);
 
 	const updateWorkspaceField = useCallback(
 		(id: string, updates: Partial<Workspace>) => {
-			const ws = workspaces.find((w) => w.id === id)
-			if (ws) updateWorkspace({ ...ws, ...updates })
+			const ws = workspaces.find((w) => w.id === id);
+			if (ws) updateWorkspace({ ...ws, ...updates });
 		},
 		[workspaces, updateWorkspace],
-	)
+	);
 
 	const handleRename = useCallback(
 		(id: string, name: string) => updateWorkspaceField(id, { name }),
 		[updateWorkspaceField],
-	)
+	);
 
 	const handleChangeColor = useCallback(
 		(id: string, color: string) => updateWorkspaceField(id, { color }),
 		[updateWorkspaceField],
-	)
+	);
 
 	const handleDuplicate = useCallback(
 		(id: string) => {
 			duplicateWorkspace(id).catch((err: unknown) => {
-				console.error('[tabbar] Failed to duplicate workspace:', err)
-			})
+				console.error("[tabbar] Failed to duplicate workspace:", err);
+			});
 		},
 		[duplicateWorkspace],
-	)
+	);
 
 	const handleNewWorkspace = useCallback(() => {
 		createDefaultWorkspace().catch((err: unknown) => {
-			console.error('[tabbar] Failed to create workspace:', err)
-		})
-	}, [createDefaultWorkspace])
+			console.error("[tabbar] Failed to create workspace:", err);
+		});
+	}, [createDefaultWorkspace]);
 
 	return (
 		<div
 			className="flex items-end bg-sunken border-b border-edge relative shrink-0"
-			style={isMac ? { WebkitAppRegion: 'drag' } : undefined}
+			style={isMac ? { WebkitAppRegion: "drag" } : undefined}
 		>
 			{/* Tabs */}
 			<div
@@ -203,8 +203,8 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 									key={ws.id}
 									className="ctx-item flex items-center gap-2"
 									onClick={() => {
-										openWorkspace(ws.id)
-										setShowClosedMenu(false)
+										openWorkspace(ws.id);
+										setShowClosedMenu(false);
 									}}
 								>
 									<span
@@ -220,5 +220,5 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 				</div>
 			)}
 		</div>
-	)
+	);
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi } from "../lib/key-to-ansi";
 import type { CellSnapshot, GridSnapshot } from "../shared/types";
 import {
@@ -7,7 +8,6 @@ import {
 	DEFAULT_FONT_SIZE,
 	DEFAULT_LINE_HEIGHT,
 } from "../shared/types";
-import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 
 export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;
@@ -25,11 +25,7 @@ const CURSOR_OPACITY = 0.7;
 const RESIZE_DEBOUNCE_MS = 100;
 
 /** Build a CSS font string for a cell's style attributes. */
-function buildFont(
-	cell: CellSnapshot,
-	scaledSize: number,
-	fontFamily: string,
-): string {
+function buildFont(cell: CellSnapshot, scaledSize: number, fontFamily: string): string {
 	const style = cell.italic ? "italic " : "";
 	const weight = cell.bold ? "bold " : "";
 	return `${style}${weight}${scaledSize}px ${fontFamily}`;

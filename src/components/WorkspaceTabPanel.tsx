@@ -1,29 +1,29 @@
-import type { LayoutPreset, PaneConfig, PaneTheme } from '../shared/types'
-import { CwdInput } from './CwdInput'
-import { LayoutPicker } from './LayoutPicker'
-import { SegmentedButton } from './SegmentedButton'
-import { SettingsSection } from './SettingsSection'
-import { SnippetsSection } from './SnippetsSection'
+import type { LayoutPreset, PaneConfig, PaneTheme } from "../shared/types";
+import { CwdInput } from "./CwdInput";
+import { LayoutPicker } from "./LayoutPicker";
+import { SegmentedButton } from "./SegmentedButton";
+import { SettingsSection } from "./SettingsSection";
+import { SnippetsSection } from "./SnippetsSection";
 
-type StatusBarPosition = NonNullable<PaneTheme['statusBarPosition']>
-const STATUS_BAR_POSITIONS = ['top', 'bottom'] as const satisfies readonly [
+type StatusBarPosition = NonNullable<PaneTheme["statusBarPosition"]>;
+const STATUS_BAR_POSITIONS = ["top", "bottom"] as const satisfies readonly [
 	StatusBarPosition,
 	...StatusBarPosition[],
-]
+];
 
 interface WorkspaceTabPanelProps {
-	panes: Record<string, PaneConfig>
-	name: string
-	onNameChange: (name: string) => void
-	color: string
-	onColorChange: (color: string) => void
-	homeDir: string
-	currentPreset: LayoutPreset | null
-	onLayoutChange: (preset: LayoutPreset) => void
-	statusBarPosition: StatusBarPosition
-	onStatusBarPositionChange: (pos: StatusBarPosition) => void
-	onPaneUpdate: (paneId: string, updates: Partial<PaneConfig>) => void
-	hidden: boolean
+	panes: Record<string, PaneConfig>;
+	name: string;
+	onNameChange: (name: string) => void;
+	color: string;
+	onColorChange: (color: string) => void;
+	homeDir: string;
+	currentPreset: LayoutPreset | null;
+	onLayoutChange: (preset: LayoutPreset) => void;
+	statusBarPosition: StatusBarPosition;
+	onStatusBarPositionChange: (pos: StatusBarPosition) => void;
+	onPaneUpdate: (paneId: string, updates: Partial<PaneConfig>) => void;
+	hidden: boolean;
 }
 
 export function WorkspaceTabPanel({
@@ -87,7 +87,7 @@ export function WorkspaceTabPanel({
 							aria-label={`Pane ${pane.label} working directory`}
 						/>
 						<input
-							value={pane.startupCommand || ''}
+							value={pane.startupCommand || ""}
 							onChange={(e) =>
 								onPaneUpdate(paneId, {
 									startupCommand: e.target.value || null,
@@ -112,5 +112,5 @@ export function WorkspaceTabPanel({
 			{/* Snippets */}
 			<SnippetsSection />
 		</div>
-	)
+	);
 }

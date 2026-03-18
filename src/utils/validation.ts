@@ -4,8 +4,8 @@
  *  Tilde paths are not accepted — callers should resolve ~ to homeDir before validating
  *  (relevant on macOS/Linux; tilde is not a standard Windows path prefix). */
 export function isValidCwd(value: string): boolean {
-	if (value === '') return true
-	if (value.startsWith('/')) return true
-	if (/^[A-Za-z]:[/\\]/.test(value)) return true
-	return false
+	if (value === "") return true;
+	if (value.startsWith("/")) return true;
+	if (/^[A-Za-z]:[/\\]/.test(value)) return true;
+	return false;
 }

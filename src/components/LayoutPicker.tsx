@@ -1,9 +1,9 @@
-import type { LayoutPreset } from '../shared/types'
-import { SettingsSection } from './SettingsSection'
+import type { LayoutPreset } from "../shared/types";
+import { SettingsSection } from "./SettingsSection";
 
 interface LayoutPickerProps {
-	current: LayoutPreset | null
-	onSelect: (preset: LayoutPreset) => void
+	current: LayoutPreset | null;
+	onSelect: (preset: LayoutPreset) => void;
 }
 
 function LayoutIcon({ children }: { children: React.ReactNode }) {
@@ -18,13 +18,13 @@ function LayoutIcon({ children }: { children: React.ReactNode }) {
 		>
 			{children}
 		</svg>
-	)
+	);
 }
 
 const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] = [
 	{
-		value: 'single',
-		label: 'Single',
+		value: "single",
+		label: "Single",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="28" height="20" />
@@ -32,8 +32,8 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 		),
 	},
 	{
-		value: '2-column',
-		label: '2 Columns',
+		value: "2-column",
+		label: "2 Columns",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="13" height="20" />
@@ -42,8 +42,8 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 		),
 	},
 	{
-		value: '2-row',
-		label: '2 Rows',
+		value: "2-row",
+		label: "2 Rows",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="28" height="9" />
@@ -52,8 +52,8 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 		),
 	},
 	{
-		value: '3-panel-l',
-		label: '3 Panel L',
+		value: "3-panel-l",
+		label: "3 Panel L",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="13" height="20" />
@@ -63,8 +63,8 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 		),
 	},
 	{
-		value: '3-panel-t',
-		label: '3 Panel T',
+		value: "3-panel-t",
+		label: "3 Panel T",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="28" height="9" />
@@ -74,8 +74,8 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 		),
 	},
 	{
-		value: '2x2-grid',
-		label: '2x2 Grid',
+		value: "2x2-grid",
+		label: "2x2 Grid",
 		icon: (
 			<LayoutIcon>
 				<rect x="2" y="2" width="13" height="9" />
@@ -85,7 +85,7 @@ const PRESETS: { value: LayoutPreset; label: string; icon: React.ReactNode }[] =
 			</LayoutIcon>
 		),
 	},
-]
+];
 
 export function LayoutPicker({ current, onSelect }: LayoutPickerProps) {
 	return (
@@ -98,8 +98,8 @@ export function LayoutPicker({ current, onSelect }: LayoutPickerProps) {
 						onClick={() => onSelect(p.value)}
 						className={`flex flex-col items-center gap-1 py-2.5 px-2 border rounded-md cursor-pointer text-content ${
 							current === p.value
-								? 'border-accent bg-accent/15'
-								: 'border-edge bg-sunken hover:border-content-muted'
+								? "border-accent bg-accent/15"
+								: "border-edge bg-sunken hover:border-content-muted"
 						}`}
 						title={p.label}
 						aria-label={p.label}
@@ -110,5 +110,5 @@ export function LayoutPicker({ current, onSelect }: LayoutPickerProps) {
 				))}
 			</div>
 		</SettingsSection>
-	)
+	);
 }

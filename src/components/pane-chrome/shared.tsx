@@ -1,34 +1,35 @@
 /** Shared constants and utilities for pane-chrome variant components. */
 
-import type { PrInfo } from '../../shared/types'
-import type { VariantTheme } from './types'
+import type { PrInfo } from "../../shared/types";
+import type { VariantTheme } from "./types";
 
 /** Build a VariantTheme from workspace/preset colors with fallback accent. */
 export function buildVariantTheme(
 	colors: {
-		background: string
-		foreground: string
-		accent?: string | undefined
-		glow?: string | undefined
-		presetAccent?: string | undefined
-		presetGlow?: string | undefined
+		background: string;
+		foreground: string;
+		accent?: string | undefined;
+		glow?: string | undefined;
+		presetAccent?: string | undefined;
+		presetGlow?: string | undefined;
 	},
-	statusBarPosition?: 'top' | 'bottom' | undefined,
+	statusBarPosition?: "top" | "bottom" | undefined,
 ): VariantTheme {
 	return {
 		background: colors.background,
 		foreground: colors.foreground,
 		accent: colors.accent ?? colors.presetAccent ?? DEFAULT_ACCENT,
 		glow: colors.glow ?? colors.presetGlow,
-		statusBarPosition: statusBarPosition ?? 'top',
-	}
+		statusBarPosition: statusBarPosition ?? "top",
+	};
 }
 
 /** Focus-visible ring applied to interactive elements in all variants. */
-export const FOCUS_VIS = 'focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none'
+export const FOCUS_VIS =
+	"focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none";
 
 /** Fallback accent color when no theme accent or preset accent is available. */
-export const DEFAULT_ACCENT = '#888888'
+export const DEFAULT_ACCENT = "#888888";
 
 /** Folder icon SVG used in several variant status bars. Pass className for opacity. */
 export function FolderIcon({ className }: { className?: string | undefined }) {
@@ -37,11 +38,11 @@ export function FolderIcon({ className }: { className?: string | undefined }) {
 			viewBox="0 0 16 16"
 			fill="currentColor"
 			aria-hidden="true"
-			className={`w-3 h-3 shrink-0 ${className ?? ''}`}
+			className={`w-3 h-3 shrink-0 ${className ?? ""}`}
 		>
 			<path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2c-.33-.44-.85-.7-1.4-.7Z" />
 		</svg>
-	)
+	);
 }
 
 /** Leaf icon SVG used for Everforest cwd. */
@@ -51,11 +52,11 @@ export function LeafIcon({ className }: { className?: string | undefined }) {
 			viewBox="0 0 16 16"
 			fill="currentColor"
 			aria-hidden="true"
-			className={`w-3 h-3 shrink-0 ${className ?? ''}`}
+			className={`w-3 h-3 shrink-0 ${className ?? ""}`}
 		>
 			<path d="M6.5 1.75a.75.75 0 0 1 1.5 0v1.5a5.25 5.25 0 0 1-4.778 5.231A3.5 3.5 0 0 0 7 12.5h1.25a.75.75 0 0 1 0 1.5H7a5 5 0 0 1-4.975-4.525A6.75 6.75 0 0 1 6.5 3.25ZM14.25 2a.75.75 0 0 0-.75.75v.5A5.25 5.25 0 0 1 8.25 8.5H7.5a.75.75 0 0 0 0 1.5h.75a6.75 6.75 0 0 0 6.75-6.75v-.5a.75.75 0 0 0-.75-.75Z" />
 		</svg>
-	)
+	);
 }
 
 /** Git branch icon SVG. */
@@ -65,11 +66,11 @@ export function GitIcon({ className }: { className?: string | undefined }) {
 			viewBox="0 0 16 16"
 			fill="currentColor"
 			aria-hidden="true"
-			className={`w-2.5 h-2.5 shrink-0 ${className ?? ''}`}
+			className={`w-2.5 h-2.5 shrink-0 ${className ?? ""}`}
 		>
 			<path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.5 2.5 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Z" />
 		</svg>
-	)
+	);
 }
 
 /** Clickable PR badge — shared structure, per-variant styling via className/style/children. */
@@ -80,11 +81,11 @@ export function PrBadge({
 	style,
 	children,
 }: {
-	pr: PrInfo
-	onOpenExternal: (url: string) => void
-	className?: string
-	style?: React.CSSProperties
-	children?: React.ReactNode
+	pr: PrInfo;
+	onOpenExternal: (url: string) => void;
+	className?: string;
+	style?: React.CSSProperties;
+	children?: React.ReactNode;
 }) {
 	return (
 		<button
@@ -92,10 +93,10 @@ export function PrBadge({
 			onClick={() => onOpenExternal(pr.url)}
 			title={pr.title}
 			aria-label={`Open PR #${pr.number}`}
-			className={`cursor-pointer ${FOCUS_VIS} ${className ?? ''}`}
+			className={`cursor-pointer ${FOCUS_VIS} ${className ?? ""}`}
 			style={style}
 		>
 			{children ?? `#${pr.number}`}
 		</button>
-	)
+	);
 }

@@ -1,37 +1,37 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
-	children: ReactNode
+	children: ReactNode;
 }
 
 interface ErrorBoundaryState {
-	error: Error | null
+	error: Error | null;
 }
 
 /** Catches render errors within a single workspace's pane area so that a crash
  *  in one workspace does not take down the entire application. */
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-	state: ErrorBoundaryState = { error: null }
+	state: ErrorBoundaryState = { error: null };
 
 	static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-		return { error }
+		return { error };
 	}
 
 	componentDidCatch(error: Error, info: ErrorInfo) {
-		console.error('[ErrorBoundary]', error, info.componentStack)
+		console.error("[ErrorBoundary]", error, info.componentStack);
 	}
 
 	handleRetry = () => {
-		this.setState({ error: null })
-	}
+		this.setState({ error: null });
+	};
 
 	handleReload = () => {
-		window.location.reload()
-	}
+		window.location.reload();
+	};
 
 	render() {
 		if (this.state.error) {
-			const message = this.state.error.message ?? 'An unexpected error occurred.'
+			const message = this.state.error.message ?? "An unexpected error occurred.";
 			return (
 				<div role="alert" className="flex flex-col items-center justify-center h-full gap-4 p-8">
 					<p className="text-danger text-sm font-semibold">Something went wrong</p>
@@ -57,8 +57,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 						</button>
 					</div>
 				</div>
-			)
+			);
 		}
-		return this.props.children
+		return this.props.children;
 	}
 }

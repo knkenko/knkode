@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, FolderIcon, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, FolderIcon, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,22 +23,22 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const glowColor = theme.glow ?? theme.accent
-	const c1 = theme.accent
-	const c2 = glowColor
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const glowColor = theme.glow ?? theme.accent;
+	const c1 = theme.accent;
+	const c2 = glowColor;
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} relative z-20 flex items-center gap-2 px-3 py-1 text-[11px] font-medium shrink-0 select-none transition-all duration-200`}
+			className={`${headerProps.className || ""} relative z-20 flex items-center gap-2 px-3 py-1 text-[11px] font-medium shrink-0 select-none transition-all duration-200`}
 			style={{
 				...headerProps.style,
 				height: 30,
 				color: theme.foreground,
-				backgroundColor: '#0c0c1d',
-				borderTop: isBottom ? '2px solid transparent' : 'none',
-				borderBottom: isBottom ? 'none' : '2px solid transparent',
+				backgroundColor: "#0c0c1d",
+				borderTop: isBottom ? "2px solid transparent" : "none",
+				borderBottom: isBottom ? "none" : "2px solid transparent",
 				borderImage: isFocused
 					? `linear-gradient(90deg, ${c1}, ${c2}) 1`
 					: `linear-gradient(90deg, ${c1}33, ${c2}33) 1`,
@@ -54,7 +54,7 @@ function Frame({
 				<span
 					onDoubleClick={onDoubleClickLabel}
 					className="cursor-default shrink-0 font-semibold"
-					style={{ textShadow: isFocused ? `0 0 8px ${c1}66` : 'none' }}
+					style={{ textShadow: isFocused ? `0 0 8px ${c1}66` : "none" }}
 				>
 					{label}
 				</span>
@@ -78,7 +78,7 @@ function Frame({
 						background: `linear-gradient(135deg, ${c1}33, ${c2}33)`,
 						color: theme.foreground,
 						border: `1px solid ${c1}44`,
-						boxShadow: isFocused ? `0 0 6px ${c2}33` : 'none',
+						boxShadow: isFocused ? `0 0 6px ${c2}33` : "none",
 					}}
 				>
 					{branch}
@@ -94,7 +94,7 @@ function Frame({
 						background: `linear-gradient(135deg, ${c1}33, ${c2}33)`,
 						color: theme.foreground,
 						border: `1px solid ${c1}44`,
-						boxShadow: isFocused ? `0 0 6px ${c2}33` : 'none',
+						boxShadow: isFocused ? `0 0 6px ${c2}33` : "none",
 					}}
 				/>
 			)}
@@ -105,7 +105,7 @@ function Frame({
 				className={`bg-transparent border-none cursor-pointer text-[11px] px-0.5 leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
 				style={{ color: theme.accent }}
 			>
-				{'>_'}
+				{">_"}
 			</SnippetTrigger>
 
 			<button
@@ -142,23 +142,23 @@ function Frame({
 			)}
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
 			{!isBottom && header}
 
-			<div className={`relative z-10 flex-1 w-full min-h-0 ${isBottom ? 'mb-1' : 'mt-1'}`}>
+			<div className={`relative z-10 flex-1 w-full min-h-0 ${isBottom ? "mb-1" : "mt-1"}`}>
 				{children}
 			</div>
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
-	const glowColor = theme.glow ?? theme.accent
+	const glowColor = theme.glow ?? theme.accent;
 	return (
 		<button
 			type="button"
@@ -169,13 +169,13 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 				color: theme.foreground,
 				border: `1px solid ${theme.accent}66`,
 				background: `linear-gradient(135deg, ${theme.accent}11, ${glowColor}11), ${theme.background}dd`,
-				boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+				boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
 			}}
 		>
 			↓ Scroll to bottom
 		</button>
-	)
+	);
 }
 
-const SolanaVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Solana', SolanaVariant)
+const SolanaVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Solana", SolanaVariant);

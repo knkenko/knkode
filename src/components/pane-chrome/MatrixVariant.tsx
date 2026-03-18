@@ -1,6 +1,6 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
 	label,
@@ -23,23 +23,23 @@ function Frame({
 	headerProps,
 	contextMenu,
 }: FrameProps) {
-	const fg = isFocused ? theme.accent : theme.foreground
-	const glowColor = theme.glow ?? theme.accent
+	const fg = isFocused ? theme.accent : theme.foreground;
+	const glowColor = theme.glow ?? theme.accent;
 
-	const isBottom = theme.statusBarPosition === 'bottom'
+	const isBottom = theme.statusBarPosition === "bottom";
 
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ''} flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase shrink-0 select-none transition-colors duration-200 z-20`}
+			className={`${headerProps.className || ""} flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase shrink-0 select-none transition-colors duration-200 z-20`}
 			style={{
 				...headerProps.style,
 				height: 28,
 				color: fg,
-				backgroundColor: '#0a0a0a',
-				borderTop: isBottom ? `1px solid ${theme.accent}66` : 'none',
-				borderBottom: isBottom ? 'none' : `1px solid ${theme.accent}66`,
-				textShadow: isFocused ? `0 0 6px ${glowColor}44` : 'none',
+				backgroundColor: "#0a0a0a",
+				borderTop: isBottom ? `1px solid ${theme.accent}66` : "none",
+				borderBottom: isBottom ? "none" : `1px solid ${theme.accent}66`,
+				textShadow: isFocused ? `0 0 6px ${glowColor}44` : "none",
 			}}
 		>
 			{isEditing ? (
@@ -57,7 +57,7 @@ function Frame({
 			<span className="mx-1 opacity-40">|</span>
 
 			<span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap opacity-70">
-				{'> '}
+				{"> "}
 				{cwd}
 			</span>
 
@@ -125,7 +125,7 @@ function Frame({
 			)}
 			{contextMenu}
 		</div>
-	)
+	);
 
 	return (
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
@@ -133,8 +133,8 @@ function Frame({
 			<div
 				className="absolute inset-0 pointer-events-none z-0"
 				style={{
-					boxShadow: isFocused ? `inset 0 0 20px ${glowColor}22` : 'inset 0 0 10px #000',
-					border: `1px solid ${isFocused ? `${glowColor}44` : '#111'}`,
+					boxShadow: isFocused ? `inset 0 0 20px ${glowColor}22` : "inset 0 0 10px #000",
+					border: `1px solid ${isFocused ? `${glowColor}44` : "#111"}`,
 				}}
 			/>
 
@@ -145,7 +145,7 @@ function Frame({
 
 			{isBottom && header}
 		</div>
-	)
+	);
 }
 
 function ScrollButton({ onClick, theme }: ScrollButtonProps) {
@@ -164,8 +164,8 @@ function ScrollButton({ onClick, theme }: ScrollButtonProps) {
 		>
 			[▼ SCROLL TO BOTTOM]
 		</button>
-	)
+	);
 }
 
-const MatrixVariant: PaneVariant = { Frame, ScrollButton }
-registerVariant('Matrix', MatrixVariant)
+const MatrixVariant: PaneVariant = { Frame, ScrollButton };
+registerVariant("Matrix", MatrixVariant);

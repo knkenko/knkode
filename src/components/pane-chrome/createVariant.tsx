@@ -1,61 +1,61 @@
-import { registerVariant } from '.'
-import { FOCUS_VIS, FolderIcon, LeafIcon, PrBadge } from './shared'
-import type { FrameProps, PaneVariant, ScrollButtonProps, VariantTheme } from './types'
+import { registerVariant } from ".";
+import { FOCUS_VIS, FolderIcon, LeafIcon, PrBadge } from "./shared";
+import type { FrameProps, PaneVariant, ScrollButtonProps, VariantTheme } from "./types";
 
-type StyleFn = (theme: VariantTheme, isFocused: boolean) => React.CSSProperties
-type ThemeFn = (theme: VariantTheme) => React.CSSProperties
+type StyleFn = (theme: VariantTheme, isFocused: boolean) => React.CSSProperties;
+type ThemeFn = (theme: VariantTheme) => React.CSSProperties;
 
 export interface VariantConfig {
 	statusBar: {
-		height: number
+		height: number;
 		/** Base Tailwind classes for the container (gap, px, text size, font weight, etc.) */
-		className: string
+		className: string;
 		/** Inline styles for the root container. */
-		style: StyleFn
+		style: StyleFn;
 		/** Separator character between sections (e.g. '·', '|', '—'). Omit for no separators. */
-		separator?: string
+		separator?: string;
 		/** Opacity class for separators (e.g. 'opacity-30', 'opacity-40'). */
-		separatorOpacity?: string
+		separatorOpacity?: string;
 		/** Inline styles for separator spans. */
-		separatorStyle?: ThemeFn
+		separatorStyle?: ThemeFn;
 		/** Show separator after label (before CWD). Default true. Set false to only show before actions. */
-		showSeparatorAfterLabel?: boolean
-		editInput: { className: string; style: ThemeFn }
-		label?: { className?: string; style?: StyleFn }
+		showSeparatorAfterLabel?: boolean;
+		editInput: { className: string; style: ThemeFn };
+		label?: { className?: string; style?: StyleFn };
 		cwd: {
-			className: string
+			className: string;
 			/** Text prefix before path (e.g. '~ '). Mutually exclusive with icon. */
-			prefix?: string
+			prefix?: string;
 			/** Icon before path. 'folder' renders FolderIcon, 'leaf' renders LeafIcon; any other string renders as text. */
-			icon?: string | 'folder' | 'leaf'
+			icon?: string | "folder" | "leaf";
 			/** Class for the icon element (e.g. 'opacity-60'). */
-			iconClassName?: string
+			iconClassName?: string;
 			/** Inline style wrapper around the icon. */
-			iconStyle?: ThemeFn
-			style?: ThemeFn
-		}
+			iconStyle?: ThemeFn;
+			style?: ThemeFn;
+		};
 		branch: {
-			className: string
-			style: ThemeFn
+			className: string;
+			style: ThemeFn;
 			/** Wrap/format the branch name (e.g. s => `[${s}]`). */
-			format?: (branch: string) => string
-		}
-		pr: { className: string; style: ThemeFn }
-		action: { className: string; style: ThemeFn }
-		snippet: { label: string }
-	}
+			format?: (branch: string) => string;
+		};
+		pr: { className: string; style: ThemeFn };
+		action: { className: string; style: ThemeFn };
+		snippet: { label: string };
+	};
 	scrollButton: {
-		className: string
-		style: ThemeFn
-		text: string
-	}
+		className: string;
+		style: ThemeFn;
+		text: string;
+	};
 }
 
 /** Create and register a pane-chrome variant from a style configuration.
  *  Covers single-row Frame layouts — use a custom implementation
  *  for variants with unique DOM structure (e.g. Vaporwave's 2-row layout). */
 export function createAndRegisterVariant(name: string, config: VariantConfig): PaneVariant {
-	const { statusBar: sb, scrollButton: scr } = config
+	const { statusBar: sb, scrollButton: scr } = config;
 
 	function Frame({
 		label,
@@ -78,24 +78,24 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 		headerProps,
 		contextMenu,
 	}: FrameProps) {
-		const hasSep = sb.separator != null
-		const sepClass = sb.separatorOpacity ?? 'opacity-30'
-		const sepStyle = sb.separatorStyle?.(theme)
+		const hasSep = sb.separator != null;
+		const sepClass = sb.separatorOpacity ?? "opacity-30";
+		const sepStyle = sb.separatorStyle?.(theme);
 		const Sep = hasSep
 			? () => (
 					<span className={sepClass} style={sepStyle}>
 						{sb.separator}
 					</span>
 				)
-			: () => null
-		const actionCls = `bg-transparent border-none cursor-pointer leading-none transition-opacity ${FOCUS_VIS} ${sb.action.className}`
-		const actionStyle = sb.action.style(theme)
-		const isBottom = theme.statusBarPosition === 'bottom'
+			: () => null;
+		const actionCls = `bg-transparent border-none cursor-pointer leading-none transition-opacity ${FOCUS_VIS} ${sb.action.className}`;
+		const actionStyle = sb.action.style(theme);
+		const isBottom = theme.statusBarPosition === "bottom";
 
 		const header = (
 			<div
 				{...headerProps}
-				className={`${headerProps.className || ''} flex items-center shrink-0 select-none transition-colors duration-200 ${sb.className}`}
+				className={`${headerProps.className || ""} flex items-center shrink-0 select-none transition-colors duration-200 ${sb.className}`}
 				style={{ ...headerProps.style, height: sb.height, ...sb.style(theme, isFocused) }}
 			>
 				{isEditing ? (
@@ -107,7 +107,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 				) : (
 					<span
 						onDoubleClick={onDoubleClickLabel}
-						className={`cursor-default shrink-0 ${sb.label?.className ?? 'font-medium'}`}
+						className={`cursor-default shrink-0 ${sb.label?.className ?? "font-medium"}`}
 						style={sb.label?.style?.(theme, isFocused)}
 					>
 						{label}
@@ -120,9 +120,9 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 					className={`flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${sb.cwd.className}`}
 					style={sb.cwd.style?.(theme)}
 				>
-					{sb.cwd.icon === 'folder' || sb.cwd.icon === 'leaf' ? (
+					{sb.cwd.icon === "folder" || sb.cwd.icon === "leaf" ? (
 						<span className="inline-flex items-center mr-1" style={sb.cwd.iconStyle?.(theme)}>
-							{sb.cwd.icon === 'folder' ? (
+							{sb.cwd.icon === "folder" ? (
 								<FolderIcon className={sb.cwd.iconClassName} />
 							) : (
 								<LeafIcon className={sb.cwd.iconClassName} />
@@ -130,7 +130,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 						</span>
 					) : sb.cwd.icon ? (
 						<>
-							<span style={sb.cwd.iconStyle?.(theme)}>{sb.cwd.icon}</span>{' '}
+							<span style={sb.cwd.iconStyle?.(theme)}>{sb.cwd.icon}</span>{" "}
 						</>
 					) : sb.cwd.prefix ? (
 						<>{sb.cwd.prefix}</>
@@ -198,7 +198,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 				)}
 				{contextMenu}
 			</div>
-		)
+		);
 
 		return (
 			<>
@@ -206,7 +206,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 				{children}
 				{isBottom && header}
 			</>
-		)
+		);
 	}
 
 	function ScrollButton({ onClick, theme }: ScrollButtonProps) {
@@ -220,10 +220,10 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 			>
 				{scr.text}
 			</button>
-		)
+		);
 	}
 
-	const variant: PaneVariant = { Frame, ScrollButton }
-	registerVariant(name, variant)
-	return variant
+	const variant: PaneVariant = { Frame, ScrollButton };
+	registerVariant(name, variant);
+	return variant;
 }
