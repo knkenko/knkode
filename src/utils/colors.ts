@@ -8,17 +8,13 @@ export function isValidHex(hex: string): boolean {
 	return HEX_RE.test(hex);
 }
 
-/** Coarse safety check for CSS gradient strings — blocks known dangerous tokens
- *  but is not a comprehensive sanitizer. Uses a blocklist approach. */
+/** Allowlist-based CSS gradient validator.
+ *  Permits linear-gradient, radial-gradient, conic-gradient (and repeating- variants)
+ *  with hex/rgb/hsl/named color values and numeric stops. Rejects anything else. */
+const GRADIENT_RE =
+	/^(repeating-)?(linear|radial|conic)-gradient\([\s,\w#().%\d/-]+\)$/i;
 export function isValidGradient(value: string): boolean {
-	return (
-		/^(linear|radial|conic)-gradient\(/.test(value) &&
-		!value.includes(";") &&
-		!value.includes("{") &&
-		!value.includes("url(") &&
-		!value.includes("expression(") &&
-		!value.includes("var(")
-	);
+	return GRADIENT_RE.test(value);
 }
 
 /** Default accent color for dark themes. */
