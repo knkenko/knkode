@@ -61,8 +61,12 @@ pub fn create_pty(
     if cwd.contains('\0') {
         return Err("cwd must not contain null bytes".to_string());
     }
-    if !std::path::Path::new(&cwd).is_absolute() {
+    let cwd_path = std::path::Path::new(&cwd);
+    if !cwd_path.is_absolute() {
         return Err("cwd must be an absolute path".to_string());
+    }
+    if !cwd_path.is_dir() {
+        return Err(format!("cwd does not exist or is not a directory: {cwd}"));
     }
     if let Some(ref cmd) = startup_command {
         if cmd.contains('\0') {
