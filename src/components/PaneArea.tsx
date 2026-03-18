@@ -45,7 +45,14 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 	const renderNode = (node: LayoutNode, path: number[] = []): React.ReactNode => {
 		if (!isLayoutBranch(node)) {
 			const config = workspace.panes[node.paneId];
-			if (!config) return null;
+			if (!config) {
+				console.error("[PaneArea] missing config for pane:", node.paneId);
+				return (
+					<div className="flex items-center justify-center h-full text-xs text-danger bg-danger/5">
+						Pane configuration missing
+					</div>
+				);
+			}
 			return (
 				<Pane
 					key={node.paneId}
