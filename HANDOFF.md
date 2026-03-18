@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 5a in progress — Rust terminal emulation layer (PR #12 open).
+Phase 5a complete — Rust terminal emulation layer (PR #12 merged). Phase 5b next.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -18,7 +18,7 @@ Phase 5a in progress — Rust terminal emulation layer (PR #12 open).
 - [x] Phase 4: Rust PTY manager with portable-pty 0.9 (PR #11 merged)
 
 ## What's Next
-- [ ] Phase 5a: Rust terminal emulation layer (PR #12 — tattoy-wezterm-term + TerminalState + PTY integration)
+- [x] Phase 5a: Rust terminal emulation layer (PR #12 merged)
 - [ ] Phase 5b: Frontend canvas terminal renderer (PR #13 — CanvasTerminal.tsx + key-to-ansi.ts)
 - [ ] Phase 6: Config store (Rust, ~/.knkode/)
 - [ ] Phase 7: CWD tracker (Rust)
@@ -29,9 +29,6 @@ Phase 5a in progress — Rust terminal emulation layer (PR #12 open).
 ## Key Reference
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
-
-## Active Branch
-`feature/rust-terminal-emulation`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
