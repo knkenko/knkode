@@ -30,6 +30,13 @@ Phase 5b complete — Frontend canvas terminal renderer merged (PR #13).
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
+## Active Reviews
+
+### PR #14 — feat: config store hardening (Phase 6a)
+- State: `docs/reviews/PR-14/_state.json`
+- Agents: 8/8 completed
+- Phase: done — review compiled, awaiting fix pass
+
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
 - Icons are placeholder dark squares

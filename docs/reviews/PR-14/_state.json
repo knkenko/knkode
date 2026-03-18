@@ -1,0 +1,21 @@
+{
+	"type": "watch-pr",
+	"pr_number": 14,
+	"pr_title": "feat: config store hardening — migrations, sanitization, permissions",
+	"branch": "feature/config-store-hardening",
+	"base_branch": "main",
+	"head_sha": "a19e957d0c73932c0ab81b1e164c49113fdf9db1",
+	"started_at": "2026-03-18T13:36:00Z",
+	"agents": {
+		"code-reviewer": { "status": "completed", "file": "code-reviewer.md" },
+		"security-auditor": { "status": "completed", "file": "security-auditor.md" },
+		"silent-failure-hunter": { "status": "completed", "file": "silent-failure-hunter.md" },
+		"code-simplifier": { "status": "completed", "file": "code-simplifier.md" },
+		"dry-reuse": { "status": "completed", "file": "dry-reuse.md" },
+		"comment-analyzer": { "status": "completed", "file": "comment-analyzer.md" },
+		"rust-reviewer": { "status": "completed", "file": "rust-reviewer.md" },
+		"efficiency": { "status": "completed", "file": "efficiency.md" }
+	},
+	"phase": "done",
+	"compiled": true
+}
