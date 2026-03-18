@@ -102,7 +102,9 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		isEffectLevel(workspace.theme.noiseLevel) ? workspace.theme.noiseLevel : "off",
 	);
 	const [lineHeight, setLineHeight] = useState(workspace.theme.lineHeight ?? DEFAULT_LINE_HEIGHT);
+	const [saveFailed, setSaveFailed] = useState(false);
 
+	const dialogRef = useRef<HTMLDivElement>(null);
 	const currentPreset = workspace.layout.type === "preset" ? workspace.layout.preset : null;
 
 	const effects: Record<EffectCategory, EffectLevel> = {
@@ -173,10 +175,23 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		lineHeight,
 	]);
 
+	/** Persist workspace, surfacing errors to the user via saveFailed indicator. */
+	const persistWorkspace = useCallback(
+		(ws: Workspace) => {
+			setSaveFailed(false);
+			updateWorkspace(ws).catch((err: unknown) => {
+				console.error("[settings] persist failed:", err);
+				setSaveFailed(true);
+			});
+		},
+		[updateWorkspace],
+	);
+
 	// Auto-persist: save full workspace with updated color/theme whenever those fields change.
 	// Reads latest workspace from store (not the prop) to avoid overwriting concurrent updates.
-	// Uses value-comparison ref instead of useRef(false) mount guard — the boolean flag
-	// breaks under React 18 StrictMode which double-fires effects on mount.
+	// Tracks previous values via ref and compares to current values before persisting.
+	// A simple useRef(false) mount guard would misfire under React 18 StrictMode,
+	// which double-invokes effects on mount.
 	const prevAutoSaveRef = useRef({ color, buildThemeFromInputs });
 	useEffect(() => {
 		if (
@@ -188,10 +203,14 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		prevAutoSaveRef.current = { color, buildThemeFromInputs };
 		const latest = getLatestWorkspace(workspace.id);
 		if (!latest) return;
-		updateWorkspace({ ...latest, color, theme: buildThemeFromInputs() }).catch((err: unknown) => {
-			console.error("[settings] auto-persist theme failed:", err);
-		});
-	}, [workspace.id, color, buildThemeFromInputs, updateWorkspace]);
+		// Debounce theme persist to avoid saving on every keystroke (e.g. font-size stepper)
+		const timer = setTimeout(() => {
+			const current = getLatestWorkspace(workspace.id);
+			if (!current) return;
+			persistWorkspace({ ...current, color, theme: buildThemeFromInputs() });
+		}, 200);
+		return () => clearTimeout(timer);
+	}, [workspace.id, color, buildThemeFromInputs, persistWorkspace]);
 
 	// Reset effect levels to preset defaults when the user switches presets.
 	const prevPresetRef = useRef(selectedPreset);
@@ -214,13 +233,12 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		}
 	}, [selectedPreset]);
 
-	// Auto-persist name with debounce
-	const nameMountedRef = useRef(false);
+	// Auto-persist name with debounce.
+	// Uses value-comparison ref instead of useRef(false) mount guard for StrictMode compat.
+	const prevNameRef = useRef(name);
 	useEffect(() => {
-		if (!nameMountedRef.current) {
-			nameMountedRef.current = true;
-			return;
-		}
+		if (prevNameRef.current === name) return;
+		prevNameRef.current = name;
 		const trimmed = name.trim();
 		if (!trimmed) return;
 		const latest = getLatestWorkspace(workspace.id);
@@ -228,12 +246,10 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		const timer = setTimeout(() => {
 			const current = getLatestWorkspace(workspace.id);
 			if (!current) return;
-			updateWorkspace({ ...current, name: trimmed }).catch((err: unknown) => {
-				console.error("[settings] auto-persist name failed:", err);
-			});
+			persistWorkspace({ ...current, name: trimmed });
 		}, 300);
 		return () => clearTimeout(timer);
-	}, [workspace.id, name, updateWorkspace]);
+	}, [workspace.id, name, persistWorkspace]);
 
 	const handleLayoutChange = useCallback(
 		(preset: LayoutPreset) => {
@@ -243,11 +259,9 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 			if (killedPaneIds.length > 0) {
 				killPtys(killedPaneIds);
 			}
-			updateWorkspace({ ...latest, layout, panes }).catch((err: unknown) => {
-				console.error("[settings] layout change failed:", err);
-			});
+			persistWorkspace({ ...latest, layout, panes });
 		},
-		[workspace.id, updateWorkspace, killPtys, homeDir],
+		[workspace.id, persistWorkspace, killPtys, homeDir],
 	);
 
 	const handleDelete = useCallback(() => {
@@ -264,6 +278,35 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		document.addEventListener("keydown", handler);
 		return () => document.removeEventListener("keydown", handler);
 	}, [onClose]);
+
+	// Focus trap — contain Tab/Shift+Tab within the dialog
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		if (!dialog) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key !== "Tab") return;
+			const focusable = dialog.querySelectorAll<HTMLElement>(
+				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+			);
+			if (focusable.length === 0) return;
+			const first = focusable[0]!;
+			const last = focusable[focusable.length - 1]!;
+			if (e.shiftKey && document.activeElement === first) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && document.activeElement === last) {
+				e.preventDefault();
+				first.focus();
+			}
+		};
+		dialog.addEventListener("keydown", handler);
+		// Auto-focus first focusable element on mount
+		const firstFocusable = dialog.querySelector<HTMLElement>(
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+		);
+		firstFocusable?.focus();
+		return () => dialog.removeEventListener("keydown", handler);
+	}, []);
 
 	const handlePaneUpdate = useCallback(
 		(paneId: string, updates: Partial<PaneConfig>) => {
@@ -282,6 +325,7 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, keyboard handled by overlay */}
 			{/* biome-ignore lint/a11y/useSemanticElements: native dialog has styling/focus-trap limitations */}
 			<div
+				ref={dialogRef}
 				role="dialog"
 				aria-modal="true"
 				aria-label="Workspace Settings"
@@ -290,6 +334,9 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 			>
 				<div className="flex items-center justify-between px-6 py-4 border-b border-edge/50">
 					<h2 className="text-sm font-semibold tracking-wide">Workspace Settings</h2>
+					{saveFailed && (
+						<span className="text-[10px] text-danger">Save failed</span>
+					)}
 					<button
 						type="button"
 						onClick={onClose}
