@@ -36,8 +36,10 @@ Phase 9 in progress — PR #18 merged. PR #19 (components & app shell) next.
 ### PR #19 — feat: frontend components & app shell (Phase 9b)
 - State: `docs/reviews/PR-19/_state.json`
 - Agents: 10/10 completed
-- Phase: done (compiled)
+- Phase: fixes applied
 - Report: `docs/reviews/PR-19/compiled-report.md`
+- Fixed: 38/49 findings addressed (14 must-fix, 17 suggestions, 7 nitpicks)
+- Skipped (scope): variant refactor (factory doesn't support custom DOM), SettingsPanel useReducer, StatusBarProps grouping, PaneArea memoization (recursive), window.confirm → Tauri dialog, variant a11y labels (7+ files)
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
