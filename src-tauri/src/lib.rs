@@ -4,12 +4,13 @@ mod pty;
 
 use config::ConfigStore;
 use pty::PtyManager;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config_store = ConfigStore::new()?;
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(config_store)
         .manage(PtyManager::new())
@@ -28,6 +29,13 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::kill_pty,
             commands::log_scroll_debug,
         ])
-        .run(tauri::generate_context!())?;
+        .build(tauri::generate_context!())?;
+
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            app_handle.state::<PtyManager>().kill_all();
+        }
+    });
+
     Ok(())
 }
