@@ -18,7 +18,7 @@ interface TabProps {
 	onRename: (id: string, name: string) => void;
 	onChangeColor: (id: string, color: string) => void;
 	onDuplicate: (id: string) => void;
-	onDragStart: (index: number) => void;
+	onDragStart: (e: React.DragEvent, index: number) => void;
 	onDragOver: (e: React.DragEvent, index: number) => void;
 	onDrop: (index: number) => void;
 	onDragEnd: () => void;
@@ -120,12 +120,7 @@ export function Tab({
 				}
 			}}
 			onContextMenu={handleContextMenu}
-			onDragStart={(e) => {
-				e.dataTransfer.effectAllowed = "move";
-				// Use empty string — rely on internal React state for reorder tracking
-				e.dataTransfer.setData("text/plain", "");
-				onDragStart(index);
-			}}
+			onDragStart={(e) => onDragStart(e, index)}
 			onDragOver={(e) => onDragOver(e, index)}
 			onDrop={() => onDrop(index)}
 			onDragEnd={onDragEnd}

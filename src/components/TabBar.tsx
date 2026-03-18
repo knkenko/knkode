@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { useDragReorder } from "../hooks/useDragReorder";
 import type { Workspace } from "../shared/types";
 import { useStore, WORKSPACE_COLORS } from "../store";
 import { modKey } from "../utils/platform";
@@ -21,41 +22,12 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
 
 	const [showClosedMenu, setShowClosedMenu] = useState(false);
-	const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
-	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 	const [actionError, setActionError] = useState<string | null>(null);
-	const dragFromRef = useRef<number | null>(null);
 	const closedMenuRef = useRef<HTMLDivElement>(null);
 	useClickOutside(closedMenuRef, () => setShowClosedMenu(false), showClosedMenu);
 
-	const resetDragState = useCallback(() => {
-		setDragFromIndex(null);
-		setDragOverIndex(null);
-		dragFromRef.current = null;
-	}, []);
-
-	const handleDragStart = useCallback((index: number) => {
-		setDragFromIndex(index);
-		dragFromRef.current = index;
-	}, []);
-	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = "move";
-		setDragOverIndex((prev) => (prev === index ? prev : index));
-	}, []);
-	const handleDrop = useCallback(
-		(toIndex: number) => {
-			const from = dragFromRef.current;
-			if (from !== null && from !== toIndex) {
-				reorderWorkspaceTabs(from, toIndex);
-			}
-			resetDragState();
-		},
-		[reorderWorkspaceTabs, resetDragState],
-	);
-	const handleDragEnd = useCallback(() => {
-		resetDragState();
-	}, [resetDragState]);
+	const { dragFromIndex, dragOverIndex, resetDragState, handleDragStart, handleDragOver, handleDrop } =
+		useDragReorder({ onReorder: reorderWorkspaceTabs });
 
 	const openTabs = useMemo(
 		() =>
@@ -135,7 +107,7 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 						onDragStart={handleDragStart}
 						onDragOver={handleDragOver}
 						onDrop={handleDrop}
-						onDragEnd={handleDragEnd}
+						onDragEnd={resetDragState}
 						isDragOver={dragOverIndex === i && dragFromIndex !== i}
 						isDragging={dragFromIndex === i}
 						colors={WORKSPACE_COLORS}

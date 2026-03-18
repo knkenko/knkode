@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { useDragReorder } from "../hooks/useDragReorder";
 import { useStore } from "../store";
 import { SettingsSection } from "./SettingsSection";
 
@@ -14,10 +15,19 @@ export function SnippetsSection() {
 	const [isAdding, setIsAdding] = useState(false);
 	const [newName, setNewName] = useState("");
 	const [newCommand, setNewCommand] = useState("");
-	const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
-	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-	const dragFromRef = useRef<number | null>(null);
 	const [liveMessage, setLiveMessage] = useState("");
+
+	const { dragFromIndex, dragOverIndex, resetDragState, handleDragStart, handleDragOver, handleDrop } =
+		useDragReorder({
+			onReorder: useCallback(
+				(from: number, to: number) => {
+					reorderSnippets(from, to);
+					const name = snippets[from]?.name ?? "Snippet";
+					setLiveMessage(`Moved ${name} to position ${to + 1}`);
+				},
+				[reorderSnippets, snippets],
+			),
+		});
 
 	const startEdit = useCallback(
 		(id: string) => {
@@ -46,38 +56,6 @@ export function SnippetsSection() {
 			setIsAdding(false);
 		}
 	}, [newName, newCommand, addSnippet]);
-
-	const resetDragState = useCallback(() => {
-		setDragFromIndex(null);
-		setDragOverIndex(null);
-		dragFromRef.current = null;
-	}, []);
-
-	const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
-		e.dataTransfer.effectAllowed = "move";
-		e.dataTransfer.setData("text/plain", "");
-		setDragFromIndex(index);
-		dragFromRef.current = index;
-	}, []);
-
-	const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-		e.preventDefault();
-		e.dataTransfer.dropEffect = "move";
-		setDragOverIndex((prev) => (prev === index ? prev : index));
-	}, []);
-
-	const handleDrop = useCallback(
-		(index: number) => {
-			const from = dragFromRef.current;
-			if (from !== null && from !== index) {
-				reorderSnippets(from, index);
-				const name = snippets[from]?.name ?? "Snippet";
-				setLiveMessage(`Moved ${name} to position ${index + 1}`);
-			}
-			resetDragState();
-		},
-		[reorderSnippets, resetDragState, snippets],
-	);
 
 	const handleKeyboardReorder = useCallback(
 		(e: React.KeyboardEvent, index: number) => {
