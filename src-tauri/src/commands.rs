@@ -5,9 +5,10 @@ use tauri::State;
 
 #[tauri::command]
 pub fn get_home_dir() -> Result<String, String> {
-    dirs::home_dir()
-        .map(|p| p.to_string_lossy().to_string())
-        .ok_or_else(|| "Cannot determine home directory".to_string())
+    let path = crate::config::home_dir()?;
+    path.to_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Home directory path contains invalid UTF-8".to_string())
 }
 
 // --- Config commands ---
@@ -57,6 +58,17 @@ pub fn create_pty(
     pty_mgr: State<'_, PtyManager>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
+    if cwd.contains('\0') {
+        return Err("cwd must not contain null bytes".to_string());
+    }
+    if !std::path::Path::new(&cwd).is_absolute() {
+        return Err("cwd must be an absolute path".to_string());
+    }
+    if let Some(ref cmd) = startup_command {
+        if cmd.contains('\0') {
+            return Err("startup_command must not contain null bytes".to_string());
+        }
+    }
     pty_mgr.create(id, cwd, startup_command, app)
 }
 
@@ -83,8 +95,7 @@ pub fn kill_pty(id: String, pty_mgr: State<'_, PtyManager>) -> Result<(), String
 // --- Debug ---
 
 #[tauri::command]
-pub fn log_scroll_debug(event: Value) -> Result<(), String> {
-    // Phase 6 will add optional file logging. For now, just acknowledge.
-    let _ = event;
+pub fn log_scroll_debug(_event: Value) -> Result<(), String> {
+    // Placeholder — will add optional file logging later.
     Ok(())
 }
