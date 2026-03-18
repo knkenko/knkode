@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 2 complete and merged. Ready for Phase 3.
+Phase 3 in review — PR #10 open with review fixes applied.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -14,9 +14,9 @@ Phase 2 complete and merged. Ready for Phase 3.
 - [x] Old knktx boards/notes/plans archived (clean slate)
 - [x] PROJECT_DESCRIPTION.md updated with new approach
 - [x] Phase 2: IPC adapter layer — shared types + tauri-api.ts + shell plugin (PR #9 merged)
+- [x] Phase 3: Rust backend commands + ConfigStore (PR #10 — review fixes applied)
 
 ## What's Next
-- [ ] Phase 3: Rust commands (config, PTY, app)
 - [ ] Phase 4: Rust PTY manager (portable-pty)
 - [ ] Phase 5: Terminal emulation (wezterm-term + canvas renderer)
 - [ ] Phase 6: Config store (Rust, ~/.knkode/)
@@ -29,8 +29,16 @@ Phase 2 complete and merged. Ready for Phase 3.
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
+## Active Reviews
+
+### PR #10 — Rust Backend Commands + ConfigStore (Phase 3)
+- State: `docs/reviews/PR-10/_state.json`
+- Agents: 8/8 completed
+- Phase: fixes applied
+- Fixes: 3 commits (config.rs overhaul, commands.rs fixes, pty.rs cleanup)
+
 ## Active Branch
-`main`
+`feature/rust-commands`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
