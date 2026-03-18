@@ -35,7 +35,7 @@ Phase 6a complete — Config store hardening merged (PR #14).
 ### PR #15 — feat: CWD tracker with git branch and PR detection
 - State: `docs/reviews/PR-15/_state.json`
 - Agents: 8/8 completed
-- Phase: done — review compiled, awaiting fix pass
+- Phase: done — all 30 findings addressed (4 fix commits pushed)
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
