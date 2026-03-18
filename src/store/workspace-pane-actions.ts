@@ -17,6 +17,8 @@ import {
 	isLayoutBranch,
 } from '../shared/types'
 import { THEME_PRESETS } from '../data/theme-presets'
+import { COLOR_DANGER, DEFAULT_ACCENT_DARK } from '../utils/colors'
+import { isValidCwd } from '../utils/validation'
 import {
 	createLayoutFromPreset,
 	remapLayoutTree,
@@ -26,8 +28,8 @@ import {
 } from './layout-tree'
 
 export const WORKSPACE_COLORS = [
-	'#6c63ff',
-	'#e74c3c',
+	DEFAULT_ACCENT_DARK,
+	COLOR_DANGER,
 	'#2ecc71',
 	'#f39c12',
 	'#3498db',
@@ -65,6 +67,16 @@ function cleanPaneEphemeral(
 	return { paneBranches, panePrs }
 }
 
+function persistAppState(appState: AppState): void {
+	window.api.saveAppState(appState).catch((err) => {
+		console.error('[store] Failed to save app state:', err)
+	})
+}
+
+function customLayout(tree: LayoutNode): { type: 'custom'; tree: LayoutNode } {
+	return { type: 'custom' as const, tree }
+}
+
 /** Find a workspace, apply a transformation, and return the merged partial state.
  *  Persistence is fire-and-forget (errors are logged, not propagated).
  *  The updater receives the found workspace and current state.
@@ -76,14 +88,14 @@ function withWorkspace(
 		ws: Workspace,
 		st: WorkspacePaneState,
 	) => { updated: Workspace; extra?: Partial<WorkspacePaneState> } | null,
-): Partial<WorkspacePaneState> | WorkspacePaneState {
+): Partial<WorkspacePaneState> {
 	const workspace = state.workspaces.find((w) => w.id === workspaceId)
 	if (!workspace) {
 		console.warn('[store] withWorkspace: workspace not found', workspaceId)
-		return state
+		return {}
 	}
 	const result = updater(workspace, state)
-	if (!result) return state
+	if (!result) return {}
 	window.api.saveWorkspace(result.updated).catch((err) => {
 		console.error('[store] Failed to save workspace:', err)
 	})
@@ -111,7 +123,7 @@ export function createWorkspacePaneSlice(
 	set: (
 		partial:
 			| Partial<WorkspacePaneState>
-			| ((state: WorkspacePaneState) => Partial<WorkspacePaneState> | WorkspacePaneState),
+			| ((state: WorkspacePaneState) => Partial<WorkspacePaneState>),
 	) => void,
 	get: () => WorkspacePaneState,
 ) {
@@ -215,13 +227,13 @@ export function createWorkspacePaneSlice(
 
 		removeWorkspace: async (id: string) => {
 			const workspace = get().workspaces.find((w) => w.id === id)
+			// Capture pane IDs before the await to avoid stale state after IPC
+			const paneIds = workspace ? Object.keys(workspace.panes) : []
 			if (workspace) {
-				get().killPtys(Object.keys(workspace.panes))
+				get().killPtys(paneIds)
 			}
 			await window.api.deleteWorkspace(id)
 			const afterDelete = get()
-			const freshWorkspace = afterDelete.workspaces.find((w) => w.id === id)
-			const paneIds = freshWorkspace ? Object.keys(freshWorkspace.panes) : []
 			const newOpen = afterDelete.appState.openWorkspaceIds.filter((wid) => wid !== id)
 			const newActive =
 				afterDelete.appState.activeWorkspaceId === id
@@ -245,9 +257,7 @@ export function createWorkspacePaneSlice(
 		setActiveWorkspace: (id: string) => {
 			set((state) => {
 				const newAppState = { ...state.appState, activeWorkspaceId: id }
-				window.api.saveAppState(newAppState).catch((err) => {
-					console.error('[store] Failed to save app state:', err)
-				})
+				persistAppState(newAppState)
 				const ws = state.workspaces.find((w) => w.id === id)
 				const firstPaneId = ws ? (Object.keys(ws.panes)[0] ?? null) : null
 				return {
@@ -265,9 +275,7 @@ export function createWorkspacePaneSlice(
 				const visited = addToVisited(state.visitedWorkspaceIds, id)
 				if (open.includes(id)) {
 					const newAppState = { ...state.appState, activeWorkspaceId: id }
-					window.api.saveAppState(newAppState).catch((err) => {
-						console.error('[store] Failed to save app state:', err)
-					})
+					persistAppState(newAppState)
 					return { appState: newAppState, visitedWorkspaceIds: visited }
 				}
 				const newAppState = {
@@ -275,9 +283,7 @@ export function createWorkspacePaneSlice(
 					openWorkspaceIds: [...open, id],
 					activeWorkspaceId: id,
 				}
-				window.api.saveAppState(newAppState).catch((err) => {
-					console.error('[store] Failed to save app state:', err)
-				})
+				persistAppState(newAppState)
 				return { appState: newAppState, visitedWorkspaceIds: visited }
 			})
 		},
@@ -298,9 +304,7 @@ export function createWorkspacePaneSlice(
 					openWorkspaceIds: newOpen,
 					activeWorkspaceId: newActive,
 				}
-				window.api.saveAppState(newAppState).catch((err) => {
-					console.error('[store] Failed to save app state:', err)
-				})
+				persistAppState(newAppState)
 				const newVisited = state.visitedWorkspaceIds.filter((wid) => wid !== id)
 				if (newActive && !newVisited.includes(newActive)) {
 					newVisited.push(newActive)
@@ -323,16 +327,14 @@ export function createWorkspacePaneSlice(
 						toIndex,
 						length: ids.length,
 					})
-					return state
+					return {}
 				}
-				if (fromIndex === toIndex) return state
+				if (fromIndex === toIndex) return {}
 				const [moved] = ids.splice(fromIndex, 1)
-				if (!moved) return state
+				if (!moved) return {}
 				ids.splice(toIndex, 0, moved)
 				const newAppState = { ...state.appState, openWorkspaceIds: ids }
-				window.api.saveAppState(newAppState).catch((err) => {
-					console.error('[store] Failed to save app state:', err)
-				})
+				persistAppState(newAppState)
 				return { appState: newAppState }
 			})
 		},
@@ -359,7 +361,7 @@ export function createWorkspacePaneSlice(
 					return {
 						updated: {
 							...workspace,
-							layout: { type: 'custom' as const, tree: newTree },
+							layout: customLayout(newTree),
 							panes: { ...workspace.panes, [newPaneId]: newPane },
 						},
 						extra: { focusedPaneId: newPaneId, focusGeneration: st.focusGeneration + 1 },
@@ -382,7 +384,7 @@ export function createWorkspacePaneSlice(
 					return {
 						updated: {
 							...workspace,
-							layout: { type: 'custom' as const, tree: newTree },
+							layout: customLayout(newTree),
 							panes: remainingPanes,
 						},
 						extra: {
@@ -402,23 +404,23 @@ export function createWorkspacePaneSlice(
 				const toWs = state.workspaces.find((w) => w.id === toWsId)
 				if (!fromWs || !toWs) {
 					console.error('[store] movePaneToWorkspace: workspace not found', { fromWsId, toWsId })
-					return state
+					return {}
 				}
 				if (Object.keys(fromWs.panes).length <= 1) {
 					console.warn('[store] movePaneToWorkspace: cannot move last pane', fromWsId)
-					return state
+					return {}
 				}
 				const config = fromWs.panes[paneId]
 				if (!config) {
 					console.error('[store] movePaneToWorkspace: pane config not found', { paneId, fromWsId })
-					return state
+					return {}
 				}
 				if (toWs.panes[paneId]) {
 					console.error('[store] movePaneToWorkspace: pane ID already exists in destination', {
 						paneId,
 						toWsId,
 					})
-					return state
+					return {}
 				}
 
 				const newSourceTree = removeLeafFromTree(fromWs.layout.tree, paneId)
@@ -427,12 +429,12 @@ export function createWorkspacePaneSlice(
 						paneId,
 						fromWsId,
 					})
-					return state
+					return {}
 				}
 				const { [paneId]: _, ...remainingPanes } = fromWs.panes
 				const updatedFrom: Workspace = {
 					...fromWs,
-					layout: { type: 'custom' as const, tree: newSourceTree },
+					layout: customLayout(newSourceTree),
 					panes: remainingPanes,
 				}
 
@@ -461,7 +463,7 @@ export function createWorkspacePaneSlice(
 				}
 				const updatedTo: Workspace = {
 					...toWs,
-					layout: { type: 'custom' as const, tree: newDestTree },
+					layout: customLayout(newDestTree),
 					panes: { ...toWs.panes, [paneId]: config },
 				}
 
@@ -483,12 +485,7 @@ export function createWorkspacePaneSlice(
 					openWorkspaceIds: newOpen,
 					activeWorkspaceId: toWsId,
 				}
-				window.api.saveAppState(newAppState).catch((err) => {
-					console.error('[store] movePaneToWorkspace: failed to save app state', {
-						toWsId,
-						err,
-					})
-				})
+				persistAppState(newAppState)
 
 				return {
 					workspaces: state.workspaces.map((w) => {
@@ -512,11 +509,12 @@ export function createWorkspacePaneSlice(
 						console.error('[store] swapPanes: pane not found', { paneIdA, paneIdB, workspaceId })
 						return null
 					}
+					const swapMap = new Map([[paneIdA, paneIdB], [paneIdB, paneIdA]])
 					const swappedTree = remapLayoutTree(workspace.layout.tree, (id) =>
-						id === paneIdA ? paneIdB : id === paneIdB ? paneIdA : id,
+						swapMap.get(id) ?? id,
 					)
 					return {
-						updated: { ...workspace, layout: { type: 'custom' as const, tree: swappedTree } },
+						updated: { ...workspace, layout: customLayout(swappedTree) },
 					}
 				}),
 			)
@@ -585,6 +583,10 @@ export function createWorkspacePaneSlice(
 		},
 
 		updatePaneCwd: (workspaceId: string, paneId: string, cwd: string) => {
+			if (!isValidCwd(cwd)) {
+				console.warn('[store] updatePaneCwd: invalid cwd', cwd)
+				return
+			}
 			set((state) =>
 				withWorkspace(state, workspaceId, (workspace) => {
 					if (!workspace.panes[paneId]) return null
@@ -601,14 +603,21 @@ export function createWorkspacePaneSlice(
 
 		updatePaneBranch: (paneId: string, branch: string | null) => {
 			set((state) => {
-				if (state.paneBranches[paneId] === branch) return state
+				if (state.paneBranches[paneId] === branch) return {}
 				return { paneBranches: { ...state.paneBranches, [paneId]: branch } }
 			})
 		},
 
 		updatePanePr: (paneId: string, pr: PrInfo | null) => {
 			set((state) => {
-				if (state.panePrs[paneId]?.number === pr?.number) return state
+				const current = state.panePrs[paneId]
+				if (
+					current?.number === pr?.number &&
+					current?.title === pr?.title &&
+					current?.url === pr?.url
+				) {
+					return {}
+				}
 				return { panePrs: { ...state.panePrs, [paneId]: pr } }
 			})
 		},
