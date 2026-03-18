@@ -38,7 +38,7 @@ Phase 5b in progress — Frontend canvas terminal renderer (PR #13 open).
 ### PR #13 — feat: frontend canvas terminal renderer (Phase 5b)
 - State: `docs/reviews/PR-13/_state.json`
 - Agents: 8/8 completed
-- Phase: done — review compiled, awaiting fix pass
+- Phase: done — all 21 findings fixed and pushed, ready to merge
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
