@@ -35,7 +35,7 @@ Phase 5b complete — Frontend canvas terminal renderer merged (PR #13).
 ### PR #14 — feat: config store hardening (Phase 6a)
 - State: `docs/reviews/PR-14/_state.json`
 - Agents: 8/8 completed
-- Phase: done — review compiled, awaiting fix pass
+- Phase: done — all 24 review findings addressed, fixes pushed
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
