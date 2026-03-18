@@ -44,7 +44,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     cwd_tracker.start(app.handle().clone(), pty_manager);
 
     // Use build() + run() instead of Builder::run() so we can hook into
-    // RunEvent::Exit to clean up all PTY child processes and prevent orphans
+    // RunEvent::Exit to stop the CWD tracker and clean up all PTY child processes
     app.run(|app_handle, event| {
         if let tauri::RunEvent::Exit = event {
             app_handle.state::<CwdTracker>().stop();
