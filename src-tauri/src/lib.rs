@@ -3,6 +3,7 @@ mod config;
 mod pty;
 mod terminal;
 mod tracker;
+mod window;
 
 use config::ConfigStore;
 use pty::PtyManager;
@@ -37,6 +38,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::kill_pty,
             commands::log_scroll_debug,
         ])
+        .setup(|app| {
+            window::setup_window(app);
+            Ok(())
+        })
         .build(tauri::generate_context!())?;
 
     // Start CWD/branch/PR polling thread
