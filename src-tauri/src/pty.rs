@@ -11,6 +11,35 @@ const SHELL_READY_DELAY_MS: u64 = 300;
 const READ_BUFFER_SIZE: usize = 8192;
 const MAX_SESSIONS: usize = 64;
 
+/// Detect the CWD of a child process via OS-specific mechanisms.
+/// macOS: `lsof -p PID -Fn` parses the `fcwd` + `n/path` lines.
+/// Returns None if detection fails or is unsupported on this platform.
+#[cfg(target_os = "macos")]
+fn detect_cwd(pid: u32) -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("lsof")
+        .args(["-p", &pid.to_string(), "-Fn"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.lines().collect();
+    let cwd_idx = lines.iter().position(|l| *l == "fcwd")?;
+    let name_line = lines.get(cwd_idx + 1)?;
+    if name_line.starts_with('n') {
+        Some(name_line[1..].to_string())
+    } else {
+        None
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn detect_cwd(_pid: u32) -> Option<String> {
+    None
+}
+
 fn pty_size(cols: u16, rows: u16) -> PtySize {
     PtySize {
         rows,
@@ -29,6 +58,8 @@ struct PtySession {
     master: Box<dyn MasterPty + Send>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
     generation: u64,
+    /// CWD at spawn time — fallback when OS-level CWD detection fails.
+    initial_cwd: String,
 }
 
 /// Thread-safe manager for PTY sessions. Each session is identified by a
@@ -143,6 +174,7 @@ impl PtyManager {
             master: pair.master,
             child,
             generation,
+            initial_cwd: cwd.clone(),
         };
         self.lock_sessions()?.insert(id.clone(), session);
 
@@ -271,6 +303,19 @@ impl PtyManager {
             let _ = session.child.kill();
         }
         self.terminal_state.remove_all();
+    }
+
+    /// Get the current working directory for a pane.
+    /// On macOS, uses `lsof` to read the child process's CWD from the OS.
+    /// Falls back to the initial CWD if detection fails or on non-macOS.
+    pub fn get_cwd(&self, id: &str) -> Option<String> {
+        let sessions = self.lock_sessions().ok()?;
+        let session = sessions.get(id)?;
+        let pid = session.child.process_id();
+        let fallback = session.initial_cwd.clone();
+        drop(sessions);
+
+        pid.and_then(|p| detect_cwd(p)).or(Some(fallback))
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, PtySession>>, String> {
