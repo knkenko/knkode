@@ -1,3 +1,4 @@
+use crate::terminal::TerminalState;
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -36,13 +37,15 @@ struct PtySession {
 pub struct PtyManager {
     sessions: Arc<Mutex<HashMap<String, PtySession>>>,
     next_generation: AtomicU64,
+    terminal_state: Arc<TerminalState>,
 }
 
 impl PtyManager {
-    pub fn new() -> Self {
+    pub fn new(terminal_state: Arc<TerminalState>) -> Self {
         Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
             next_generation: AtomicU64::new(1),
+            terminal_state,
         }
     }
 
@@ -132,6 +135,9 @@ impl PtyManager {
             });
         }
 
+        // Create terminal state machine for this session
+        self.terminal_state.create(&id, 80, 24);
+
         // Store session before starting reader — cleanup logic in the reader
         // checks the session map, so it must exist before the reader can race
         // to completion
@@ -143,21 +149,26 @@ impl PtyManager {
         };
         self.lock_sessions()?.insert(id.clone(), session);
 
-        // Background reader thread: read PTY output, emit events
+        // Background reader thread: read PTY output → wezterm-term → emit grid snapshot
         let id_clone = id.clone();
         let sessions_clone = Arc::clone(&self.sessions);
+        let term_state = Arc::clone(&self.terminal_state);
         std::thread::spawn(move || {
             let mut buf = [0u8; READ_BUFFER_SIZE];
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
-                        let data = String::from_utf8_lossy(&buf[..n]).to_string();
-                        if app
-                            .emit("pty:data", json!({ "id": &id_clone, "data": data }))
-                            .is_err()
-                        {
-                            break;
+                        if let Some(snapshot) = term_state.advance_bytes(&id_clone, &buf[..n]) {
+                            if app
+                                .emit(
+                                    "terminal:render",
+                                    json!({ "id": &id_clone, "grid": snapshot }),
+                                )
+                                .is_err()
+                            {
+                                break;
+                            }
                         }
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -186,6 +197,7 @@ impl PtyManager {
 
             // Wait for child outside the lock to avoid blocking other operations
             let exit_code: i64 = if let Some(mut session) = removed {
+                term_state.remove(&id_clone);
                 session
                     .child
                     .wait()
@@ -242,6 +254,7 @@ impl PtyManager {
         if let Some(mut session) = sessions.remove(id) {
             let _ = session.child.kill();
         }
+        self.terminal_state.remove(id);
         Ok(())
     }
 
@@ -251,6 +264,7 @@ impl PtyManager {
         for (_id, mut session) in sessions.drain() {
             let _ = session.child.kill();
         }
+        self.terminal_state.remove_all();
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, PtySession>>, String> {

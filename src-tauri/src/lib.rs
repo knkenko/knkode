@@ -5,16 +5,19 @@ mod terminal;
 
 use config::ConfigStore;
 use pty::PtyManager;
+use std::sync::Arc;
 use tauri::Manager;
+use terminal::TerminalState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config_store = ConfigStore::new()?;
+    let terminal_state = Arc::new(TerminalState::new());
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(config_store)
-        .manage(PtyManager::new())
+        .manage(PtyManager::new(Arc::clone(&terminal_state)))
         .invoke_handler(tauri::generate_handler![
             commands::get_home_dir,
             commands::get_workspaces,
