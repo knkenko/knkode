@@ -33,7 +33,11 @@ Phase 9 in progress — PR #18 merged. PR #19 (components & app shell) next.
 
 ## Active Reviews
 
-None.
+### PR #19 — feat: frontend components & app shell (Phase 9b)
+- State: `docs/reviews/PR-19/_state.json`
+- Agents: 10/10 completed
+- Phase: done (compiled)
+- Report: `docs/reviews/PR-19/compiled-report.md`
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
