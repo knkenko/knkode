@@ -1,4 +1,4 @@
-use crate::terminal::TerminalState;
+use crate::terminal::{TerminalState, DEFAULT_COLS, DEFAULT_ROWS};
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -71,7 +71,7 @@ impl PtyManager {
 
         let pty_system = native_pty_system();
         let pair = pty_system
-            .openpty(pty_size(80, 24))
+            .openpty(pty_size(DEFAULT_COLS as u16, DEFAULT_ROWS as u16))
             .map_err(|e| format!("Failed to open PTY: {e}"))?;
 
         let shell = std::env::var("SHELL").unwrap_or_else(|_| {
@@ -118,7 +118,7 @@ impl PtyManager {
                 let exists = sessions_clone
                     .lock()
                     .ok()
-                    .map_or(false, |s| s.contains_key(&id_clone));
+                    .is_some_and(|s| s.contains_key(&id_clone));
                 if exists {
                     if let Ok(mut w) = writer_clone.lock() {
                         if let Err(e) = w.write_all(cmd_str.as_bytes()) {
@@ -135,9 +135,6 @@ impl PtyManager {
             });
         }
 
-        // Create terminal state machine for this session
-        self.terminal_state.create(&id, 80, 24);
-
         // Store session before starting reader — cleanup logic in the reader
         // checks the session map, so it must exist before the reader can race
         // to completion
@@ -148,6 +145,10 @@ impl PtyManager {
             generation,
         };
         self.lock_sessions()?.insert(id.clone(), session);
+
+        // Create terminal state AFTER successful session insert to avoid orphaned
+        // terminal entries if sessions lock is poisoned
+        self.terminal_state.create(&id, DEFAULT_COLS, DEFAULT_ROWS);
 
         // Background reader thread: read PTY output → wezterm-term → emit grid snapshot
         let id_clone = id.clone();
@@ -169,6 +170,8 @@ impl PtyManager {
                             {
                                 break;
                             }
+                        } else {
+                            eprintln!("[pty] Terminal state returned None for {id_clone} ({n} bytes dropped)");
                         }
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -184,7 +187,7 @@ impl PtyManager {
             let removed = if let Ok(mut sessions) = sessions_clone.lock() {
                 if sessions
                     .get(&id_clone)
-                    .map_or(false, |s| s.generation == generation)
+                    .is_some_and(|s| s.generation == generation)
                 {
                     sessions.remove(&id_clone)
                 } else {
@@ -238,14 +241,15 @@ impl PtyManager {
 
     pub fn resize(&self, id: &str, cols: u16, rows: u16) -> Result<(), String> {
         // Silently ignore missing sessions — resize can race with tab close
-        let sessions = self.lock_sessions()?;
-        if let Some(session) = sessions.get(id) {
-            session
-                .master
-                .resize(pty_size(cols, rows))
-                .map_err(|e| format!("PTY resize failed: {e}"))?;
-        }
-        // Also resize the terminal state machine so GridSnapshot dimensions match
+        {
+            let sessions = self.lock_sessions()?;
+            if let Some(session) = sessions.get(id) {
+                session
+                    .master
+                    .resize(pty_size(cols, rows))
+                    .map_err(|e| format!("PTY resize failed: {e}"))?;
+            }
+        } // Drop sessions lock before acquiring terminals lock to prevent deadlock
         self.terminal_state.resize(id, cols as usize, rows as usize);
         Ok(())
     }
