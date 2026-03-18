@@ -118,7 +118,7 @@
 	/* Layout dimensions */
 	--spacing-tab: 38px;
 	--spacing-header: 28px;
-	--spacing-traffic: 0px; /* overridden to 78px on macOS via App.tsx for window controls (close/minimize/maximize) */
+	--spacing-traffic: 0; /* overridden to 78px on macOS via App.tsx for window controls (close/minimize/maximize) */
 
 	/* Mechanical spring easing — quick attack, soft settle */
 	--ease-mechanical: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -223,7 +223,8 @@
 	/* ── Identity theme effects ───────────────────────────────────── */
 
 	/* Pulsing glow — the box-shadow is set via inline style in PaneEffects.tsx.
-	   will-change promotes to GPU layer so opacity changes don't trigger re-paint. */
+	   contain: layout paint style isolates compositing so opacity transitions
+	   avoid re-painting siblings. */
 	.pane-glow {
 		contain: layout paint style;
 	}
@@ -243,7 +244,8 @@
 	}
 
 	/* Film grain / noise texture — GPU-friendly repeating conic gradient.
-	   Opacity is set via inline style in PaneEffects.tsx scaled by EFFECT_MULTIPLIERS. */
+	   Opacity is set via inline style in PaneEffects.tsx using effectMul() with an
+	   additional 0.5 scaling factor. */
 	.pane-noise {
 		background: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%) 0 0 / 2px 2px;
 		contain: layout paint style;
