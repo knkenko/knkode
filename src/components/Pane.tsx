@@ -20,6 +20,22 @@ import { getVariant, type VariantTheme } from "./pane-chrome";
 import { buildVariantTheme } from "./pane-chrome/shared";
 import { SnippetDropdown } from "./SnippetDropdown";
 
+/** Stable component for snippet trigger — defined outside Pane to avoid
+ *  creating a new component type on every render or memo invalidation. */
+function PaneSnippetTrigger({
+	paneId,
+	statusBarPosition,
+	...rest
+}: {
+	paneId: string;
+	statusBarPosition: "top" | "bottom";
+	className?: string | undefined;
+	style?: React.CSSProperties | undefined;
+	children?: React.ReactNode;
+}) {
+	return <SnippetDropdown paneId={paneId} statusBarPosition={statusBarPosition} {...rest} />;
+}
+
 interface PaneProps {
 	paneId: string;
 	workspaceId: string;
@@ -56,6 +72,8 @@ export function Pane({
 	const [showContext, setShowContext] = useState(false);
 	const [contextPos, setContextPos] = useState<ScreenPosition>({ x: 0, y: 0 });
 	const [grid, setGrid] = useState<GridSnapshot | null>(null);
+	const [ptyError, setPtyError] = useState(false);
+	const homeDir = useStore((s) => s.homeDir);
 
 	const {
 		isDragging,
@@ -71,6 +89,7 @@ export function Pane({
 	} = usePaneDragDrop({ paneId, workspaceId, onFocus });
 
 	const ensurePty = useStore((s) => s.ensurePty);
+	// One-shot capture — PTY should only use initial CWD and startup command
 	const initialCwdRef = useRef(config.cwd);
 	const initialCmdRef = useRef(config.startupCommand);
 	useEffect(() => {
@@ -91,6 +110,7 @@ export function Pane({
 		(data: string) => {
 			window.api.writePty(paneId, data).catch((err: unknown) => {
 				console.error(`[pane] writePty failed for ${paneId}:`, err);
+				setPtyError(true);
 			});
 		},
 		[paneId],
@@ -115,7 +135,8 @@ export function Pane({
 		setShowContext(true);
 	}, []);
 
-	const shortCwd = config.cwd.replace(/^\/Users\/[^/]+/, "~");
+	// Use homeDir from store for cross-platform path shortening
+	const shortCwd = config.cwd.startsWith(homeDir) ? `~${config.cwd.slice(homeDir.length)}` : config.cwd;
 	const statusBarPosition = workspaceTheme.statusBarPosition ?? "top";
 
 	const preset = workspaceTheme.preset ? findPreset(workspaceTheme.preset) : undefined;
@@ -154,19 +175,18 @@ export function Pane({
 		});
 	}, []);
 
-	const PaneSnippetTrigger = useMemo(
-		() =>
-			function SnippetTrigger(props: {
-				className?: string | undefined;
-				style?: React.CSSProperties | undefined;
-				children?: React.ReactNode;
-			}) {
-				return <SnippetDropdown paneId={paneId} statusBarPosition={statusBarPosition} {...props} />;
-			},
+	// Stable snippet trigger props — avoids creating new component type per render
+	const snippetTriggerProps = useMemo(
+		() => ({ paneId, statusBarPosition }),
 		[paneId, statusBarPosition],
 	);
 
 	const handleFocus = useCallback(() => onFocus(paneId), [paneId, onFocus]);
+
+	// Compute dim opacity once, use inline style exclusively (no class/inline conflict)
+	const dimOpacity = !isFocused && workspaceTheme.unfocusedDim > 0
+		? Math.max(0, Math.min(MAX_UNFOCUSED_DIM, workspaceTheme.unfocusedDim))
+		: 0;
 
 	return (
 		<div
@@ -196,7 +216,7 @@ export function Pane({
 					onDoubleClickLabel={startEditing}
 					isEditing={isEditing}
 					editInputProps={inputProps}
-					SnippetTrigger={PaneSnippetTrigger}
+					SnippetTrigger={(props) => <PaneSnippetTrigger {...snippetTriggerProps} {...props} />}
 					shortcuts={{
 						splitV: `${modKey}+D`,
 						splitH: `${modKey}+Shift+D`,
@@ -222,22 +242,16 @@ export function Pane({
 							fontFamily={mergedTheme.fontFamily}
 							background={mergedTheme.background}
 						/>
-						{/* Dim overlay for unfocused panes — always rendered for CSS transition */}
+						{/* Dim overlay — uses inline style exclusively to avoid class/inline transition conflict */}
 						<div
-							className={`absolute inset-0 bg-black pointer-events-none transition-opacity duration-150 ${
-								!isFocused && workspaceTheme.unfocusedDim > 0 ? "" : "opacity-0"
-							}`}
-							style={
-								!isFocused && workspaceTheme.unfocusedDim > 0
-									? {
-											opacity: Math.max(
-												0,
-												Math.min(MAX_UNFOCUSED_DIM, workspaceTheme.unfocusedDim),
-											),
-										}
-									: undefined
-							}
+							className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-150"
+							style={{ opacity: dimOpacity }}
 						/>
+						{ptyError && (
+							<div className="absolute bottom-2 left-2 right-2 text-xs text-danger bg-danger/10 rounded px-2 py-1 pointer-events-none">
+								Terminal disconnected
+							</div>
+						)}
 					</div>
 				</variant.Frame>
 			</div>
