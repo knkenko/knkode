@@ -33,6 +33,13 @@ Phase 5a in progress — Rust terminal emulation layer (PR #12 open).
 ## Active Branch
 `feature/rust-terminal-emulation`
 
+## Active Reviews
+
+### PR #12 — feat: Rust terminal emulation with tattoy-wezterm-term (Phase 5a)
+- State: `docs/reviews/PR-12/_state.json`
+- Agents: 8/8 completed
+- Phase: done — review compiled, awaiting fix pass
+
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
 - Icons are placeholder dark squares

@@ -1,0 +1,21 @@
+{
+  "type": "watch-pr",
+  "pr_number": 12,
+  "pr_title": "feat: Rust terminal emulation with tattoy-wezterm-term (Phase 5a)",
+  "branch": "feature/rust-terminal-emulation",
+  "base_branch": "main",
+  "head_sha": "96e7a4ed2c01db0074660be5f00195ccb5ff2abe",
+  "started_at": "2026-03-18T06:32:00Z",
+  "agents": {
+    "code-reviewer": { "status": "completed", "file": "code-reviewer.md" },
+    "security-auditor": { "status": "completed", "file": "security-auditor.md" },
+    "silent-failure-hunter": { "status": "completed", "file": "silent-failure-hunter.md" },
+    "code-simplifier": { "status": "completed", "file": "code-simplifier.md" },
+    "dry-reuse": { "status": "completed", "file": "dry-reuse.md" },
+    "comment-analyzer": { "status": "completed", "file": "comment-analyzer.md" },
+    "rust-reviewer": { "status": "completed", "file": "rust-reviewer.md" },
+    "efficiency": { "status": "completed", "file": "efficiency.md" }
+  },
+  "phase": "done",
+  "compiled": true
+}
