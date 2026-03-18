@@ -31,6 +31,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         ])
         .build(tauri::generate_context!())?;
 
+    // Use build() + run() instead of Builder::run() so we can hook into
+    // RunEvent::Exit to clean up all PTY child processes and prevent orphans
     app.run(|app_handle, event| {
         if let tauri::RunEvent::Exit = event {
             app_handle.state::<PtyManager>().kill_all();
