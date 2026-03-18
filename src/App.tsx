@@ -90,6 +90,12 @@ export function App() {
 		}
 	}, [activeWorkspace?.theme]);
 
+	// Must be above early returns — hooks must run in the same order every render
+	const visitedWorkspaces = useMemo(
+		() => workspaces.filter((w) => visitedWorkspaceIds.includes(w.id)),
+		[workspaces, visitedWorkspaceIds],
+	);
+
 	if (!initialized) {
 		return (
 			<div className="flex items-center justify-center h-full bg-canvas">
@@ -105,11 +111,6 @@ export function App() {
 			</div>
 		);
 	}
-
-	const visitedWorkspaces = useMemo(
-		() => workspaces.filter((w) => visitedWorkspaceIds.includes(w.id)),
-		[workspaces, visitedWorkspaceIds],
-	);
 
 	return (
 		<ErrorBoundary>
