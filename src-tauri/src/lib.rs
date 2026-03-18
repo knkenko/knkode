@@ -1,6 +1,7 @@
 mod commands;
 mod config;
 mod pty;
+mod terminal;
 
 use config::ConfigStore;
 use pty::PtyManager;
