@@ -11,6 +11,40 @@ const SHELL_READY_DELAY_MS: u64 = 300;
 const READ_BUFFER_SIZE: usize = 8192;
 const MAX_SESSIONS: usize = 64;
 
+/// Detect the CWD of a child process by parsing `lsof -p PID -Fn` output.
+/// Scans for the `fcwd` file descriptor line, then reads the `n/path` line after it.
+/// Does not need PATH augmentation — `lsof` lives in `/usr/sbin` which is always
+/// in the default PATH, even for Dock/Spotlight-launched apps.
+#[cfg(target_os = "macos")]
+fn detect_cwd(pid: u32) -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("lsof")
+        .args(["-p", &pid.to_string(), "-Fn"])
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut found_cwd = false;
+    for line in stdout.lines() {
+        if found_cwd {
+            return line.strip_prefix('n').map(|path| path.to_string());
+        }
+        if line == "fcwd" {
+            found_cwd = true;
+        }
+    }
+    None
+}
+
+// TODO: Linux support via `/proc/<pid>/cwd` (readlink)
+#[cfg(not(target_os = "macos"))]
+fn detect_cwd(_pid: u32) -> Option<String> {
+    None
+}
+
 fn pty_size(cols: u16, rows: u16) -> PtySize {
     PtySize {
         rows,
@@ -29,6 +63,8 @@ struct PtySession {
     master: Box<dyn MasterPty + Send>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
     generation: u64,
+    /// CWD at spawn time — fallback when OS-level CWD detection fails.
+    initial_cwd: String,
 }
 
 /// Thread-safe manager for PTY sessions. Each session is identified by a
@@ -143,6 +179,7 @@ impl PtyManager {
             master: pair.master,
             child,
             generation,
+            initial_cwd: cwd.clone(),
         };
         self.lock_sessions()?.insert(id.clone(), session);
 
@@ -271,6 +308,19 @@ impl PtyManager {
             let _ = session.child.kill();
         }
         self.terminal_state.remove_all();
+    }
+
+    /// Get the current working directory for a pane.
+    /// On macOS, uses `lsof` to read the child process's CWD from the OS.
+    /// Falls back to the initial CWD if detection fails or on non-macOS.
+    pub fn get_cwd(&self, id: &str) -> Option<String> {
+        let sessions = self.lock_sessions().ok()?;
+        let session = sessions.get(id)?;
+        let pid = session.child.process_id();
+        let fallback = session.initial_cwd.clone();
+        drop(sessions);
+
+        pid.and_then(detect_cwd).or(Some(fallback))
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, PtySession>>, String> {

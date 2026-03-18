@@ -1,6 +1,8 @@
 use crate::config::ConfigStore;
 use crate::pty::PtyManager;
+use crate::tracker::CwdTracker;
 use serde_json::Value;
+use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command]
@@ -55,7 +57,8 @@ pub fn create_pty(
     id: String,
     cwd: String,
     startup_command: Option<String>,
-    pty_mgr: State<'_, PtyManager>,
+    pty_mgr: State<'_, Arc<PtyManager>>,
+    tracker: State<'_, CwdTracker>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     if cwd.contains('\0') {
@@ -73,11 +76,17 @@ pub fn create_pty(
             return Err("startup_command must not contain null bytes".to_string());
         }
     }
-    pty_mgr.create(id, cwd, startup_command, app)
+    pty_mgr.create(id.clone(), cwd.clone(), startup_command, app)?;
+    tracker.track_pane(id, cwd);
+    Ok(())
 }
 
 #[tauri::command]
-pub fn write_pty(id: String, data: String, pty_mgr: State<'_, PtyManager>) -> Result<(), String> {
+pub fn write_pty(
+    id: String,
+    data: String,
+    pty_mgr: State<'_, Arc<PtyManager>>,
+) -> Result<(), String> {
     pty_mgr.write(&id, &data)
 }
 
@@ -86,7 +95,7 @@ pub fn resize_pty(
     id: String,
     cols: u16,
     rows: u16,
-    pty_mgr: State<'_, PtyManager>,
+    pty_mgr: State<'_, Arc<PtyManager>>,
 ) -> Result<(), String> {
     if cols == 0 || rows == 0 {
         return Err("cols and rows must be at least 1".to_string());
@@ -100,7 +109,12 @@ pub fn resize_pty(
 }
 
 #[tauri::command]
-pub fn kill_pty(id: String, pty_mgr: State<'_, PtyManager>) -> Result<(), String> {
+pub fn kill_pty(
+    id: String,
+    pty_mgr: State<'_, Arc<PtyManager>>,
+    tracker: State<'_, CwdTracker>,
+) -> Result<(), String> {
+    tracker.untrack_pane(&id);
     pty_mgr.kill(&id)
 }
 
