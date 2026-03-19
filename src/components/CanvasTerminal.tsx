@@ -24,6 +24,10 @@ export interface CanvasTerminalProps {
 	readonly cursorColor?: string | undefined;
 	readonly background?: string | undefined;
 	readonly isFocused?: boolean | undefined;
+	/** Selection highlight color (hex). No selection rendering when omitted. */
+	readonly selectionColor?: string | undefined;
+	/** Pane ID for IPC calls (e.g. getSelectionText). */
+	readonly paneId: string;
 }
 
 /** Smooth cursor blink — full cycle duration (fade out → fade in). */
@@ -44,6 +48,12 @@ interface CellMetrics {
 	height: number;
 	/** Distance from cell top to text baseline (for textBaseline = "alphabetic"). */
 	baselineOffset: number;
+}
+
+/** A cell position in the terminal grid. Row is an absolute physical index in the scrollback buffer. */
+interface CellPosition {
+	row: number;
+	col: number;
 }
 
 /** Build a CSS font string for a cell's style attributes. */
@@ -148,6 +158,66 @@ function drawCursorOverlay(
 	ctx.globalAlpha = 1.0;
 }
 
+/** Draw selection highlight rectangles for the visible portion of the selection range. */
+function drawSelectionHighlight(
+	ctx: CanvasRenderingContext2D,
+	anchor: CellPosition,
+	end: CellPosition,
+	grid: GridSnapshot,
+	cellW: number,
+	cellH: number,
+	color: string,
+) {
+	// Normalize: ensure start is before end (top-to-bottom, left-to-right)
+	let sr: number, sc: number, er: number, ec: number;
+	if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
+		sr = anchor.row;
+		sc = anchor.col;
+		er = end.row;
+		ec = end.col;
+	} else {
+		sr = end.row;
+		sc = end.col;
+		er = anchor.row;
+		ec = anchor.col;
+	}
+
+	// Convert absolute rows to viewport-relative; clamp to visible range
+	const viewportBase = grid.scrollbackRows - grid.scrollOffset;
+	const viewportEnd = viewportBase + grid.totalRows;
+	const visStart = Math.max(sr, viewportBase);
+	const visEnd = Math.min(er, viewportEnd - 1);
+	if (visStart > visEnd) return;
+
+	ctx.fillStyle = color;
+	ctx.globalAlpha = 0.33;
+
+	for (let absRow = visStart; absRow <= visEnd; absRow++) {
+		const vpRow = absRow - viewportBase;
+		const y = vpRow * cellH;
+		let x0: number;
+		let w: number;
+
+		if (absRow === sr && absRow === er) {
+			x0 = sc * cellW;
+			w = (ec - sc + 1) * cellW;
+		} else if (absRow === sr) {
+			x0 = sc * cellW;
+			w = (grid.cols - sc) * cellW;
+		} else if (absRow === er) {
+			x0 = 0;
+			w = (ec + 1) * cellW;
+		} else {
+			x0 = 0;
+			w = grid.cols * cellW;
+		}
+
+		ctx.fillRect(x0, y, w, cellH);
+	}
+
+	ctx.globalAlpha = 1.0;
+}
+
 export function CanvasTerminal({
 	grid,
 	onWrite,
@@ -160,6 +230,8 @@ export function CanvasTerminal({
 	cursorColor = DEFAULT_CURSOR_COLOR,
 	background = DEFAULT_BACKGROUND,
 	isFocused = true,
+	selectionColor,
+	paneId,
 }: CanvasTerminalProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -176,12 +248,49 @@ export function CanvasTerminal({
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
 
+	// Selection state — stored as absolute physical row indices for scroll stability
+	const selectionAnchorRef = useRef<CellPosition | null>(null);
+	const selectionEndRef = useRef<CellPosition | null>(null);
+	const isSelectingRef = useRef(false);
+	const selectionColorRef = useRef(selectionColor);
+
 	// Keep refs in sync
 	gridRef.current = grid;
 	onResizeRef.current = onResize;
 	onScrollRef.current = onScroll;
 	cursorStyleRef.current = cursorStyle;
 	isFocusedRef.current = isFocused;
+	selectionColorRef.current = selectionColor;
+
+	/** Clear selection state and trigger a redraw. */
+	const clearSelection = useCallback(() => {
+		selectionAnchorRef.current = null;
+		selectionEndRef.current = null;
+		isSelectingRef.current = false;
+		drawRef.current();
+	}, []);
+
+	/** Convert client (mouse) coordinates to a viewport-relative cell position. */
+	const cellAtPixel = useCallback(
+		(clientX: number, clientY: number): { row: number; col: number } | null => {
+			const canvas = canvasRef.current;
+			if (!canvas) return null;
+			const { width: cellW, height: cellH } = cellMetrics.current;
+			if (cellW === 0 || cellH === 0) return null;
+			const dpr = dprRef.current;
+			const rect = canvas.getBoundingClientRect();
+			const x = (clientX - rect.left) * dpr;
+			const y = (clientY - rect.top) * dpr;
+			const snap = gridRef.current;
+			const maxCol = snap ? snap.cols - 1 : 0;
+			const maxRow = snap ? snap.totalRows - 1 : 0;
+			return {
+				col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
+				row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
+			};
+		},
+		[],
+	);
 
 	// Measure cell dimensions using actual font metrics (ascent + descent)
 	// instead of just fontSize, so descenders aren't clipped.
@@ -308,6 +417,15 @@ export function CanvasTerminal({
 				const y = row * cellH;
 
 				drawCell(ctx, cell, x, y, cellW, cellH, baselineOffset, scaledSize, fontFamily, defaultBg);
+			}
+		}
+
+		// Draw selection highlight (between cells and cursor so cursor stays on top)
+		const anchor = selectionAnchorRef.current;
+		const end = selectionEndRef.current;
+		if (anchor && end && selectionColorRef.current) {
+			if (anchor.row !== end.row || anchor.col !== end.col) {
+				drawSelectionHighlight(ctx, anchor, end, snap, cellW, cellH, selectionColorRef.current);
 			}
 		}
 
@@ -496,23 +614,43 @@ export function CanvasTerminal({
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			// Windows/Linux: Ctrl+C without Shift — copy if selection exists, SIGINT otherwise
-			if (
-				!isMac &&
-				e.ctrlKey &&
-				!e.shiftKey &&
-				!e.altKey &&
-				!e.metaKey &&
-				e.key.toLowerCase() === "c"
-			) {
-				const sel = window.getSelection()?.toString();
-				if (sel) {
-					// Copy selection — don't preventDefault so the native copy fires
+			// Copy shortcut: Cmd+C (macOS) or Ctrl+C (Windows/Linux)
+			const isCopy = isMac
+				? e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "c"
+				: e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "c";
+
+			if (isCopy) {
+				const anchor = selectionAnchorRef.current;
+				const end = selectionEndRef.current;
+				if (anchor && end && (anchor.row !== end.row || anchor.col !== end.col)) {
+					e.preventDefault();
+					// Normalize selection direction
+					let sr: number, sc: number, er: number, ec: number;
+					if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
+						sr = anchor.row;
+						sc = anchor.col;
+						er = end.row;
+						ec = end.col;
+					} else {
+						sr = end.row;
+						sc = end.col;
+						er = anchor.row;
+						ec = anchor.col;
+					}
+					window.api
+						.getSelectionText(paneId, { startRow: sr, startCol: sc, endRow: er, endCol: ec })
+						.then((text) => {
+							if (text) navigator.clipboard.writeText(text);
+						})
+						.catch((err: unknown) => console.error("[terminal] copy failed:", err));
+					clearSelection();
 					return;
 				}
-				// No selection → send SIGINT
-				e.preventDefault();
-				onWrite("\x03");
+				// No selection: macOS Cmd+C = no-op; Windows/Linux Ctrl+C = SIGINT
+				if (!isMac) {
+					e.preventDefault();
+					onWrite("\x03");
+				}
 				return;
 			}
 
@@ -524,10 +662,11 @@ export function CanvasTerminal({
 			}
 			if (ansi !== null) {
 				e.preventDefault();
+				clearSelection();
 				onWrite(ansi);
 			}
 		},
-		[onWrite, pasteFromClipboard],
+		[onWrite, pasteFromClipboard, paneId, clearSelection],
 	);
 
 	// Handle native paste events (Cmd+V on macOS via Tauri menu, browser paste)
@@ -540,6 +679,43 @@ export function CanvasTerminal({
 		[writePaste],
 	);
 
+	/** Start selection on left-click; track via window listeners until mouseup. */
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent) => {
+			if (e.button !== 0) return;
+			const cell = cellAtPixel(e.clientX, e.clientY);
+			if (!cell) return;
+			const snap = gridRef.current;
+			if (!snap) return;
+
+			const absRow = snap.scrollbackRows - snap.scrollOffset + cell.row;
+			selectionAnchorRef.current = { row: absRow, col: cell.col };
+			selectionEndRef.current = { row: absRow, col: cell.col };
+			isSelectingRef.current = true;
+			drawRef.current();
+
+			const onMove = (ev: MouseEvent) => {
+				const c = cellAtPixel(ev.clientX, ev.clientY);
+				if (!c) return;
+				const s = gridRef.current;
+				if (!s) return;
+				const ar = s.scrollbackRows - s.scrollOffset + c.row;
+				selectionEndRef.current = { row: ar, col: c.col };
+				drawRef.current();
+			};
+
+			const onUp = () => {
+				isSelectingRef.current = false;
+				window.removeEventListener("mousemove", onMove);
+				window.removeEventListener("mouseup", onUp);
+			};
+
+			window.addEventListener("mousemove", onMove);
+			window.addEventListener("mouseup", onUp);
+		},
+		[cellAtPixel],
+	);
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: canvas terminal cannot be a native textarea
 		<div
@@ -550,6 +726,7 @@ export function CanvasTerminal({
 			aria-label="Terminal"
 			onKeyDown={handleKeyDown}
 			onPaste={handlePaste}
+			onMouseDown={handleMouseDown}
 		>
 			<canvas ref={canvasRef} className="block" />
 		</div>
