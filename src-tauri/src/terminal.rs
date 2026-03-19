@@ -279,6 +279,71 @@ impl TerminalState {
         ))
     }
 
+    /// Extract text from a cell range. Row indices are absolute physical rows
+    /// in the scrollback buffer. Handles multi-row selections, trims trailing
+    /// whitespace per line, and joins rows with newlines.
+    pub fn extract_text(
+        &self,
+        id: &str,
+        start_row: usize,
+        start_col: usize,
+        end_row: usize,
+        end_col: usize,
+    ) -> Result<String, String> {
+        let terminals = self.lock_terminals()?;
+        let terminal = terminals
+            .get(id)
+            .ok_or_else(|| format!("Terminal session not found: {id}"))?;
+
+        let screen = terminal.screen();
+
+        // Normalize: ensure start <= end
+        let (sr, sc, er, ec) =
+            if start_row < end_row || (start_row == end_row && start_col <= end_col) {
+                (start_row, start_col, end_row, end_col)
+            } else {
+                (end_row, end_col, start_row, start_col)
+            };
+
+        // Clamp to buffer bounds
+        let total_lines = screen.scrollback_rows();
+        let er = er.min(total_lines.saturating_sub(1));
+        let sr = sr.min(er);
+
+        let lines = screen.lines_in_phys_range(sr..er + 1);
+        let mut result = String::new();
+
+        for (i, line) in lines.iter().enumerate() {
+            let abs_row = sr + i;
+            let cells: Vec<_> = line.visible_cells().collect();
+            let num_cols = cells.len();
+
+            let col_start = if abs_row == sr { sc.min(num_cols) } else { 0 };
+            let col_end = if abs_row == er {
+                (ec + 1).min(num_cols)
+            } else {
+                num_cols
+            };
+
+            // Collect cell text in range
+            let mut line_text = String::new();
+            for cell_ref in &cells[col_start..col_end] {
+                line_text.push_str(cell_ref.str());
+            }
+
+            // Trim trailing whitespace per line (empty cells are spaces)
+            let trimmed = line_text.trim_end();
+            result.push_str(trimmed);
+
+            // Add newline between rows (not after last)
+            if i < lines.len() - 1 {
+                result.push('\n');
+            }
+        }
+
+        Ok(result)
+    }
+
     pub fn resize(&self, id: &str, cols: usize, rows: usize) {
         match self.lock_terminals() {
             Ok(mut terminals) => {
