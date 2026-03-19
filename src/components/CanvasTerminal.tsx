@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
-import type { CellSnapshot, CursorStyle, GridSnapshot } from "../shared/types";
+import type { CellSnapshot, CursorStyle, GridSnapshot, SelectionRange } from "../shared/types";
 import {
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
@@ -24,6 +24,10 @@ export interface CanvasTerminalProps {
 	readonly cursorColor?: string | undefined;
 	readonly background?: string | undefined;
 	readonly isFocused?: boolean | undefined;
+	/** Selection highlight color. When omitted, selections are not visually highlighted but tracking and copy still function. */
+	readonly selectionColor?: string | undefined;
+	/** Pane ID used by getSelectionText IPC. */
+	readonly paneId: string;
 }
 
 /** Smooth cursor blink — full cycle duration (fade out → fade in). */
@@ -38,12 +42,33 @@ const RESIZE_DEBOUNCE_MS = 100;
 const BAR_WIDTH_RATIO = 0.12;
 /** Underline cursor height as fraction of cell height. */
 const UNDERLINE_HEIGHT_RATIO = 0.12;
+/** Selection highlight overlay opacity — balances visibility against text readability. */
+const SELECTION_HIGHLIGHT_OPACITY = 0.33;
 
 interface CellMetrics {
 	width: number;
 	height: number;
 	/** Distance from cell top to text baseline (for textBaseline = "alphabetic"). */
 	baselineOffset: number;
+}
+
+/** A cell position in the terminal grid. Row is an absolute physical index in the scrollback buffer. */
+interface CellPosition {
+	readonly row: number;
+	readonly col: number;
+}
+
+/** Convert a viewport-relative row to an absolute physical row in the scrollback buffer. */
+function toAbsoluteRow(grid: GridSnapshot, viewportRow: number): number {
+	return grid.scrollbackRows - grid.scrollOffset + viewportRow;
+}
+
+/** Normalize an anchor/end pair into an ordered SelectionRange (start before end). */
+function normalizeSelection(anchor: CellPosition, end: CellPosition): SelectionRange {
+	if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
+		return { startRow: anchor.row, startCol: anchor.col, endRow: end.row, endCol: end.col };
+	}
+	return { startRow: end.row, startCol: end.col, endRow: anchor.row, endCol: anchor.col };
 }
 
 /** Build a CSS font string for a cell's style attributes. */
@@ -148,6 +173,55 @@ function drawCursorOverlay(
 	ctx.globalAlpha = 1.0;
 }
 
+/** Draw selection highlight rectangles for the visible portion of the selection range.
+ *  Normalizes anchor/end direction via normalizeSelection(), then draws only viewport-visible rows. */
+function drawSelectionHighlight(
+	ctx: CanvasRenderingContext2D,
+	anchor: CellPosition,
+	end: CellPosition,
+	grid: GridSnapshot,
+	cellW: number,
+	cellH: number,
+	color: string,
+) {
+	const { startRow: sr, startCol: sc, endRow: er, endCol: ec } = normalizeSelection(anchor, end);
+
+	// Convert absolute rows to viewport-relative; clamp to visible range
+	const viewportBase = grid.scrollbackRows - grid.scrollOffset;
+	const viewportEnd = viewportBase + grid.totalRows;
+	const visStart = Math.max(sr, viewportBase);
+	const visEnd = Math.min(er, viewportEnd - 1);
+	if (visStart > visEnd) return;
+
+	ctx.fillStyle = color;
+	ctx.globalAlpha = SELECTION_HIGHLIGHT_OPACITY;
+
+	for (let absRow = visStart; absRow <= visEnd; absRow++) {
+		const vpRow = absRow - viewportBase;
+		const y = vpRow * cellH;
+		let x0: number;
+		let w: number;
+
+		if (absRow === sr && absRow === er) {
+			x0 = sc * cellW;
+			w = (ec - sc + 1) * cellW;
+		} else if (absRow === sr) {
+			x0 = sc * cellW;
+			w = (grid.cols - sc) * cellW;
+		} else if (absRow === er) {
+			x0 = 0;
+			w = (ec + 1) * cellW;
+		} else {
+			x0 = 0;
+			w = grid.cols * cellW;
+		}
+
+		ctx.fillRect(x0, y, w, cellH);
+	}
+
+	ctx.globalAlpha = 1.0;
+}
+
 export function CanvasTerminal({
 	grid,
 	onWrite,
@@ -160,6 +234,8 @@ export function CanvasTerminal({
 	cursorColor = DEFAULT_CURSOR_COLOR,
 	background = DEFAULT_BACKGROUND,
 	isFocused = true,
+	selectionColor,
+	paneId,
 }: CanvasTerminalProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -176,12 +252,49 @@ export function CanvasTerminal({
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
 
+	// Selection state — stored as absolute physical row indices so the selection
+	// survives viewport scrolling without needing recalculation.
+	const selectionAnchorRef = useRef<CellPosition | null>(null);
+	const selectionEndRef = useRef<CellPosition | null>(null);
+	const selectionColorRef = useRef(selectionColor);
+	/** Pending selection RAF frame — coalesces rapid mousemove into one redraw per frame. */
+	const selectionRafRef = useRef(0);
+	/** Active window listeners attached during selection drag — cleaned up on unmount. */
+	const dragListenersRef = useRef<{
+		move: (e: MouseEvent) => void;
+		up: (e: MouseEvent) => void;
+	} | null>(null);
+
 	// Keep refs in sync
 	gridRef.current = grid;
 	onResizeRef.current = onResize;
 	onScrollRef.current = onScroll;
 	cursorStyleRef.current = cursorStyle;
 	isFocusedRef.current = isFocused;
+	selectionColorRef.current = selectionColor;
+
+	/** Convert client (mouse) coordinates to a viewport-relative cell position.
+	 *  Returns viewport-relative {row, col} — NOT absolute physical rows. */
+	const cellAtPixel = useCallback(
+		(clientX: number, clientY: number): { row: number; col: number } | null => {
+			const canvas = canvasRef.current;
+			if (!canvas) return null;
+			const { width: cellW, height: cellH } = cellMetrics.current;
+			if (cellW === 0 || cellH === 0) return null;
+			const dpr = dprRef.current;
+			const rect = canvas.getBoundingClientRect();
+			const x = (clientX - rect.left) * dpr;
+			const y = (clientY - rect.top) * dpr;
+			const snap = gridRef.current;
+			const maxCol = snap ? snap.cols - 1 : 0;
+			const maxRow = snap ? snap.totalRows - 1 : 0;
+			return {
+				col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
+				row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
+			};
+		},
+		[],
+	);
 
 	// Measure cell dimensions using actual font metrics (ascent + descent)
 	// instead of just fontSize, so descenders aren't clipped.
@@ -311,6 +424,15 @@ export function CanvasTerminal({
 			}
 		}
 
+		// Draw selection highlight (between cells and cursor so cursor stays on top)
+		const anchor = selectionAnchorRef.current;
+		const end = selectionEndRef.current;
+		if (anchor && end && selectionColorRef.current) {
+			if (anchor.row !== end.row || anchor.col !== end.col) {
+				drawSelectionHighlight(ctx, anchor, end, snap, cellW, cellH, selectionColorRef.current);
+			}
+		}
+
 		// Draw cursor
 		if (snap.cursorVisible) {
 			const cx = snap.cursorCol * cellW;
@@ -340,6 +462,13 @@ export function CanvasTerminal({
 	// without being recreated when draw's dependencies change.
 	const drawRef = useRef(draw);
 	drawRef.current = draw;
+
+	/** Clear selection state and trigger a redraw. */
+	const clearSelection = useCallback(() => {
+		selectionAnchorRef.current = null;
+		selectionEndRef.current = null;
+		drawRef.current();
+	}, []);
 
 	// Handle resize: compute cols/rows from container dimensions
 	useEffect(() => {
@@ -472,6 +601,23 @@ export function CanvasTerminal({
 		return () => cancelAnimationFrame(animFrame.current);
 	}, [isFocused, grid, repaintCursor]);
 
+	// Cleanup drag listeners and selection RAF on unmount — prevents leaks if
+	// the component unmounts mid-drag (pane close, workspace switch).
+	useEffect(() => {
+		return () => {
+			const listeners = dragListenersRef.current;
+			if (listeners) {
+				window.removeEventListener("mousemove", listeners.move);
+				window.removeEventListener("mouseup", listeners.up);
+				dragListenersRef.current = null;
+			}
+			if (selectionRafRef.current) {
+				cancelAnimationFrame(selectionRafRef.current);
+				selectionRafRef.current = 0;
+			}
+		};
+	}, []);
+
 	/** Write text to PTY wrapped in bracketed paste escape sequences. */
 	const writePaste = useCallback(
 		(text: string) => {
@@ -496,23 +642,34 @@ export function CanvasTerminal({
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			// Windows/Linux: Ctrl+C without Shift — copy if selection exists, SIGINT otherwise
-			if (
-				!isMac &&
-				e.ctrlKey &&
-				!e.shiftKey &&
-				!e.altKey &&
-				!e.metaKey &&
-				e.key.toLowerCase() === "c"
-			) {
-				const sel = window.getSelection()?.toString();
-				if (sel) {
-					// Copy selection — don't preventDefault so the native copy fires
+			// Copy shortcut: Cmd+C (macOS) or Ctrl+C (Windows/Linux)
+			const isCopy = isMac
+				? e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "c"
+				: e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "c";
+
+			if (isCopy) {
+				const anchor = selectionAnchorRef.current;
+				const end = selectionEndRef.current;
+				if (anchor && end && (anchor.row !== end.row || anchor.col !== end.col)) {
+					e.preventDefault();
+					const range = normalizeSelection(anchor, end);
+					window.api
+						.getSelectionText(paneId, range)
+						.then((text) => {
+							if (text) return navigator.clipboard.writeText(text);
+						})
+						.then(() => clearSelection())
+						.catch((err: unknown) => {
+							console.error(`[terminal] copy failed for ${paneId}:`, err);
+							clearSelection();
+						});
 					return;
 				}
-				// No selection → send SIGINT
-				e.preventDefault();
-				onWrite("\x03");
+				// No selection: macOS Cmd+C = no-op; Windows/Linux Ctrl+C = SIGINT
+				if (!isMac) {
+					e.preventDefault();
+					onWrite("\x03");
+				}
 				return;
 			}
 
@@ -524,10 +681,11 @@ export function CanvasTerminal({
 			}
 			if (ansi !== null) {
 				e.preventDefault();
+				clearSelection();
 				onWrite(ansi);
 			}
 		},
-		[onWrite, pasteFromClipboard],
+		[onWrite, pasteFromClipboard, paneId, clearSelection],
 	);
 
 	// Handle native paste events (Cmd+V on macOS via Tauri menu, browser paste)
@@ -540,6 +698,86 @@ export function CanvasTerminal({
 		[writePaste],
 	);
 
+	/** Start selection on left-click; track via window listeners until mouseup.
+	 *  Caches the canvas rect for the duration of the drag to avoid layout reflows.
+	 *  RAF-throttles redraws so high-frequency trackpad events don't saturate the main thread. */
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent) => {
+			if (e.button !== 0) return;
+			const cell = cellAtPixel(e.clientX, e.clientY);
+			if (!cell) return;
+			const snap = gridRef.current;
+			if (!snap) return;
+
+			const absRow = toAbsoluteRow(snap, cell.row);
+			selectionAnchorRef.current = { row: absRow, col: cell.col };
+			selectionEndRef.current = { row: absRow, col: cell.col };
+			// No redraw on initial click — anchor equals end so no highlight to show
+
+			// Cache canvas rect for the drag to avoid getBoundingClientRect per mousemove
+			const canvas = canvasRef.current;
+			const cachedRect = canvas?.getBoundingClientRect();
+			const cachedDpr = dprRef.current;
+
+			const cellAtCachedRect = (
+				clientX: number,
+				clientY: number,
+			): { row: number; col: number } | null => {
+				if (!cachedRect) return null;
+				const { width: cellW, height: cellH } = cellMetrics.current;
+				if (cellW === 0 || cellH === 0) return null;
+				const x = (clientX - cachedRect.left) * cachedDpr;
+				const y = (clientY - cachedRect.top) * cachedDpr;
+				const s = gridRef.current;
+				const maxCol = s ? s.cols - 1 : 0;
+				const maxRow = s ? s.totalRows - 1 : 0;
+				return {
+					col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
+					row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
+				};
+			};
+
+			const onMove = (ev: MouseEvent) => {
+				const cell = cellAtCachedRect(ev.clientX, ev.clientY);
+				if (!cell) return;
+				const snap = gridRef.current;
+				if (!snap) return;
+				selectionEndRef.current = { row: toAbsoluteRow(snap, cell.row), col: cell.col };
+				// RAF-throttle: coalesce rapid mousemove into one redraw per frame
+				if (selectionRafRef.current === 0) {
+					selectionRafRef.current = requestAnimationFrame(() => {
+						selectionRafRef.current = 0;
+						drawRef.current();
+					});
+				}
+			};
+
+			const onUp = () => {
+				window.removeEventListener("mousemove", onMove);
+				window.removeEventListener("mouseup", onUp);
+				dragListenersRef.current = null;
+				if (selectionRafRef.current) {
+					cancelAnimationFrame(selectionRafRef.current);
+					selectionRafRef.current = 0;
+				}
+				// Final redraw to ensure highlight matches the last mouse position
+				drawRef.current();
+			};
+
+			// Clean up any previous drag listeners (defensive)
+			const prev = dragListenersRef.current;
+			if (prev) {
+				window.removeEventListener("mousemove", prev.move);
+				window.removeEventListener("mouseup", prev.up);
+			}
+
+			dragListenersRef.current = { move: onMove, up: onUp };
+			window.addEventListener("mousemove", onMove);
+			window.addEventListener("mouseup", onUp);
+		},
+		[cellAtPixel],
+	);
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: canvas terminal cannot be a native textarea
 		<div
@@ -550,6 +788,7 @@ export function CanvasTerminal({
 			aria-label="Terminal"
 			onKeyDown={handleKeyDown}
 			onPaste={handlePaste}
+			onMouseDown={handleMouseDown}
 		>
 			<canvas ref={canvasRef} className="block" />
 		</div>
