@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
-import type { CellSnapshot, CursorStyle, GridSnapshot } from "../shared/types";
+import type { CellSnapshot, CursorStyle, GridSnapshot, SelectionRange } from "../shared/types";
 import {
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
@@ -24,9 +24,9 @@ export interface CanvasTerminalProps {
 	readonly cursorColor?: string | undefined;
 	readonly background?: string | undefined;
 	readonly isFocused?: boolean | undefined;
-	/** Selection highlight color (hex). No selection rendering when omitted. */
+	/** Selection highlight color. When omitted, selections are not visually highlighted but tracking and copy still function. */
 	readonly selectionColor?: string | undefined;
-	/** Pane ID for IPC calls (e.g. getSelectionText). */
+	/** Pane ID used by getSelectionText IPC. */
 	readonly paneId: string;
 }
 
@@ -42,6 +42,8 @@ const RESIZE_DEBOUNCE_MS = 100;
 const BAR_WIDTH_RATIO = 0.12;
 /** Underline cursor height as fraction of cell height. */
 const UNDERLINE_HEIGHT_RATIO = 0.12;
+/** Selection highlight overlay opacity — balances visibility against text readability. */
+const SELECTION_HIGHLIGHT_OPACITY = 0.33;
 
 interface CellMetrics {
 	width: number;
@@ -52,8 +54,21 @@ interface CellMetrics {
 
 /** A cell position in the terminal grid. Row is an absolute physical index in the scrollback buffer. */
 interface CellPosition {
-	row: number;
-	col: number;
+	readonly row: number;
+	readonly col: number;
+}
+
+/** Convert a viewport-relative row to an absolute physical row in the scrollback buffer. */
+function toAbsoluteRow(grid: GridSnapshot, viewportRow: number): number {
+	return grid.scrollbackRows - grid.scrollOffset + viewportRow;
+}
+
+/** Normalize an anchor/end pair into an ordered SelectionRange (start before end). */
+function normalizeSelection(anchor: CellPosition, end: CellPosition): SelectionRange {
+	if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
+		return { startRow: anchor.row, startCol: anchor.col, endRow: end.row, endCol: end.col };
+	}
+	return { startRow: end.row, startCol: end.col, endRow: anchor.row, endCol: anchor.col };
 }
 
 /** Build a CSS font string for a cell's style attributes. */
@@ -158,7 +173,8 @@ function drawCursorOverlay(
 	ctx.globalAlpha = 1.0;
 }
 
-/** Draw selection highlight rectangles for the visible portion of the selection range. */
+/** Draw selection highlight rectangles for the visible portion of the selection range.
+ *  Normalizes anchor/end direction via normalizeSelection(), then draws only viewport-visible rows. */
 function drawSelectionHighlight(
 	ctx: CanvasRenderingContext2D,
 	anchor: CellPosition,
@@ -168,19 +184,7 @@ function drawSelectionHighlight(
 	cellH: number,
 	color: string,
 ) {
-	// Normalize: ensure start is before end (top-to-bottom, left-to-right)
-	let sr: number, sc: number, er: number, ec: number;
-	if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
-		sr = anchor.row;
-		sc = anchor.col;
-		er = end.row;
-		ec = end.col;
-	} else {
-		sr = end.row;
-		sc = end.col;
-		er = anchor.row;
-		ec = anchor.col;
-	}
+	const { startRow: sr, startCol: sc, endRow: er, endCol: ec } = normalizeSelection(anchor, end);
 
 	// Convert absolute rows to viewport-relative; clamp to visible range
 	const viewportBase = grid.scrollbackRows - grid.scrollOffset;
@@ -190,7 +194,7 @@ function drawSelectionHighlight(
 	if (visStart > visEnd) return;
 
 	ctx.fillStyle = color;
-	ctx.globalAlpha = 0.33;
+	ctx.globalAlpha = SELECTION_HIGHLIGHT_OPACITY;
 
 	for (let absRow = visStart; absRow <= visEnd; absRow++) {
 		const vpRow = absRow - viewportBase;
