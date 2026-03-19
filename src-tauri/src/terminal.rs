@@ -12,6 +12,14 @@ const DEFAULT_DPI: u32 = 96;
 pub const DEFAULT_COLS: usize = 80;
 pub const DEFAULT_ROWS: usize = 24;
 
+/// Maximum image payload size in bytes (width * height * 4 for RGBA, raw bytes for EncodedFile).
+/// Prevents DoS from malicious escape sequences with enormous images.
+const MAX_IMAGE_BYTES: u64 = 50 * 1024 * 1024; // 50 MB
+
+/// Maximum number of unique images per snapshot frame. Prevents unbounded
+/// IPC payload growth from a malicious program emitting thousands of images.
+const MAX_IMAGES_PER_FRAME: usize = 64;
+
 /// Minimal config for wezterm-term. The `TerminalConfiguration` trait has 15+
 /// methods with sensible defaults (scrollback sizing, unicode version, etc.).
 /// Per-pane color palettes are applied separately at snapshot time — see `set_colors`.
@@ -56,7 +64,8 @@ pub struct ImageCellSnapshot {
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageSnapshot {
-    /// Base64-encoded image data (PNG/JPEG/etc).
+    /// Base64-encoded image data. For raw RGBA sources, re-encoded as PNG.
+    /// For pre-encoded sources (iTerm/Kitty), the original format is preserved.
     pub data: String,
     /// Image dimensions in pixels.
     pub width: u32,
@@ -224,6 +233,9 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
 /// `GridSnapshot`s for the frontend canvas renderer.
 ///
 /// Each terminal has its own `ColorPalette` so themes are applied per-pane.
+///
+/// Lock ordering: `terminals` → `palettes` → `sent_image_hashes`.
+/// Never acquire these locks in a different order to prevent deadlocks.
 pub struct TerminalState {
     terminals: Mutex<HashMap<String, Terminal>>,
     /// Per-pane palettes for ANSI color resolution. Stored separately from
@@ -247,13 +259,32 @@ fn hex_encode(bytes: &[u8; 32]) -> String {
 }
 
 /// Encode raw RGBA8 pixel data as a PNG, returning a base64 string.
-/// Uses the `image` crate which is already a transitive dependency via wezterm-term.
+/// Uses `PngEncoder` directly to avoid copying the pixel buffer.
 fn encode_rgba_as_png(rgba: &[u8], width: u32, height: u32) -> Option<String> {
-    use std::io::Cursor;
-    let img = image::RgbaImage::from_raw(width, height, rgba.to_vec())?;
-    let mut buf = Cursor::new(Vec::new());
-    img.write_to(&mut buf, image::ImageFormat::Png).ok()?;
-    Some(BASE64_STANDARD.encode(buf.into_inner()))
+    use image::ImageEncoder;
+    // Size limit: reject images that exceed MAX_IMAGE_BYTES
+    let pixel_bytes = (width as u64) * (height as u64) * 4;
+    if pixel_bytes > MAX_IMAGE_BYTES {
+        eprintln!(
+            "[terminal] image too large: {width}x{height} = {pixel_bytes} bytes (max {MAX_IMAGE_BYTES})"
+        );
+        return None;
+    }
+    let expected = (width as usize) * (height as usize) * 4;
+    if rgba.len() != expected {
+        eprintln!(
+            "[terminal] RGBA buffer size mismatch: expected {expected}, got {}",
+            rgba.len()
+        );
+        return None;
+    }
+    let mut buf = Vec::new();
+    let encoder = image::codecs::png::PngEncoder::new(&mut buf);
+    if let Err(e) = encoder.write_image(rgba, width, height, image::ExtendedColorType::Rgba8) {
+        eprintln!("[terminal] PNG encoding failed for {width}x{height} image: {e}");
+        return None;
+    }
+    Some(BASE64_STANDARD.encode(&buf))
 }
 
 impl TerminalState {
@@ -339,6 +370,9 @@ impl TerminalState {
 
     /// Take a snapshot at a given scroll offset (rows from bottom).
     /// `scroll_offset = 0` → live viewport; `scroll_offset = N` → N rows into scrollback.
+    ///
+    /// Lock ordering: terminals → palettes → sent_image_hashes.
+    /// All code paths must follow this order to prevent deadlocks.
     pub fn snapshot_at_offset(&self, id: &str, scroll_offset: usize) -> Option<GridSnapshot> {
         let terminals = match self.lock_terminals() {
             Ok(t) => t,
@@ -352,10 +386,13 @@ impl TerminalState {
             None => return None,
         };
         let palette = self.get_palette(id);
-        let mut sent_hashes = self
-            .sent_image_hashes
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
+        let mut sent_hashes = match self.lock_sent_hashes() {
+            Ok(h) => h,
+            Err(e) => {
+                eprintln!("[terminal] snapshot sent_hashes lock failed for {id}: {e}");
+                return None;
+            }
+        };
         let session_hashes = sent_hashes.entry(id.to_string()).or_default();
         Some(Self::snapshot_with_palette(
             terminal,
@@ -475,8 +512,11 @@ impl TerminalState {
             Err(e) => eprintln!("[terminal] remove lock failed for {id}: {e}"),
         }
         // Clean up sent image hashes for this session
-        if let Ok(mut hashes) = self.sent_image_hashes.lock() {
-            hashes.remove(id);
+        match self.lock_sent_hashes() {
+            Ok(mut hashes) => {
+                hashes.remove(id);
+            }
+            Err(e) => eprintln!("[terminal] remove sent_image_hashes lock failed for {id}: {e}"),
         }
         // Palette intentionally NOT removed — survives pane restart.
         // Cleaned up in remove_all() on app shutdown.
@@ -493,7 +533,7 @@ impl TerminalState {
             Ok(mut palettes) => palettes.clear(),
             Err(e) => eprintln!("[terminal] remove_all palettes lock failed: {e}"),
         }
-        match self.sent_image_hashes.lock() {
+        match self.lock_sent_hashes() {
             Ok(mut hashes) => hashes.clear(),
             Err(e) => eprintln!("[terminal] remove_all sent_image_hashes lock failed: {e}"),
         }
@@ -538,8 +578,10 @@ impl TerminalState {
         let lines = screen.lines_in_phys_range(viewport_top..viewport_bottom);
 
         let mut rows = Vec::with_capacity(phys_rows);
-        // Collect unique images for this frame — keyed by hash hex string
+        // Collect unique images for this frame — keyed by hash hex string.
+        // frame_hex_cache avoids recomputing hex_encode per cell for the same image.
         let mut frame_images: HashMap<String, ImageSnapshot> = HashMap::new();
+        let mut frame_hex_cache: HashMap<[u8; 32], String> = HashMap::new();
 
         for line in &lines {
             let mut cells = Vec::with_capacity(phys_cols);
@@ -561,22 +603,37 @@ impl TerminalState {
                     )
                 };
 
-                // Extract image attachments from cell attributes
+                // Extract image attachments from cell attributes.
+                // filter_map returns None when encoding fails for a new image,
+                // preventing dangling hash references in the frontend.
                 let cell_images = attrs.images().map(|img_cells| {
                     img_cells
                         .iter()
                         .filter_map(|img| {
                             let image_data = img.image_data();
                             let hash = image_data.hash();
-                            let hash_hex = hex_encode(&hash);
+                            let hash_hex = frame_hex_cache
+                                .entry(hash)
+                                .or_insert_with(|| hex_encode(&hash))
+                                .clone();
 
                             // Only include full image data if not previously sent
                             if !sent_hashes.contains(&hash) {
-                                if let Some(snapshot) =
-                                    Self::encode_image_data(image_data, &hash_hex)
-                                {
-                                    sent_hashes.insert(hash);
-                                    frame_images.insert(hash_hex.clone(), snapshot);
+                                if frame_images.len() >= MAX_IMAGES_PER_FRAME {
+                                    // Cap reached — skip this image entirely
+                                    return None;
+                                }
+                                match Self::encode_image_data(image_data) {
+                                    Some(snapshot) => {
+                                        sent_hashes.insert(hash);
+                                        frame_images.insert(hash_hex.clone(), snapshot);
+                                    }
+                                    None => {
+                                        // Encoding failed — mark as sent to avoid retrying
+                                        // every frame for unsupported types (AnimRgba8, etc.)
+                                        sent_hashes.insert(hash);
+                                        return None;
+                                    }
                                 }
                             }
 
@@ -594,7 +651,9 @@ impl TerminalState {
                         .collect::<Vec<_>>()
                 });
 
-                // Only include images field if there are actual image attachments
+                // Only include images field if there are actual image attachments.
+                // Defensive: images() never returns Some(vec![]) but filter_map may now
+                // produce an empty vec if all images failed to encode.
                 let images = cell_images.and_then(|v| if v.is_empty() { None } else { Some(v) });
 
                 cells.push(CellSnapshot {
@@ -639,15 +698,27 @@ impl TerminalState {
     }
 
     /// Encode image data from wezterm-term into a base64 ImageSnapshot.
-    /// Returns None if the image data cannot be read.
+    /// Returns None if the image type is unsupported, exceeds size limits, or encoding fails.
     fn encode_image_data(
         image_data: &Arc<tattoy_wezterm_term::image::ImageData>,
-        _hash_hex: &str,
     ) -> Option<ImageSnapshot> {
         let data_guard = image_data.data();
         match &*data_guard {
             ImageDataType::EncodedFile(bytes) => {
-                let (width, height) = data_guard.dimensions().ok()?;
+                if bytes.len() as u64 > MAX_IMAGE_BYTES {
+                    eprintln!(
+                        "[terminal] EncodedFile too large: {} bytes (max {MAX_IMAGE_BYTES})",
+                        bytes.len()
+                    );
+                    return None;
+                }
+                let (width, height) = match data_guard.dimensions() {
+                    Ok(dims) => dims,
+                    Err(e) => {
+                        eprintln!("[terminal] failed to read EncodedFile dimensions: {e}");
+                        return None;
+                    }
+                };
                 Some(ImageSnapshot {
                     data: BASE64_STANDARD.encode(bytes),
                     width,
@@ -669,6 +740,9 @@ impl TerminalState {
             }
             _ => {
                 // AnimRgba8 and EncodedLease — not yet supported
+                eprintln!(
+                    "[terminal] unsupported image type (AnimRgba8 or EncodedLease) — skipping"
+                );
                 None
             }
         }
@@ -684,5 +758,13 @@ impl TerminalState {
         self.palettes
             .lock()
             .map_err(|e| format!("Palettes lock poisoned: {e}"))
+    }
+
+    fn lock_sent_hashes(
+        &self,
+    ) -> Result<MutexGuard<'_, HashMap<String, HashSet<[u8; 32]>>>, String> {
+        self.sent_image_hashes
+            .lock()
+            .map_err(|e| format!("Sent image hashes lock poisoned: {e}"))
     }
 }
