@@ -108,13 +108,10 @@ pub fn resize_pty(
             "cols ({cols}) and rows ({rows}) must not exceed 500"
         ));
     }
-    pty_mgr.resize(
-        &id,
-        cols,
-        rows,
-        pixel_width.unwrap_or(0),
-        pixel_height.unwrap_or(0),
-    )
+    // Cap pixel dimensions to a reasonable maximum; 0 = unknown/unset
+    let pw = pixel_width.unwrap_or(0).min(16384);
+    let ph = pixel_height.unwrap_or(0).min(16384);
+    pty_mgr.resize(&id, cols, rows, pw, ph)
 }
 
 #[tauri::command]
