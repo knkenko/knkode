@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 in progress — PR #18 merged. PR #19 (components & app shell) next.
+Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -23,23 +23,17 @@ Phase 9 in progress — PR #18 merged. PR #19 (components & app shell) next.
 - [x] Phase 7: Window configuration — platform effects, bounds persistence (PR #16 merged)
 - [x] Phase 8: Native menu — platform-specific submenus via PredefinedMenuItem (PR #17 merged)
 - [x] Phase 9a: Frontend foundation — store, utils, hooks, data (PR #18 merged)
+- [x] Phase 9b: Frontend components & app shell (PR #19 merged)
 
 ## What's Next
-- [ ] Phase 9b: Frontend components & app shell (PR #19)
+- [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
 - Migration prompt: `/Users/sfory/dev/knkode/docs/TAURI_MIGRATION_PROMPT.md`
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-
-### PR #19 — feat: frontend components & app shell (Phase 9b)
-- State: `docs/reviews/PR-19/_state.json`
-- Agents: 10/10 completed
-- Phase: fixes applied
-- Report: `docs/reviews/PR-19/compiled-report.md`
-- Fixed: 38/49 findings addressed (14 must-fix, 17 suggestions, 7 nitpicks)
-- Skipped (scope): variant refactor (factory doesn't support custom DOM), SettingsPanel useReducer, StatusBarProps grouping, PaneArea memoization (recursive), window.confirm → Tauri dialog, variant a11y labels (7+ files)
+None
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
