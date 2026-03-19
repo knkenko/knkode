@@ -395,6 +395,8 @@ export function Pane({
 							cursorStyle={mergedTheme.cursorStyle}
 							cursorColor={mergedTheme.cursorColor ?? mergedTheme.foreground}
 							isFocused={isFocused}
+							selectionColor={mergedTheme.selectionColor}
+							paneId={paneId}
 						/>
 						{/* Scrollbar — themed track, fades in on scroll, fades out after 2s */}
 						{hasScrollback && (
