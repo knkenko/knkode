@@ -129,8 +129,7 @@ pub fn set_terminal_colors(
     background: String,
     terminal_state: State<'_, Arc<TerminalState>>,
 ) -> Result<(), String> {
-    terminal_state.set_colors(&id, &ansi_colors, &foreground, &background);
-    Ok(())
+    terminal_state.set_colors(&id, &ansi_colors, &foreground, &background)
 }
 
 // --- Debug ---

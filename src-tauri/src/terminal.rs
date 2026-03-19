@@ -11,8 +11,8 @@ pub const DEFAULT_COLS: usize = 80;
 pub const DEFAULT_ROWS: usize = 24;
 
 /// Minimal config for wezterm-term. The `TerminalConfiguration` trait has 15+
-/// methods with sensible defaults (scrollback sizing, unicode version, etc.) —
-/// we only override `color_palette()`.
+/// methods with sensible defaults (scrollback sizing, unicode version, etc.).
+/// Per-pane color palettes are applied separately at snapshot time — see `set_colors`.
 #[derive(Debug)]
 struct TermConfig;
 
@@ -62,7 +62,9 @@ pub struct GridSnapshot {
 }
 
 /// ANSI 16-color palette sent from the frontend theme system.
-/// All values are hex strings (#RRGGBB).
+/// All values are hex strings (`#RRGGBB`).
+/// Mirrors `AnsiColors` in `src/shared/types.ts` and
+/// `ANSI_KEYS` in `config.rs`. Keep all three in sync.
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AnsiThemeColors {
@@ -84,26 +86,42 @@ pub struct AnsiThemeColors {
     pub bright_white: String,
 }
 
-/// Parse a hex color string (#RRGGBB or RRGGBB) into an RgbColor.
+/// Parse a hex color string into an RgbColor.
+/// Accepts `#RRGGBB`, `RRGGBB`, `#RGB`, or `RGB` formats.
+/// The 3-char form is expanded (e.g. `#F0A` → `#FF00AA`).
 fn parse_hex_color(hex: &str) -> Option<RgbColor> {
     let hex = hex.strip_prefix('#').unwrap_or(hex);
-    if hex.len() != 6 {
+    // ASCII check makes byte-offset slicing safe on UTF-8 strings.
+    if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
         return None;
     }
-    let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
-    let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
-    let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
-    Some(RgbColor::new_8bpc(r, g, b))
+    match hex.len() {
+        3 => {
+            // Expand #RGB → #RRGGBB
+            let r = u8::from_str_radix(&hex[0..1].repeat(2), 16).ok()?;
+            let g = u8::from_str_radix(&hex[1..2].repeat(2), 16).ok()?;
+            let b = u8::from_str_radix(&hex[2..3].repeat(2), 16).ok()?;
+            Some(RgbColor::new_8bpc(r, g, b))
+        }
+        6 => {
+            let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+            let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+            let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+            Some(RgbColor::new_8bpc(r, g, b))
+        }
+        _ => None,
+    }
 }
 
 /// Build a ColorPalette from theme colors. Starts from the default palette
-/// (preserving the 216 color cube and 24 grey scales at indices 16–255),
+/// (preserving the 216 color cube and 24-step greyscale ramp at indices 16–255),
 /// then overrides indices 0–15 with the theme's ANSI colors and sets
 /// the default foreground/background.
 fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> ColorPalette {
     let mut palette = ColorPalette::default();
 
-    let ansi_colors = [
+    // Order must match ANSI color indices 0–15.
+    let ansi_colors: [&str; 16] = [
         &ansi.black,
         &ansi.red,
         &ansi.green,
@@ -125,14 +143,20 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
     for (i, hex) in ansi_colors.iter().enumerate() {
         if let Some(rgb) = parse_hex_color(hex) {
             palette.colors.0[i] = rgb.into();
+        } else {
+            eprintln!("[terminal] Invalid hex for ANSI color index {i}: {hex:?}");
         }
     }
 
     if let Some(rgb) = parse_hex_color(foreground) {
         palette.foreground = rgb.into();
+    } else {
+        eprintln!("[terminal] Invalid hex for foreground: {foreground:?}");
     }
     if let Some(rgb) = parse_hex_color(background) {
         palette.background = rgb.into();
+    } else {
+        eprintln!("[terminal] Invalid hex for background: {background:?}");
     }
 
     palette
@@ -145,8 +169,11 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
 /// Each terminal has its own `ColorPalette` so themes are applied per-pane.
 pub struct TerminalState {
     terminals: Mutex<HashMap<String, Terminal>>,
-    palettes: Mutex<HashMap<String, ColorPalette>>,
-    default_palette: ColorPalette,
+    /// Per-pane palettes for ANSI color resolution. Stored separately from
+    /// terminals so palettes survive PTY restart (remove → create cycle).
+    /// Cleaned up in `remove_all()` on app shutdown.
+    palettes: Mutex<HashMap<String, Arc<ColorPalette>>>,
+    default_palette: Arc<ColorPalette>,
     config: Arc<dyn TerminalConfiguration + Send + Sync>,
 }
 
@@ -155,7 +182,7 @@ impl TerminalState {
         Self {
             terminals: Mutex::new(HashMap::new()),
             palettes: Mutex::new(HashMap::new()),
-            default_palette: ColorPalette::default(),
+            default_palette: Arc::new(ColorPalette::default()),
             config: Arc::new(TermConfig),
         }
     }
@@ -179,19 +206,25 @@ impl TerminalState {
     }
 
     /// Set the color palette for a specific terminal session.
-    /// Called from the frontend when a pane is created or its theme changes.
-    pub fn set_colors(&self, id: &str, ansi: &AnsiThemeColors, foreground: &str, background: &str) {
-        let palette = build_palette(ansi, foreground, background);
-        match self.palettes.lock() {
-            Ok(mut palettes) => {
-                palettes.insert(id.to_string(), palette);
-            }
-            Err(e) => eprintln!("[terminal] set_colors lock failed for {id}: {e}"),
-        }
+    /// Called from the frontend when a pane's theme includes ANSI colors.
+    pub fn set_colors(
+        &self,
+        id: &str,
+        ansi: &AnsiThemeColors,
+        foreground: &str,
+        background: &str,
+    ) -> Result<(), String> {
+        let palette = Arc::new(build_palette(ansi, foreground, background));
+        let mut palettes = self.lock_palettes()?;
+        palettes.insert(id.to_string(), palette);
+        Ok(())
     }
 
     /// Feed raw PTY output through the terminal state machine and return
     /// a snapshot of the visible grid for the frontend to render.
+    ///
+    /// Lock ordering: acquires `terminals` then `palettes` (via `get_palette`).
+    /// All code paths must follow this order to prevent deadlocks.
     pub fn advance_bytes(&self, id: &str, data: &[u8]) -> Option<GridSnapshot> {
         let mut terminals = match self.lock_terminals() {
             Ok(t) => t,
@@ -244,18 +277,27 @@ impl TerminalState {
             }
             Err(e) => eprintln!("[terminal] remove_all lock failed: {e}"),
         }
-        if let Ok(mut palettes) = self.palettes.lock() {
-            palettes.clear();
+        match self.lock_palettes() {
+            Ok(mut palettes) => {
+                palettes.clear();
+            }
+            Err(e) => eprintln!("[terminal] remove_all palettes lock failed: {e}"),
         }
     }
 
     /// Get the palette for a terminal, falling back to the default.
-    fn get_palette(&self, id: &str) -> ColorPalette {
-        self.palettes
-            .lock()
-            .ok()
-            .and_then(|p| p.get(id).cloned())
-            .unwrap_or_else(|| self.default_palette.clone())
+    /// Returns a cheap `Arc` clone instead of copying the full ~4 KB palette.
+    fn get_palette(&self, id: &str) -> Arc<ColorPalette> {
+        match self.palettes.lock() {
+            Ok(p) => p
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| Arc::clone(&self.default_palette)),
+            Err(e) => {
+                eprintln!("[terminal] palettes lock poisoned for {id}: {e}");
+                Arc::clone(&self.default_palette)
+            }
+        }
     }
 
     fn snapshot_with_palette(terminal: &Terminal, palette: &ColorPalette) -> GridSnapshot {
@@ -318,5 +360,11 @@ impl TerminalState {
         self.terminals
             .lock()
             .map_err(|e| format!("Terminal lock poisoned: {e}"))
+    }
+
+    fn lock_palettes(&self) -> Result<MutexGuard<'_, HashMap<String, Arc<ColorPalette>>>, String> {
+        self.palettes
+            .lock()
+            .map_err(|e| format!("Palettes lock poisoned: {e}"))
     }
 }
