@@ -107,6 +107,26 @@ function findWordBounds(
 	return { startCol, endCol };
 }
 
+/** Convert client (mouse) coordinates to a viewport-relative cell position
+ *  using a pre-computed rect and DPR. Returns null if metrics are unavailable. */
+function cellFromRect(
+	rect: DOMRect,
+	dpr: number,
+	clientX: number,
+	clientY: number,
+	cellW: number,
+	cellH: number,
+	maxCol: number,
+	maxRow: number,
+): { row: number; col: number } {
+	const x = (clientX - rect.left) * dpr;
+	const y = (clientY - rect.top) * dpr;
+	return {
+		col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
+		row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
+	};
+}
+
 /** Build a CSS font string for a cell's style attributes. */
 function buildFont(cell: CellSnapshot, scaledSize: number, fontFamily: string): string {
 	const style = cell.italic ? "italic " : "";
@@ -325,17 +345,17 @@ export function CanvasTerminal({
 			if (!canvas) return null;
 			const { width: cellW, height: cellH } = cellMetrics.current;
 			if (cellW === 0 || cellH === 0) return null;
-			const dpr = dprRef.current;
-			const rect = canvas.getBoundingClientRect();
-			const x = (clientX - rect.left) * dpr;
-			const y = (clientY - rect.top) * dpr;
 			const snap = gridRef.current;
-			const maxCol = snap ? snap.cols - 1 : 0;
-			const maxRow = snap ? snap.totalRows - 1 : 0;
-			return {
-				col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
-				row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
-			};
+			return cellFromRect(
+				canvas.getBoundingClientRect(),
+				dprRef.current,
+				clientX,
+				clientY,
+				cellW,
+				cellH,
+				snap ? snap.cols - 1 : 0,
+				snap ? snap.totalRows - 1 : 0,
+			);
 		},
 		[],
 	);
@@ -823,15 +843,17 @@ export function CanvasTerminal({
 				if (!cachedRect) return null;
 				const { width: cellW, height: cellH } = cellMetrics.current;
 				if (cellW === 0 || cellH === 0) return null;
-				const x = (clientX - cachedRect.left) * cachedDpr;
-				const y = (clientY - cachedRect.top) * cachedDpr;
 				const s = gridRef.current;
-				const maxCol = s ? s.cols - 1 : 0;
-				const maxRow = s ? s.totalRows - 1 : 0;
-				return {
-					col: Math.max(0, Math.min(maxCol, Math.floor(x / cellW))),
-					row: Math.max(0, Math.min(maxRow, Math.floor(y / cellH))),
-				};
+				return cellFromRect(
+					cachedRect,
+					cachedDpr,
+					clientX,
+					clientY,
+					cellW,
+					cellH,
+					s ? s.cols - 1 : 0,
+					s ? s.totalRows - 1 : 0,
+				);
 			};
 
 			const onMove = (ev: MouseEvent) => {
