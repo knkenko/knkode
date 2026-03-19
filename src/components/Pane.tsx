@@ -89,13 +89,31 @@ export function Pane({
 		ensurePty(paneId, initialCwdRef.current, initialCmdRef.current);
 	}, [paneId, ensurePty]);
 
-	// Subscribe to grid snapshots from Rust PTY renderer
+	// Subscribe to grid snapshots from Rust PTY renderer.
+	// RAF-throttle: coalesce rapid PTY updates into one React render per frame.
+	// Without this, large output (e.g. loading a long conversation) triggers
+	// hundreds of setGrid → re-render → canvas repaint cycles, visibly
+	// "scrolling line by line" and blocking the UI thread.
+	const pendingGridRef = useRef<GridSnapshot | null>(null);
+	const rafIdRef = useRef(0);
 	useEffect(() => {
 		const unsub = window.api.onTerminalRender((id, snapshot) => {
-			if (id === paneId) setGrid(snapshot);
+			if (id !== paneId) return;
+			pendingGridRef.current = snapshot;
+			if (rafIdRef.current === 0) {
+				rafIdRef.current = requestAnimationFrame(() => {
+					rafIdRef.current = 0;
+					const latest = pendingGridRef.current;
+					if (latest) {
+						pendingGridRef.current = null;
+						setGrid(latest);
+					}
+				});
+			}
 		});
 		return () => {
 			unsub();
+			if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
 		};
 	}, [paneId]);
 
