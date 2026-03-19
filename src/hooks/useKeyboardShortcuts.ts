@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { PaneScrollDetail } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac } from "../utils/platform";
 
@@ -28,6 +29,10 @@ interface ShortcutOptions {
 export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
+			// Skip events already handled by another listener (e.g. key-to-ansi sends
+			// Ctrl+Arrow ANSI to the PTY — don't also trigger scroll on Win/Linux)
+			if (e.defaultPrevented) return;
+
 			// Check modifier key first to avoid unnecessary state reads on every keypress.
 			// isMac is a module-level constant (never changes) — safe to omit from deps.
 			const isMod = isMac ? e.metaKey : e.ctrlKey;
@@ -134,11 +139,12 @@ export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
 
 			// Mod+Down — scroll focused terminal to bottom
 			// Mod+Up — scroll focused terminal to top
-			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+			// Exclude altKey so Mod+Alt+Arrow (pane nav) doesn't also trigger scroll
+			if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !e.altKey) {
 				if (!resolvedFocusId) return;
 				e.preventDefault();
 				window.dispatchEvent(
-					new CustomEvent("pane:scroll", {
+					new CustomEvent<PaneScrollDetail>("pane:scroll", {
 						detail: {
 							paneId: resolvedFocusId,
 							to: e.key === "ArrowDown" ? "bottom" : "top",
