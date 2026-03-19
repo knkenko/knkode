@@ -6,6 +6,7 @@ import type {
 	GridSnapshot,
 	KnkodeApi,
 	PrInfo,
+	SelectionRange,
 	Snippet,
 	Unsubscribe,
 	Workspace,
@@ -79,6 +80,19 @@ const _api: KnkodeApi = {
 	// Terminal colors
 	setTerminalColors: (id, ansiColors, foreground, background) =>
 		invoke("set_terminal_colors", { id, ansiColors, foreground, background }),
+
+	// Terminal selection — Rust deserializes range as a nested SelectionRange struct
+	getSelectionText: (id, range) => {
+		// Sanitize to non-negative integers before IPC (Rust expects usize)
+		const u = (n: number): number => (Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
+		const r: SelectionRange = {
+			startRow: u(range.startRow),
+			startCol: u(range.startCol),
+			endRow: u(range.endRow),
+			endCol: u(range.endCol),
+		};
+		return invoke<string>("get_selection_text", { id, range: r });
+	},
 
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered grid snapshots.
 	onTerminalRender: (cb) =>

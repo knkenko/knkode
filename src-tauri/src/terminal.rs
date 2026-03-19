@@ -93,6 +93,17 @@ pub struct AnsiThemeColors {
     pub bright_white: String,
 }
 
+/// Cell range for text extraction via IPC. Mirrors `SelectionRange` in
+/// `src/shared/types.ts`. All indices are inclusive.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SelectionRange {
+    pub start_row: usize,
+    pub start_col: usize,
+    pub end_row: usize,
+    pub end_col: usize,
+}
+
 /// Parse a hex color string into an RgbColor.
 /// Accepts `#RRGGBB`, `RRGGBB`, `#RGB`, or `RGB` formats.
 /// The 3-char form is expanded (e.g. `#F0A` → `#FF00AA`).
@@ -277,6 +288,88 @@ impl TerminalState {
             &palette,
             scroll_offset,
         ))
+    }
+
+    /// Extract text from a cell range. Row indices are absolute physical rows
+    /// in the scrollback buffer (row 0 = oldest line in buffer). All indices
+    /// are inclusive: (start_row, start_col) through (end_row, end_col) are
+    /// included in the result. Column indices follow `visible_cells()` ordering
+    /// (wide-character continuation cells are skipped).
+    /// Handles coordinate normalization (start/end swap), row/column clamping,
+    /// trailing whitespace trimming, and joining rows with newlines.
+    pub fn extract_text(&self, id: &str, range: &SelectionRange) -> Result<String, String> {
+        let terminals = self
+            .lock_terminals()
+            .map_err(|e| format!("extract_text lock failed for {id}: {e}"))?;
+        let terminal = terminals
+            .get(id)
+            .ok_or_else(|| format!("Terminal session not found: {id}"))?;
+
+        let screen = terminal.screen();
+
+        // scrollback_rows() returns total lines in buffer (visible + scrollback)
+        let total_lines = screen.scrollback_rows();
+        if total_lines == 0 {
+            return Ok(String::new());
+        }
+
+        // Normalize: ensure start <= end
+        let (sr, sc, er, ec) = if range.start_row < range.end_row
+            || (range.start_row == range.end_row && range.start_col <= range.end_col)
+        {
+            (
+                range.start_row,
+                range.start_col,
+                range.end_row,
+                range.end_col,
+            )
+        } else {
+            (
+                range.end_row,
+                range.end_col,
+                range.start_row,
+                range.start_col,
+            )
+        };
+
+        // Clamp row indices to buffer bounds (column clamping happens per-line below)
+        let er = er.min(total_lines - 1);
+        let sr = sr.min(er);
+
+        let lines = screen.lines_in_phys_range(sr..er + 1);
+        let num_lines = lines.len();
+        if num_lines == 0 {
+            return Ok(String::new());
+        }
+
+        let num_cols = screen.physical_cols;
+        let last = num_lines - 1;
+        let mut result = String::with_capacity(num_lines * num_cols);
+
+        for (i, line) in lines.iter().enumerate() {
+            let col_start = if i == 0 { sc.min(num_cols) } else { 0 };
+            let col_end = if i == last {
+                ec.saturating_add(1).min(num_cols)
+            } else {
+                num_cols
+            };
+
+            let take_count = col_end.saturating_sub(col_start);
+            let mut line_text = String::with_capacity(take_count);
+            for cell in line.visible_cells().skip(col_start).take(take_count) {
+                line_text.push_str(cell.str());
+            }
+
+            // Trim trailing whitespace per line (empty cells are spaces)
+            result.push_str(line_text.trim_end());
+
+            // Add newline between rows (not after last)
+            if i < last {
+                result.push('\n');
+            }
+        }
+
+        Ok(result)
     }
 
     pub fn resize(&self, id: &str, cols: usize, rows: usize) {

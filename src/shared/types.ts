@@ -244,6 +244,19 @@ export interface GridSnapshot {
 	readonly defaultBg: string;
 }
 
+// --- Selection ---
+
+/** Cell range for text extraction. Row indices are absolute physical rows
+ *  in the scrollback buffer (row 0 = oldest line), not viewport-relative.
+ *  All positions are inclusive: startCol=0, endCol=4 selects 5 columns.
+ *  Values must be non-negative integers (Rust expects usize). */
+export interface SelectionRange {
+	readonly startRow: number;
+	readonly startCol: number;
+	readonly endRow: number;
+	readonly endCol: number;
+}
+
 // --- API interface ---
 
 export type Unsubscribe = () => void;
@@ -279,6 +292,9 @@ export interface KnkodeApi {
 		foreground: string,
 		background: string,
 	): Promise<void>;
+
+	// Terminal selection — extract text from a cell range (absolute row indices)
+	getSelectionText(id: string, range: SelectionRange): Promise<string>;
 
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered snapshots
 	onTerminalRender(cb: (id: string, grid: GridSnapshot) => void): Unsubscribe;
