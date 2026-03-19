@@ -13,6 +13,8 @@ export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;
 	readonly onWrite: (data: string) => void;
 	readonly onResize: (cols: number, rows: number) => void;
+	/** Scroll delta in lines: positive = scroll up (into scrollback), negative = toward bottom. */
+	readonly onScroll: (deltaLines: number) => void;
 	readonly fontSize?: number | undefined;
 	readonly fontFamily?: string | undefined;
 	readonly lineHeight?: number | undefined;
@@ -104,6 +106,7 @@ export function CanvasTerminal({
 	grid,
 	onWrite,
 	onResize,
+	onScroll,
 	fontSize = DEFAULT_FONT_SIZE,
 	fontFamily = DEFAULT_FONT_FAMILY,
 	lineHeight = DEFAULT_LINE_HEIGHT,
@@ -121,12 +124,14 @@ export function CanvasTerminal({
 	const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 	const dprRef = useRef(window.devicePixelRatio || 1);
 	const onResizeRef = useRef(onResize);
+	const onScrollRef = useRef(onScroll);
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
 
 	// Keep refs in sync
 	gridRef.current = grid;
 	onResizeRef.current = onResize;
+	onScrollRef.current = onScroll;
 	isFocusedRef.current = isFocused;
 
 	// Measure cell dimensions using actual font metrics (ascent + descent)
@@ -333,6 +338,41 @@ export function CanvasTerminal({
 			if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
 		};
 	}, [measureCell]);
+
+	// Wheel scroll → convert pixel/line/page delta to line count and call onScroll.
+	// Must use native addEventListener with { passive: false } to allow preventDefault
+	// (React's onWheel is passive by default in modern browsers).
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		const handler = (e: WheelEvent) => {
+			const { height: cellH } = cellMetrics.current;
+			if (cellH === 0) return;
+
+			const dpr = dprRef.current;
+			let lines: number;
+			if (e.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+				lines = e.deltaY;
+			} else if (e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+				const snap = gridRef.current;
+				lines = e.deltaY * (snap?.totalRows ?? 24);
+			} else {
+				// DOM_DELTA_PIXEL — convert using CSS-pixel cell height
+				lines = e.deltaY / (cellH / dpr);
+			}
+
+			if (Math.abs(lines) > 0.01) {
+				e.preventDefault();
+				// Negate: positive deltaY = scroll down = toward bottom = negative offset delta
+				// Pass raw fractional value — Pane accumulates and rounds
+				onScrollRef.current(-lines);
+			}
+		};
+
+		container.addEventListener("wheel", handler, { passive: false });
+		return () => container.removeEventListener("wheel", handler);
+	}, []);
 
 	// Redraw when grid changes — grid is state that triggers redraw, draw reads from gridRef
 	// biome-ignore lint/correctness/useExhaustiveDependencies: grid triggers redraw via state

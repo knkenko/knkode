@@ -221,7 +221,10 @@ export interface GridSnapshot {
 	readonly cursorVisible: boolean;
 	readonly cols: number;
 	readonly totalRows: number;
+	/** Number of rows available above the visible viewport (scrollback depth). */
 	readonly scrollbackRows: number;
+	/** Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows. */
+	readonly scrollOffset: number;
 	/** Terminal palette default background (hex). Cells matching this have no
 	 *  custom background and should be left transparent so theme effects show. */
 	readonly defaultBg: string;
@@ -251,6 +254,9 @@ export interface KnkodeApi {
 	writePty(id: string, data: string): Promise<void>;
 	resizePty(id: string, cols: number, rows: number): Promise<void>;
 	killPty(id: string): Promise<void>;
+
+	// Terminal scroll — request a snapshot at a given scrollback offset (0 = bottom)
+	scrollTerminal(id: string, offset: number): Promise<GridSnapshot>;
 
 	// Terminal colors — send theme ANSI palette to Rust for per-terminal color resolution
 	setTerminalColors(id: string, ansiColors: AnsiColors, foreground: string, background: string): Promise<void>;

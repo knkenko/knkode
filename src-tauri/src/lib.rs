@@ -38,6 +38,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::write_pty,
             commands::resize_pty,
             commands::kill_pty,
+            commands::scroll_terminal,
             commands::set_terminal_colors,
             commands::log_scroll_debug,
         ])

@@ -5,6 +5,7 @@ import { usePaneDragDrop } from "../hooks/usePaneDragDrop";
 import { ZONE_STYLES } from "../lib/pane-drag-utils";
 import type { ScreenPosition } from "../lib/ui-constants";
 import {
+	effectMul,
 	type GridSnapshot,
 	MAX_UNFOCUSED_DIM,
 	type PaneConfig,
@@ -75,6 +76,16 @@ export function Pane({
 	const [ptyError, setPtyError] = useState(false);
 	const homeDir = useStore((s) => s.homeDir);
 
+	// --- Scrollback state ---
+	// scrollOffset: rows from bottom (0 = live viewport, >0 = scrolled into scrollback)
+	const scrollOffsetRef = useRef(0);
+	const maxScrollRef = useRef(0);
+	const isScrolledRef = useRef(false);
+	const pendingScrollDelta = useRef(0);
+	const scrollRafId = useRef(0);
+	const [scrollbarVisible, setScrollbarVisible] = useState(false);
+	const scrollbarTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
 	const { isDragging, dropZone, outerRef, handleHeaderPointerDown } = usePaneDragDrop({
 		paneId,
 		workspaceId,
@@ -91,14 +102,23 @@ export function Pane({
 
 	// Subscribe to grid snapshots from Rust PTY renderer.
 	// RAF-throttle: coalesce rapid PTY updates into one React render per frame.
-	// Without this, large output (e.g. loading a long conversation) triggers
-	// hundreds of setGrid → re-render → canvas repaint cycles, visibly
-	// "scrolling line by line" and blocking the UI thread.
+	// When the user is scrolled into scrollback, store the latest render but don't
+	// display it — the user sees the scroll-request snapshots instead.
 	const pendingGridRef = useRef<GridSnapshot | null>(null);
 	const rafIdRef = useRef(0);
 	useEffect(() => {
 		const unsub = window.api.onTerminalRender((id, snapshot) => {
 			if (id !== paneId) return;
+
+			// Always track the latest scrollback depth for clamping scroll offset
+			maxScrollRef.current = snapshot.scrollbackRows;
+
+			// When scrolled up, store but don't display — user sees scroll snapshots
+			if (isScrolledRef.current) {
+				pendingGridRef.current = snapshot;
+				return;
+			}
+
 			pendingGridRef.current = snapshot;
 			if (rafIdRef.current === 0) {
 				rafIdRef.current = requestAnimationFrame(() => {
@@ -119,6 +139,18 @@ export function Pane({
 
 	const handleWrite = useCallback(
 		(data: string) => {
+			// Auto-scroll to bottom on user input
+			if (isScrolledRef.current) {
+				scrollOffsetRef.current = 0;
+				isScrolledRef.current = false;
+				// Display the latest stored live snapshot immediately
+				const latest = pendingGridRef.current;
+				if (latest) {
+					pendingGridRef.current = null;
+					setGrid(latest);
+				}
+			}
+
 			window.api.writePty(paneId, data).catch((err: unknown) => {
 				console.error(`[pane] writePty failed for ${paneId}:`, err);
 				setPtyError(true);
@@ -135,6 +167,75 @@ export function Pane({
 		},
 		[paneId],
 	);
+
+	// RAF-throttled scroll handler — accumulates fractional deltas from trackpad,
+	// rounds to integer offset, and coalesces into one IPC call per frame.
+	const handleScroll = useCallback(
+		(deltaLines: number) => {
+			// Show scrollbar, auto-hide after 2s of inactivity
+			setScrollbarVisible(true);
+			if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
+			scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), 2000);
+
+			pendingScrollDelta.current += deltaLines;
+			if (scrollRafId.current !== 0) return;
+
+			scrollRafId.current = requestAnimationFrame(() => {
+				scrollRafId.current = 0;
+				const totalDelta = pendingScrollDelta.current;
+				pendingScrollDelta.current = 0;
+
+				const rawOffset = scrollOffsetRef.current + totalDelta;
+				const newOffset = Math.max(
+					0,
+					Math.min(maxScrollRef.current, Math.round(rawOffset)),
+				);
+				if (newOffset === scrollOffsetRef.current) return;
+				scrollOffsetRef.current = newOffset;
+				isScrolledRef.current = newOffset > 0;
+
+				if (newOffset === 0) {
+					// Back at bottom — display the latest stored live snapshot
+					const latest = pendingGridRef.current;
+					if (latest) {
+						pendingGridRef.current = null;
+						setGrid(latest);
+					} else {
+						// No stored snapshot (terminal idle) — request fresh one
+						window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
+					}
+					return;
+				}
+
+				window.api
+					.scrollTerminal(paneId, newOffset)
+					.then((snapshot) => {
+						maxScrollRef.current = snapshot.scrollbackRows;
+						// Only display if still scrolled at this position
+						if (scrollOffsetRef.current > 0) {
+							setGrid(snapshot);
+						}
+					})
+					.catch((err: unknown) => {
+						console.error(`[pane] scrollTerminal failed for ${paneId}:`, err);
+					});
+			});
+		},
+		[paneId],
+	);
+
+	const scrollToBottom = useCallback(() => {
+		scrollOffsetRef.current = 0;
+		isScrolledRef.current = false;
+		const latest = pendingGridRef.current;
+		if (latest) {
+			pendingGridRef.current = null;
+			setGrid(latest);
+		} else {
+			// No stored snapshot — request a fresh one at the bottom
+			window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
+		}
+	}, [paneId]);
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(config.label, (label) =>
 		onUpdateConfig(paneId, { label }),
@@ -226,6 +327,20 @@ export function Pane({
 			? Math.max(0, Math.min(MAX_UNFOCUSED_DIM, workspaceTheme.unfocusedDim))
 			: 0;
 
+	// Scrollbar metrics — derived from the current grid snapshot
+	const scrollColor = mergedTheme.accent ?? mergedTheme.glow ?? mergedTheme.foreground;
+	const scrollbarBaseOpacity = effectMul(mergedTheme.scrollbarAccent ?? "subtle");
+	const hasScrollback = grid !== null && grid.scrollbackRows > 0;
+	const isUserScrolled = grid !== null && grid.scrollOffset > 0;
+
+	let scrollThumbTop = 0;
+	let scrollThumbHeight = 100;
+	if (hasScrollback && grid) {
+		const totalContent = grid.scrollbackRows + grid.totalRows;
+		scrollThumbHeight = Math.max(5, (grid.totalRows / totalContent) * 100);
+		scrollThumbTop = ((grid.scrollbackRows - grid.scrollOffset) / totalContent) * 100;
+	}
+
 	return (
 		<div
 			ref={outerRef}
@@ -270,12 +385,36 @@ export function Pane({
 							grid={grid}
 							onWrite={handleWrite}
 							onResize={handleResize}
+							onScroll={handleScroll}
 							fontSize={mergedTheme.fontSize}
 							fontFamily={mergedTheme.fontFamily}
 							background={mergedTheme.background}
 							cursorColor={mergedTheme.cursorColor ?? mergedTheme.foreground}
 							isFocused={isFocused}
 						/>
+						{/* Scrollbar — themed track, fades in on scroll, fades out after 2s */}
+						{hasScrollback && (
+							<div
+								className="absolute right-2 top-2 bottom-2 w-2 z-20 pointer-events-none transition-opacity duration-500"
+								style={{ opacity: scrollbarVisible ? 1 : 0 }}
+							>
+								<div
+									className="absolute right-0 w-1 rounded-full"
+									style={{
+										top: `${scrollThumbTop}%`,
+										height: `${scrollThumbHeight}%`,
+										backgroundColor: scrollColor,
+										opacity: isUserScrolled
+											? Math.max(scrollbarBaseOpacity, 0.5)
+											: scrollbarBaseOpacity,
+									}}
+								/>
+							</div>
+						)}
+						{/* Scroll-to-bottom — themed per variant */}
+						{isUserScrolled && (
+							<variant.ScrollButton onClick={scrollToBottom} theme={variantTheme} />
+						)}
 						{/* Dim overlay — uses inline style exclusively to avoid class/inline transition conflict */}
 						<div
 							className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-150"

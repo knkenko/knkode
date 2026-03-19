@@ -1,6 +1,6 @@
 use crate::config::ConfigStore;
 use crate::pty::PtyManager;
-use crate::terminal::{AnsiThemeColors, TerminalState};
+use crate::terminal::{AnsiThemeColors, GridSnapshot, TerminalState};
 use crate::tracker::CwdTracker;
 use serde_json::Value;
 use std::sync::Arc;
@@ -117,6 +117,19 @@ pub fn kill_pty(
 ) -> Result<(), String> {
     tracker.untrack_pane(&id);
     pty_mgr.kill(&id)
+}
+
+// --- Terminal scroll ---
+
+#[tauri::command]
+pub fn scroll_terminal(
+    id: String,
+    offset: usize,
+    terminal_state: State<'_, Arc<TerminalState>>,
+) -> Result<GridSnapshot, String> {
+    terminal_state
+        .snapshot_at_offset(&id, offset)
+        .ok_or_else(|| format!("Terminal session not found: {id}"))
 }
 
 // --- Terminal colors ---

@@ -52,8 +52,10 @@ pub struct GridSnapshot {
     pub cursor_visible: bool,
     pub cols: usize,
     pub total_rows: usize,
-    // TODO: populate from screen scrollback when scrollback support is added
+    /// Number of rows available above the visible viewport (scrollback depth).
     pub scrollback_rows: usize,
+    /// Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows.
+    pub scroll_offset: usize,
     /// The terminal palette's default background color (hex string, e.g. "#000000").
     /// The frontend uses this to distinguish "no custom background" cells from cells
     /// with an explicit colored background — only the latter get drawn, leaving
@@ -241,11 +243,18 @@ impl TerminalState {
         terminal.advance_bytes(data);
     }
 
-    /// Take a snapshot of the current visible grid for the frontend to render.
+    /// Take a snapshot of the current visible grid (bottom of scrollback) for the
+    /// frontend to render.
     ///
     /// Lock ordering: acquires `terminals` then `palettes` (via `get_palette`).
     /// All code paths must follow this order to prevent deadlocks.
     pub fn snapshot(&self, id: &str) -> Option<GridSnapshot> {
+        self.snapshot_at_offset(id, 0)
+    }
+
+    /// Take a snapshot at a given scroll offset (rows from bottom).
+    /// `scroll_offset = 0` → live viewport; `scroll_offset = N` → N rows into scrollback.
+    pub fn snapshot_at_offset(&self, id: &str, scroll_offset: usize) -> Option<GridSnapshot> {
         let terminals = match self.lock_terminals() {
             Ok(t) => t,
             Err(e) => {
@@ -258,7 +267,11 @@ impl TerminalState {
             None => return None,
         };
         let palette = self.get_palette(id);
-        Some(Self::snapshot_with_palette(terminal, &palette))
+        Some(Self::snapshot_with_palette(
+            terminal,
+            &palette,
+            scroll_offset,
+        ))
     }
 
     pub fn resize(&self, id: &str, cols: usize, rows: usize) {
@@ -315,14 +328,27 @@ impl TerminalState {
         }
     }
 
-    fn snapshot_with_palette(terminal: &Terminal, palette: &ColorPalette) -> GridSnapshot {
+    fn snapshot_with_palette(
+        terminal: &Terminal,
+        palette: &ColorPalette,
+        scroll_offset: usize,
+    ) -> GridSnapshot {
         let screen = terminal.screen();
         let phys_rows = screen.physical_rows;
         let phys_cols = screen.physical_cols;
 
-        let visible_range = 0..(phys_rows as i64);
-        let phys_range = screen.phys_range(&visible_range);
-        let lines = screen.lines_in_phys_range(phys_range);
+        // scrollback_rows() returns lines.len() (total lines in buffer).
+        // The scrollable range is total - visible.
+        let total_lines = screen.scrollback_rows();
+        let max_offset = total_lines.saturating_sub(phys_rows);
+        let clamped_offset = scroll_offset.min(max_offset);
+
+        // Compute the physical row range for the viewport.
+        // At offset 0 (bottom): viewport_top..viewport_bottom = last phys_rows lines.
+        // At offset N: shift the window N rows toward the start.
+        let viewport_bottom = total_lines.saturating_sub(clamped_offset);
+        let viewport_top = viewport_bottom.saturating_sub(phys_rows);
+        let lines = screen.lines_in_phys_range(viewport_top..viewport_bottom);
 
         let mut rows = Vec::with_capacity(phys_rows);
         for line in &lines {
@@ -358,15 +384,17 @@ impl TerminalState {
             rows.push(cells);
         }
 
+        // Cursor is only meaningful when viewing the live viewport (offset 0).
         let cursor = terminal.cursor_pos();
         GridSnapshot {
             rows,
             cursor_row: cursor.y.try_into().unwrap_or(0),
             cursor_col: cursor.x,
-            cursor_visible: cursor.visibility == CursorVisibility::Visible,
+            cursor_visible: clamped_offset == 0 && cursor.visibility == CursorVisibility::Visible,
             cols: phys_cols,
             total_rows: phys_rows,
-            scrollback_rows: 0,
+            scrollback_rows: max_offset,
+            scroll_offset: clamped_offset,
             default_bg: palette.background.to_rgb_string(),
         }
     }

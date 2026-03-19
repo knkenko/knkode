@@ -73,6 +73,9 @@ const _api: KnkodeApi = {
 	resizePty: (id, cols, rows) => invoke("resize_pty", { id, cols, rows }),
 	killPty: (id) => invoke("kill_pty", { id }),
 
+	// Terminal scroll
+	scrollTerminal: (id, offset) => invoke<GridSnapshot>("scroll_terminal", { id, offset }),
+
 	// Terminal colors
 	setTerminalColors: (id, ansiColors, foreground, background) =>
 		invoke("set_terminal_colors", { id, ansiColors, foreground, background }),
