@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working. PR #21 merged — keyboard input (Shift+Enter, copy/paste, Mod shortcuts), render throttle with trailing-edge flush, cursor style fixes, and full review pass (22 findings addressed).
+Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working. PR #21 merged — keyboard input (Shift+Enter, copy/paste, Mod shortcuts), render throttle with trailing-edge flush, cursor style fixes, and full review pass (22 findings addressed). PR #25 merged — native file drag-and-drop to paste shell-quoted paths into terminal panes, with control-char sanitization and RAF-throttled hit testing.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -31,7 +31,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - [x] Selection: Smart selection — double/triple click, shift+click extend (PR #24 merged)
 
 ## What's Next
-- [ ] File drag-and-drop to paste paths into terminal (PR #25 — in progress)
+- [x] File drag-and-drop to paste paths into terminal (PR #25 merged)
 - [ ] Inline terminal images (iTerm2/Kitty/Sixel)
 - [ ] Phase 10: Integration testing & polish
 
