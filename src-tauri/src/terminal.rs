@@ -1,9 +1,11 @@
+use base64::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorPalette, RgbColor};
 use tattoy_wezterm_term::config::TerminalConfiguration;
+use tattoy_wezterm_term::image::ImageDataType;
 use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
 
 const DEFAULT_DPI: u32 = 96;
@@ -228,8 +230,30 @@ pub struct TerminalState {
     /// terminals so palettes survive PTY restart (remove → create cycle).
     /// Cleaned up in `remove_all()` on app shutdown.
     palettes: Mutex<HashMap<String, Arc<ColorPalette>>>,
+    /// Per-session set of image hashes already sent to the frontend.
+    /// Prevents re-sending the same image data on every snapshot frame.
+    sent_image_hashes: Mutex<HashMap<String, HashSet<[u8; 32]>>>,
     default_palette: Arc<ColorPalette>,
     config: Arc<dyn TerminalConfiguration + Send + Sync>,
+}
+
+/// Encode a [u8; 32] hash as a lowercase hex string.
+fn hex_encode(bytes: &[u8; 32]) -> String {
+    bytes.iter().fold(String::with_capacity(64), |mut s, b| {
+        use std::fmt::Write;
+        write!(s, "{b:02x}").unwrap();
+        s
+    })
+}
+
+/// Encode raw RGBA8 pixel data as a PNG, returning a base64 string.
+/// Uses the `image` crate which is already a transitive dependency via wezterm-term.
+fn encode_rgba_as_png(rgba: &[u8], width: u32, height: u32) -> Option<String> {
+    use std::io::Cursor;
+    let img = image::RgbaImage::from_raw(width, height, rgba.to_vec())?;
+    let mut buf = Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Png).ok()?;
+    Some(BASE64_STANDARD.encode(buf.into_inner()))
 }
 
 impl TerminalState {
@@ -237,6 +261,7 @@ impl TerminalState {
         Self {
             terminals: Mutex::new(HashMap::new()),
             palettes: Mutex::new(HashMap::new()),
+            sent_image_hashes: Mutex::new(HashMap::new()),
             default_palette: Arc::new(ColorPalette::default()),
             config: Arc::new(TermConfig),
         }
@@ -327,10 +352,16 @@ impl TerminalState {
             None => return None,
         };
         let palette = self.get_palette(id);
+        let mut sent_hashes = self
+            .sent_image_hashes
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let session_hashes = sent_hashes.entry(id.to_string()).or_default();
         Some(Self::snapshot_with_palette(
             terminal,
             &palette,
             scroll_offset,
+            session_hashes,
         ))
     }
 
@@ -443,6 +474,10 @@ impl TerminalState {
             }
             Err(e) => eprintln!("[terminal] remove lock failed for {id}: {e}"),
         }
+        // Clean up sent image hashes for this session
+        if let Ok(mut hashes) = self.sent_image_hashes.lock() {
+            hashes.remove(id);
+        }
         // Palette intentionally NOT removed — survives pane restart.
         // Cleaned up in remove_all() on app shutdown.
     }
@@ -455,10 +490,12 @@ impl TerminalState {
             Err(e) => eprintln!("[terminal] remove_all lock failed: {e}"),
         }
         match self.lock_palettes() {
-            Ok(mut palettes) => {
-                palettes.clear();
-            }
+            Ok(mut palettes) => palettes.clear(),
             Err(e) => eprintln!("[terminal] remove_all palettes lock failed: {e}"),
+        }
+        match self.sent_image_hashes.lock() {
+            Ok(mut hashes) => hashes.clear(),
+            Err(e) => eprintln!("[terminal] remove_all sent_image_hashes lock failed: {e}"),
         }
     }
 
@@ -481,6 +518,7 @@ impl TerminalState {
         terminal: &Terminal,
         palette: &ColorPalette,
         scroll_offset: usize,
+        sent_hashes: &mut HashSet<[u8; 32]>,
     ) -> GridSnapshot {
         let screen = terminal.screen();
         let phys_rows = screen.physical_rows;
@@ -500,6 +538,9 @@ impl TerminalState {
         let lines = screen.lines_in_phys_range(viewport_top..viewport_bottom);
 
         let mut rows = Vec::with_capacity(phys_rows);
+        // Collect unique images for this frame — keyed by hash hex string
+        let mut frame_images: HashMap<String, ImageSnapshot> = HashMap::new();
+
         for line in &lines {
             let mut cells = Vec::with_capacity(phys_cols);
             for cell_ref in line.visible_cells() {
@@ -520,6 +561,42 @@ impl TerminalState {
                     )
                 };
 
+                // Extract image attachments from cell attributes
+                let cell_images = attrs.images().map(|img_cells| {
+                    img_cells
+                        .iter()
+                        .filter_map(|img| {
+                            let image_data = img.image_data();
+                            let hash = image_data.hash();
+                            let hash_hex = hex_encode(&hash);
+
+                            // Only include full image data if not previously sent
+                            if !sent_hashes.contains(&hash) {
+                                if let Some(snapshot) =
+                                    Self::encode_image_data(image_data, &hash_hex)
+                                {
+                                    sent_hashes.insert(hash);
+                                    frame_images.insert(hash_hex.clone(), snapshot);
+                                }
+                            }
+
+                            let tl = img.top_left();
+                            let br = img.bottom_right();
+                            Some(ImageCellSnapshot {
+                                hash: hash_hex,
+                                top_left_x: *tl.x,
+                                top_left_y: *tl.y,
+                                bottom_right_x: *br.x,
+                                bottom_right_y: *br.y,
+                                z_index: img.z_index(),
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                });
+
+                // Only include images field if there are actual image attachments
+                let images = cell_images.and_then(|v| if v.is_empty() { None } else { Some(v) });
+
                 cells.push(CellSnapshot {
                     text: cell_ref.str().to_string(),
                     fg,
@@ -528,7 +605,7 @@ impl TerminalState {
                     italic: attrs.italic(),
                     underline: !matches!(attrs.underline(), Underline::None),
                     strikethrough: attrs.strikethrough(),
-                    images: None,
+                    images,
                 });
             }
             rows.push(cells);
@@ -557,7 +634,43 @@ impl TerminalState {
             scrollback_rows: max_offset,
             scroll_offset: clamped_offset,
             default_bg: palette.background.to_rgb_string(),
-            images: HashMap::new(),
+            images: frame_images,
+        }
+    }
+
+    /// Encode image data from wezterm-term into a base64 ImageSnapshot.
+    /// Returns None if the image data cannot be read.
+    fn encode_image_data(
+        image_data: &Arc<tattoy_wezterm_term::image::ImageData>,
+        _hash_hex: &str,
+    ) -> Option<ImageSnapshot> {
+        let data_guard = image_data.data();
+        match &*data_guard {
+            ImageDataType::EncodedFile(bytes) => {
+                let (width, height) = data_guard.dimensions().ok()?;
+                Some(ImageSnapshot {
+                    data: BASE64_STANDARD.encode(bytes),
+                    width,
+                    height,
+                })
+            }
+            ImageDataType::Rgba8 {
+                data,
+                width,
+                height,
+                ..
+            } => {
+                // Encode raw RGBA as PNG for efficient IPC transfer
+                Some(ImageSnapshot {
+                    data: encode_rgba_as_png(data, *width, *height)?,
+                    width: *width,
+                    height: *height,
+                })
+            }
+            _ => {
+                // AnimRgba8 and EncodedLease — not yet supported
+                None
+            }
         }
     }
 
