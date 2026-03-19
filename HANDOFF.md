@@ -33,7 +33,13 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-None
+
+### PR #20 — fix: apply theme ANSI colors to terminal renderer
+- Branch: `fix/ansi-theme-colors`
+- State: `docs/reviews/PR-20/_state.json`
+- Review: 10/10 agents completed, compiled report written
+- Fixes: 2 commits pushed (Rust hardening + TS stabilization)
+- Status: awaiting merge
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
