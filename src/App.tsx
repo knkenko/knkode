@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { HotkeyPanel } from "./components/HotkeyPanel";
 import { PaneArea } from "./components/PaneArea";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { TabBar } from "./components/TabBar";
@@ -21,6 +22,7 @@ export function App() {
 	const visitedWorkspaceIds = useStore((s) => s.visitedWorkspaceIds);
 
 	const [showSettings, setShowSettings] = useState(false);
+	const [showHotkeys, setShowHotkeys] = useState(false);
 	const closeSettings = useCallback(() => {
 		setShowSettings(false);
 		// Imperatively read store to avoid stale closure over focusedPaneId
@@ -124,7 +126,10 @@ export function App() {
 					fontSize: "var(--font-size-ui)",
 				}}
 			>
-				<TabBar onOpenSettings={() => setShowSettings(true)} />
+				<TabBar
+					onOpenSettings={() => setShowSettings(true)}
+					onOpenHotkeys={() => setShowHotkeys(true)}
+				/>
 				{themeFailed && (
 					<div className="px-3 py-1 text-xs text-danger bg-danger/10 border-b border-danger/20">
 						Theme failed to load — using defaults.
@@ -157,6 +162,7 @@ export function App() {
 						<p className="text-content-muted text-sm">No workspace open. Click + to create one.</p>
 					</div>
 				)}
+				{showHotkeys && <HotkeyPanel onClose={() => setShowHotkeys(false)} />}
 				{/* Portal root for menus that need to escape pane stacking/overflow
 				    but still inherit theme CSS variables */}
 				<div id="portal-root" />

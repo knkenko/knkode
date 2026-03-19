@@ -9,9 +9,10 @@ import { Tab } from "./Tab";
 
 interface TabBarProps {
 	onOpenSettings: () => void;
+	onOpenHotkeys: () => void;
 }
 
-export function TabBar({ onOpenSettings }: TabBarProps) {
+export function TabBar({ onOpenSettings, onOpenHotkeys }: TabBarProps) {
 	const workspaces = useStore((s) => s.workspaces);
 	const appState = useStore((s) => s.appState);
 	const setActiveWorkspace = useStore((s) => s.setActiveWorkspace);
@@ -144,6 +145,31 @@ export function TabBar({ onOpenSettings }: TabBarProps) {
 					</svg>
 				</button>
 			</div>
+
+			{/* Help (?) button — keyboard shortcuts */}
+			<button
+				type="button"
+				onClick={onOpenHotkeys}
+				title="Keyboard shortcuts"
+				aria-label="Keyboard shortcuts"
+				className="no-drag relative bg-transparent border-none text-content-muted cursor-pointer min-w-[36px] px-2 h-tab self-center flex items-center justify-center shrink-0 hover:text-content hover:bg-overlay rounded-sm focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none transition-colors duration-300 ease-[var(--ease-mechanical)]"
+			>
+				<svg
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					aria-hidden="true"
+				>
+					<circle cx="12" cy="12" r="10" />
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+					<line x1="12" y1="17" x2="12.01" y2="17" />
+				</svg>
+			</button>
 
 			{/* Gear (settings) button — only shown when a workspace is active */}
 			{appState.activeWorkspaceId && (
