@@ -17,6 +17,8 @@ const PANE_NAV_DELTAS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
  * - Mod+Alt/Option+Left/Right: cycle focus to prev/next pane in layout order
  * - Mod+,: toggle settings panel
  * - Mod+1-9: focus pane by index
+ * - Mod+Down: scroll focused terminal to bottom
+ * - Mod+Up: scroll focused terminal to top
  */
 
 interface ShortcutOptions {
@@ -127,6 +129,22 @@ export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
 				if (!targetId) return;
 				e.preventDefault();
 				state.setFocusedPane(targetId);
+				return;
+			}
+
+			// Mod+Down — scroll focused terminal to bottom
+			// Mod+Up — scroll focused terminal to top
+			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+				if (!resolvedFocusId) return;
+				e.preventDefault();
+				window.dispatchEvent(
+					new CustomEvent("pane:scroll", {
+						detail: {
+							paneId: resolvedFocusId,
+							to: e.key === "ArrowDown" ? "bottom" : "top",
+						},
+					}),
+				);
 				return;
 			}
 		};
