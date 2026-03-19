@@ -13,6 +13,7 @@ export function SnippetsSection() {
 	const [editName, setEditName] = useState("");
 	const [editCommand, setEditCommand] = useState("");
 	const [isAdding, setIsAdding] = useState(false);
+	const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 	const [newName, setNewName] = useState("");
 	const [newCommand, setNewCommand] = useState("");
 	const [liveMessage, setLiveMessage] = useState("");
@@ -85,103 +86,108 @@ export function SnippetsSection() {
 				<span className="text-[11px] text-content-muted italic">No snippets yet</span>
 			)}
 			<div data-snippet-list className="flex flex-col gap-2">
-			{snippets.map((snippet, index) => {
-				const isDropTarget =
-					dragOverIndex === index && dragFromIndex !== null && dragFromIndex !== index;
-				const isDragSource = dragFromIndex === index;
-				const isEditing = editingId === snippet.id;
-				const showHandle = !isEditing && snippets.length > 1;
+				{snippets.map((snippet, index) => {
+					const isDropTarget =
+						dragOverIndex === index && dragFromIndex !== null && dragFromIndex !== index;
+					const isDragSource = dragFromIndex === index;
+					const isEditing = editingId === snippet.id;
+					const showHandle = !isEditing && snippets.length > 1;
 
-				return (
-					<div
-						key={snippet.id}
-						data-snippet-item
-						onPointerDown={(ev) => {
-							if (!isEditing) handlePointerDown(ev, index);
-						}}
-						aria-roledescription="reorderable snippet"
-						className={`flex items-center gap-1.5 rounded-sm transition-colors ${isDropTarget ? "bg-accent/10" : ""} ${isDragSource ? "opacity-40" : ""}`}
-					>
-						{isEditing ? (
-							<>
-								<input
-									value={editName}
-									onChange={(e) => setEditName(e.target.value)}
-									maxLength={64}
-									className="settings-input flex-1 min-w-0"
-									placeholder="Name"
-									aria-label="Snippet name"
-									// biome-ignore lint/a11y/noAutofocus: intentional focus for inline edit
-									autoFocus
-									onKeyDown={(e) => {
-										if (e.key === "Enter") commitEdit();
-										if (e.key === "Escape") setEditingId(null);
-									}}
-								/>
-								<input
-									value={editCommand}
-									onChange={(e) => setEditCommand(e.target.value)}
-									maxLength={1024}
-									className="settings-input flex-[2] min-w-0"
-									placeholder="Command"
-									aria-label="Snippet command"
-									onKeyDown={(e) => {
-										if (e.key === "Enter") commitEdit();
-										if (e.key === "Escape") setEditingId(null);
-									}}
-								/>
-								<button
-									type="button"
-									onClick={commitEdit}
-									className="btn-ghost text-accent hover:brightness-125"
-								>
-									Save
-								</button>
-							</>
-						) : (
-							<>
-								{showHandle ? (
+					return (
+						<div
+							key={snippet.id}
+							data-snippet-item
+							onPointerDown={(ev) => {
+								if (!isEditing) handlePointerDown(ev, index);
+							}}
+							aria-roledescription="reorderable snippet"
+							className={`flex items-center gap-1.5 rounded-sm transition-colors ${isDropTarget ? "bg-accent/10" : ""} ${isDragSource ? "opacity-40" : ""}`}
+						>
+							{isEditing ? (
+								<>
+									<input
+										value={editName}
+										onChange={(e) => setEditName(e.target.value)}
+										maxLength={64}
+										className="settings-input flex-1 min-w-0"
+										placeholder="Name"
+										aria-label="Snippet name"
+										// biome-ignore lint/a11y/noAutofocus: intentional focus for inline edit
+										autoFocus
+										onKeyDown={(e) => {
+											if (e.key === "Enter") commitEdit();
+											if (e.key === "Escape") setEditingId(null);
+										}}
+									/>
+									<input
+										value={editCommand}
+										onChange={(e) => setEditCommand(e.target.value)}
+										maxLength={1024}
+										className="settings-input flex-[2] min-w-0"
+										placeholder="Command"
+										aria-label="Snippet command"
+										onKeyDown={(e) => {
+											if (e.key === "Enter") commitEdit();
+											if (e.key === "Escape") setEditingId(null);
+										}}
+									/>
 									<button
 										type="button"
-										className="bg-transparent border-none text-content-muted cursor-grab active:cursor-grabbing select-none shrink-0 text-xs p-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none rounded-sm"
-										aria-label={`Reorder ${snippet.name}, item ${index + 1} of ${snippets.length}. Use Alt+Arrow keys`}
-										onKeyDown={(e) => handleKeyboardReorder(e, index)}
+										onClick={commitEdit}
+										className="btn-ghost text-accent hover:brightness-125"
 									>
-										&#x2817;
+										Save
 									</button>
-								) : (
-									<span className="w-3 shrink-0" />
-								)}
-								<span className="text-xs text-content font-medium w-24 truncate shrink-0">
-									{snippet.name}
-								</span>
-								<span className="text-[11px] text-content-muted flex-1 truncate font-mono">
-									{snippet.command}
-								</span>
-								<button
-									type="button"
-									onClick={() => startEdit(snippet.id)}
-									className="btn-ghost text-content-muted hover:text-content"
-									aria-label={`Edit ${snippet.name}`}
-								>
-									Edit
-								</button>
-								<button
-									type="button"
-									onClick={() => {
-										if (window.confirm(`Delete snippet "${snippet.name}"?`))
-											removeSnippet(snippet.id);
-									}}
-									className="btn-ghost text-danger hover:brightness-125"
-									aria-label={`Delete ${snippet.name}`}
-								>
-									Del
-								</button>
-							</>
-						)}
-					</div>
-				);
-			})}
+								</>
+							) : (
+								<>
+									{showHandle ? (
+										<button
+											type="button"
+											className="bg-transparent border-none text-content-muted cursor-grab active:cursor-grabbing select-none shrink-0 text-xs p-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none rounded-sm"
+											aria-label={`Reorder ${snippet.name}, item ${index + 1} of ${snippets.length}. Use Alt+Arrow keys`}
+											onKeyDown={(e) => handleKeyboardReorder(e, index)}
+										>
+											&#x2817;
+										</button>
+									) : (
+										<span className="w-3 shrink-0" />
+									)}
+									<span className="text-xs text-content font-medium w-24 truncate shrink-0">
+										{snippet.name}
+									</span>
+									<span className="text-[11px] text-content-muted flex-1 truncate font-mono">
+										{snippet.command}
+									</span>
+									<button
+										type="button"
+										onClick={() => startEdit(snippet.id)}
+										className="btn-ghost text-content-muted hover:text-content"
+										aria-label={`Edit ${snippet.name}`}
+									>
+										Edit
+									</button>
+									<button
+										type="button"
+										onClick={() => {
+											if (confirmDeleteId === snippet.id) {
+												removeSnippet(snippet.id);
+												setConfirmDeleteId(null);
+											} else {
+												setConfirmDeleteId(snippet.id);
+												setTimeout(() => setConfirmDeleteId(null), 3000);
+											}
+										}}
+										className={`btn-ghost ${confirmDeleteId === snippet.id ? "text-white bg-danger rounded-sm" : "text-danger hover:brightness-125"}`}
+										aria-label={`Delete ${snippet.name}`}
+									>
+										{confirmDeleteId === snippet.id ? "Sure?" : "Del"}
+									</button>
+								</>
+							)}
+						</div>
+					);
+				})}
 			</div>
 			<span className="sr-only" aria-live="polite">
 				{liveMessage}

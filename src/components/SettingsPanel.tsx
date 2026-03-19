@@ -103,6 +103,7 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 	);
 	const [lineHeight, setLineHeight] = useState(workspace.theme.lineHeight ?? DEFAULT_LINE_HEIGHT);
 	const [saveFailed, setSaveFailed] = useState(false);
+	const [confirmDelete, setConfirmDelete] = useState(false);
 
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const currentPreset = workspace.layout.type === "preset" ? workspace.layout.preset : null;
@@ -265,10 +266,15 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 	);
 
 	const handleDelete = useCallback(() => {
-		if (!window.confirm(`Delete workspace "${workspace.name}"? This cannot be undone.`)) return;
+		if (!confirmDelete) {
+			setConfirmDelete(true);
+			// Reset after 3 seconds if user doesn't confirm
+			setTimeout(() => setConfirmDelete(false), 3000);
+			return;
+		}
 		removeWorkspace(workspace.id);
 		onClose();
-	}, [workspace.id, workspace.name, removeWorkspace, onClose]);
+	}, [confirmDelete, workspace.id, removeWorkspace, onClose]);
 
 	// Close on Escape key
 	useEffect(() => {
@@ -417,9 +423,13 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 					<button
 						type="button"
 						onClick={handleDelete}
-						className="bg-transparent border border-danger text-danger cursor-pointer text-xs py-1.5 px-3 rounded-sm hover:bg-danger/10 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none"
+						className={`border cursor-pointer text-xs py-1.5 px-3 rounded-sm focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none ${
+							confirmDelete
+								? "bg-danger text-white border-danger"
+								: "bg-transparent border-danger text-danger hover:bg-danger/10"
+						}`}
 					>
-						Delete Workspace
+						{confirmDelete ? "Are you sure?" : "Delete Workspace"}
 					</button>
 					<div className="flex-1" />
 					<button
