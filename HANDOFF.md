@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working.
+Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working. PR #21 merged — keyboard input (Shift+Enter, copy/paste, Mod shortcuts), render throttle with trailing-edge flush, cursor style fixes, and full review pass (22 findings addressed).
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -25,7 +25,10 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - [x] Phase 9a: Frontend foundation — store, utils, hooks, data (PR #18 merged)
 - [x] Phase 9b: Frontend components & app shell (PR #19 merged)
 
+- [x] Fix: Keyboard input, render throttle, cursor style (PR #21 merged)
+
 ## What's Next
+- [ ] Terminal text selection (mouse drag, double/triple-click, copy)
 - [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
@@ -37,5 +40,6 @@ None
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
-- Icons are placeholder dark squares
 - wezterm-term resolved: using `tattoy-wezterm-term` 0.1.0-fork.5 (fork published on crates.io)
+- wezterm-term selection module disabled (`// mod selection; FIXME: port to render layer`) — must implement selection on frontend
+- TUI apps (claude, gemini) hide system cursor and draw their own via reverse-video text — cursor style setting has no effect inside TUI apps (fundamental limitation)
