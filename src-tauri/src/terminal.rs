@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
-use tattoy_termwiz::surface::CursorVisibility;
+use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorPalette, RgbColor};
 use tattoy_wezterm_term::config::TerminalConfiguration;
 use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
@@ -50,6 +50,11 @@ pub struct GridSnapshot {
     pub cursor_row: usize,
     pub cursor_col: usize,
     pub cursor_visible: bool,
+    /// Cursor shape: "block", "underline", "bar", or "default" (let frontend decide).
+    /// Set by TUI apps via DECSCUSR escape sequence.
+    pub cursor_shape: &'static str,
+    /// Whether the terminal requests cursor blinking (from DECSCUSR).
+    pub cursor_blink: bool,
     pub cols: usize,
     pub total_rows: usize,
     /// Number of rows available above the visible viewport (scrollback depth).
@@ -386,11 +391,22 @@ impl TerminalState {
 
         // Cursor is only meaningful when viewing the live viewport (offset 0).
         let cursor = terminal.cursor_pos();
+        let (cursor_shape, cursor_blink): (&'static str, bool) = match cursor.shape {
+            CursorShape::Default => ("default", false),
+            CursorShape::BlinkingBlock => ("block", true),
+            CursorShape::SteadyBlock => ("block", false),
+            CursorShape::BlinkingUnderline => ("underline", true),
+            CursorShape::SteadyUnderline => ("underline", false),
+            CursorShape::BlinkingBar => ("bar", true),
+            CursorShape::SteadyBar => ("bar", false),
+        };
         GridSnapshot {
             rows,
             cursor_row: cursor.y.try_into().unwrap_or(0),
             cursor_col: cursor.x,
             cursor_visible: clamped_offset == 0 && cursor.visibility == CursorVisibility::Visible,
+            cursor_shape,
+            cursor_blink,
             cols: phys_cols,
             total_rows: phys_rows,
             scrollback_rows: max_offset,

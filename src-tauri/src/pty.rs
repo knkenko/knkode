@@ -3,7 +3,7 @@ use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
@@ -48,6 +48,18 @@ fn detect_cwd(pid: u32) -> Option<String> {
 #[cfg(not(target_os = "macos"))]
 fn detect_cwd(_pid: u32) -> Option<String> {
     None
+}
+
+/// Emit a terminal render snapshot to the frontend.
+/// Returns `true` if the emit succeeded or there was nothing to emit,
+/// `false` if the Tauri event channel is broken.
+fn emit_snapshot(app: &tauri::AppHandle, term_state: &TerminalState, id: &str) -> bool {
+    if let Some(snapshot) = term_state.snapshot(id) {
+        app.emit("terminal:render", json!({ "id": id, "grid": snapshot }))
+            .is_ok()
+    } else {
+        true
+    }
 }
 
 fn pty_size(cols: u16, rows: u16) -> PtySize {
@@ -192,9 +204,35 @@ impl PtyManager {
         // terminal entries if sessions lock is poisoned
         self.terminal_state.create(&id, DEFAULT_COLS, DEFAULT_ROWS);
 
+        // Shared flags between reader and flush threads.
+        // `dirty`: set when terminal state advances but no snapshot was emitted (throttled).
+        // `alive`: cleared when the reader exits so the flush thread can stop.
+        let dirty = Arc::new(AtomicBool::new(false));
+        let alive = Arc::new(AtomicBool::new(true));
+
+        // Trailing-edge flush thread: ensures the screen always shows the latest
+        // state after a data burst ends. Without this, the last chunk in a burst
+        // gets throttled and the reader blocks on read(), leaving the screen stale.
+        {
+            let dirty_flush = Arc::clone(&dirty);
+            let alive_flush = Arc::clone(&alive);
+            let term_state = Arc::clone(&self.terminal_state);
+            let id_flush = id.clone();
+            let app_flush = app.clone();
+            std::thread::spawn(move || {
+                while alive_flush.load(Ordering::Relaxed) {
+                    std::thread::sleep(RENDER_INTERVAL);
+                    if dirty_flush.swap(false, Ordering::AcqRel) {
+                        emit_snapshot(&app_flush, &term_state, &id_flush);
+                    }
+                }
+            });
+        }
+
         // Background reader thread: read PTY output → wezterm-term → throttled emit.
         // Advances terminal state on every chunk but only snapshots + emits at
         // RENDER_INTERVAL (~60fps) to avoid flooding the frontend during bursts.
+        // The flush thread above catches any trailing updates that get throttled.
         let id_clone = id.clone();
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
@@ -208,18 +246,13 @@ impl PtyManager {
                         term_state.advance_only(&id_clone, &buf[..n]);
 
                         if last_emit.elapsed() >= RENDER_INTERVAL {
-                            if let Some(snapshot) = term_state.snapshot(&id_clone) {
-                                if app
-                                    .emit(
-                                        "terminal:render",
-                                        json!({ "id": &id_clone, "grid": snapshot }),
-                                    )
-                                    .is_err()
-                                {
-                                    break;
-                                }
+                            dirty.store(false, Ordering::Release);
+                            if !emit_snapshot(&app, &term_state, &id_clone) {
+                                break;
                             }
                             last_emit = Instant::now();
+                        } else {
+                            dirty.store(true, Ordering::Release);
                         }
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -230,14 +263,11 @@ impl PtyManager {
                 }
             }
 
+            alive.store(false, Ordering::Release);
+
             // Always emit a final snapshot so the screen shows the complete output
             // (the last chunk may have been throttled).
-            if let Some(snapshot) = term_state.snapshot(&id_clone) {
-                let _ = app.emit(
-                    "terminal:render",
-                    json!({ "id": &id_clone, "grid": snapshot }),
-                );
-            }
+            emit_snapshot(&app, &term_state, &id_clone);
 
             // PTY closed — get exit code and clean up
             // Remove only if this is still the same generation (prevents race on restart)

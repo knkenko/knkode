@@ -10,6 +10,8 @@ export const MIN_PANE_OPACITY = 0.05;
 
 export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
+/** Cursor shape from terminal state (DECSCUSR). "default" = no TUI override. */
+export type CursorShape = CursorStyle | "default";
 
 // Ordered by intensity, low to high — UI renders left-to-right in this order
 export const EFFECT_LEVELS = ["off", "subtle", "medium", "intense"] as const;
@@ -188,6 +190,12 @@ export interface PrInfo {
 	readonly title: string;
 }
 
+/** Detail payload for the `pane:scroll` CustomEvent dispatched by global shortcuts. */
+export interface PaneScrollDetail {
+	readonly paneId: string;
+	readonly to: "top" | "bottom";
+}
+
 export interface ScrollDebugEvent {
 	readonly paneId: string;
 	readonly workspaceId: string | null;
@@ -219,6 +227,12 @@ export interface GridSnapshot {
 	readonly cursorRow: number;
 	readonly cursorCol: number;
 	readonly cursorVisible: boolean;
+	/** Cursor shape from terminal state (DECSCUSR): "default", "block", "underline", or "bar".
+	 *  "default" means no TUI override — use the user's cursorStyle setting. */
+	readonly cursorShape: CursorShape;
+	/** Whether the terminal requests cursor blinking (from DECSCUSR).
+	 *  TODO: not yet consumed by frontend — reserved for future DECSCUSR support. */
+	readonly cursorBlink: boolean;
 	readonly cols: number;
 	readonly totalRows: number;
 	/** Number of rows available above the visible viewport (scrollback depth). */
@@ -259,7 +273,12 @@ export interface KnkodeApi {
 	scrollTerminal(id: string, offset: number): Promise<GridSnapshot>;
 
 	// Terminal colors — send theme ANSI palette to Rust for per-terminal color resolution
-	setTerminalColors(id: string, ansiColors: AnsiColors, foreground: string, background: string): Promise<void>;
+	setTerminalColors(
+		id: string,
+		ansiColors: AnsiColors,
+		foreground: string,
+		background: string,
+	): Promise<void>;
 
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered snapshots
 	onTerminalRender(cb: (id: string, grid: GridSnapshot) => void): Unsubscribe;
