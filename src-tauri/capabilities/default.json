@@ -11,6 +11,8 @@
 		{
 			"identifier": "shell:allow-open",
 			"allow": [{ "url": "https://**" }, { "url": "http://**" }]
-		}
+		},
+		"clipboard-manager:allow-write-text",
+		"clipboard-manager:allow-read-text"
 	]
 }

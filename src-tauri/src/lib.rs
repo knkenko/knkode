@@ -21,6 +21,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(config_store)
         .manage(Arc::clone(&pty_manager))
         .manage(Arc::clone(&terminal_state))

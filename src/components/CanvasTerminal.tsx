@@ -1,3 +1,4 @@
+import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
@@ -696,8 +697,7 @@ export function CanvasTerminal({
 	/** Read clipboard and write contents to PTY. Complements the PASTE_SENTINEL
 	 *  path in handleKeyDown — both ultimately call writePaste. */
 	const pasteFromClipboard = useCallback(() => {
-		navigator.clipboard
-			.readText()
+		readText()
 			.then(writePaste)
 			.catch((err: unknown) => {
 				console.error("[terminal] clipboard read failed:", err);
@@ -720,7 +720,7 @@ export function CanvasTerminal({
 					window.api
 						.getSelectionText(paneId, range)
 						.then((text) => {
-							if (text) return navigator.clipboard.writeText(text);
+							if (text) return writeText(text);
 						})
 						.then(() => clearSelection())
 						.catch((err: unknown) => {
