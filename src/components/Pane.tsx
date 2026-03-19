@@ -9,6 +9,7 @@ import {
 	type GridSnapshot,
 	MAX_UNFOCUSED_DIM,
 	type PaneConfig,
+	type PaneScrollDetail,
 	type PaneTheme,
 	type PrInfo,
 } from "../shared/types";
@@ -137,18 +138,32 @@ export function Pane({
 		};
 	}, [paneId]);
 
+	const scrollToBottom = useCallback(() => {
+		scrollOffsetRef.current = 0;
+		isScrolledRef.current = false;
+		const latest = pendingGridRef.current;
+		if (latest) {
+			pendingGridRef.current = null;
+			setGrid(latest);
+		} else {
+			// No stored snapshot — request a fresh one at the bottom
+			window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
+		}
+	}, [paneId]);
+
+	const scrollToTop = useCallback(() => {
+		const max = maxScrollRef.current;
+		if (max <= 0) return;
+		scrollOffsetRef.current = max;
+		isScrolledRef.current = true;
+		window.api.scrollTerminal(paneId, max).then(setGrid).catch(console.error);
+	}, [paneId]);
+
 	const handleWrite = useCallback(
 		(data: string) => {
 			// Auto-scroll to bottom on user input
 			if (isScrolledRef.current) {
-				scrollOffsetRef.current = 0;
-				isScrolledRef.current = false;
-				// Display the latest stored live snapshot immediately
-				const latest = pendingGridRef.current;
-				if (latest) {
-					pendingGridRef.current = null;
-					setGrid(latest);
-				}
+				scrollToBottom();
 			}
 
 			window.api.writePty(paneId, data).catch((err: unknown) => {
@@ -156,7 +171,7 @@ export function Pane({
 				setPtyError(true);
 			});
 		},
-		[paneId],
+		[paneId, scrollToBottom],
 	);
 
 	const handleResize = useCallback(
@@ -192,15 +207,7 @@ export function Pane({
 				isScrolledRef.current = newOffset > 0;
 
 				if (newOffset === 0) {
-					// Back at bottom — display the latest stored live snapshot
-					const latest = pendingGridRef.current;
-					if (latest) {
-						pendingGridRef.current = null;
-						setGrid(latest);
-					} else {
-						// No stored snapshot (terminal idle) — request fresh one
-						window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
-					}
+					scrollToBottom();
 					return;
 				}
 
@@ -218,34 +225,13 @@ export function Pane({
 					});
 			});
 		},
-		[paneId],
+		[paneId, scrollToBottom],
 	);
-
-	const scrollToBottom = useCallback(() => {
-		scrollOffsetRef.current = 0;
-		isScrolledRef.current = false;
-		const latest = pendingGridRef.current;
-		if (latest) {
-			pendingGridRef.current = null;
-			setGrid(latest);
-		} else {
-			// No stored snapshot — request a fresh one at the bottom
-			window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
-		}
-	}, [paneId]);
-
-	const scrollToTop = useCallback(() => {
-		const max = maxScrollRef.current;
-		if (max <= 0) return;
-		scrollOffsetRef.current = max;
-		isScrolledRef.current = true;
-		window.api.scrollTerminal(paneId, max).then(setGrid).catch(console.error);
-	}, [paneId]);
 
 	// Listen for Mod+Up/Down scroll shortcuts dispatched by useKeyboardShortcuts
 	useEffect(() => {
 		const handler = (e: Event) => {
-			const { paneId: targetId, to } = (e as CustomEvent).detail;
+			const { paneId: targetId, to } = (e as CustomEvent<PaneScrollDetail>).detail;
 			if (targetId !== paneId) return;
 			if (to === "bottom") scrollToBottom();
 			else scrollToTop();
