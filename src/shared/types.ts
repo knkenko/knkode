@@ -210,13 +210,15 @@ export interface ScrollDebugEvent {
 // --- Terminal grid rendering ---
 
 /** A reference to an image slice within a terminal cell. Texture coordinates
- *  define which portion of the full image to render in this cell (0.0–1.0 UV). */
+ *  define which portion of the full image to render in this cell
+ *  (0.0–1.0 normalized coordinates). */
 export interface ImageCellSnapshot {
 	readonly hash: string;
 	readonly topLeftX: number;
 	readonly topLeftY: number;
 	readonly bottomRightX: number;
 	readonly bottomRightY: number;
+	/** Negative zIndex renders behind text; zero or positive renders on top. */
 	readonly zIndex: number;
 }
 
@@ -301,7 +303,7 @@ export interface KnkodeApi {
 	// PTY
 	createPty(id: string, cwd: string, startupCommand: string | null): Promise<void>;
 	writePty(id: string, data: string): Promise<void>;
-	resizePty(id: string, cols: number, rows: number, pixelWidth?: number, pixelHeight?: number): Promise<void>;
+	resizePty(id: string, cols: number, rows: number, pixelWidth: number, pixelHeight: number): Promise<void>;
 	killPty(id: string): Promise<void>;
 
 	// Terminal scroll — request a snapshot at a given scrollback offset (0 = bottom)
