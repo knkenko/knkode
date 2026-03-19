@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
-import { keyEventToAnsi } from "../lib/key-to-ansi";
-import type { CellSnapshot, GridSnapshot } from "../shared/types";
+import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
+import type { CellSnapshot, CursorStyle, GridSnapshot } from "../shared/types";
 import {
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
@@ -19,7 +19,7 @@ export interface CanvasTerminalProps {
 	readonly fontSize?: number | undefined;
 	readonly fontFamily?: string | undefined;
 	readonly lineHeight?: number | undefined;
-	/** User-configured cursor style. Overridden by TUI escape sequences when cursorShape !== "default". */
+	/** User-configured cursor style. Always used — TUI DECSCUSR escape sequences are ignored. */
 	readonly cursorStyle?: "block" | "underline" | "bar" | undefined;
 	readonly cursorColor?: string | undefined;
 	readonly background?: string | undefined;
@@ -38,8 +38,6 @@ const RESIZE_DEBOUNCE_MS = 100;
 const BAR_WIDTH_RATIO = 0.12;
 /** Underline cursor height as fraction of cell height. */
 const UNDERLINE_HEIGHT_RATIO = 0.12;
-
-type EffectiveCursorShape = "block" | "underline" | "bar";
 
 interface CellMetrics {
 	width: number;
@@ -111,6 +109,45 @@ function drawCell(
 	}
 }
 
+/** Draw the cursor overlay (bar, underline, or block with inverted text). */
+function drawCursorOverlay(
+	ctx: CanvasRenderingContext2D,
+	shape: CursorStyle,
+	cx: number,
+	cy: number,
+	cellW: number,
+	cellH: number,
+	dpr: number,
+	scaledSize: number,
+	fontFamily: string,
+	baselineOffset: number,
+	color: string,
+	bg: string,
+	opacity: number,
+	cursorCell: CellSnapshot | undefined,
+) {
+	ctx.fillStyle = color;
+	ctx.globalAlpha = opacity;
+
+	if (shape === "bar") {
+		ctx.fillRect(cx, cy, Math.max(dpr, cellW * BAR_WIDTH_RATIO), cellH);
+	} else if (shape === "underline") {
+		const h = Math.max(dpr, cellH * UNDERLINE_HEIGHT_RATIO);
+		ctx.fillRect(cx, cy + cellH - h, cellW, h);
+	} else {
+		// block — fill entire cell, invert text on top
+		ctx.fillRect(cx, cy, cellW, cellH);
+		ctx.globalAlpha = 1.0;
+		if (cursorCell?.text.trim()) {
+			ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
+			ctx.fillStyle = bg;
+			ctx.globalAlpha = opacity / CURSOR_MAX_OPACITY;
+			ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
+		}
+	}
+	ctx.globalAlpha = 1.0;
+}
+
 export function CanvasTerminal({
 	grid,
 	onWrite,
@@ -145,13 +182,6 @@ export function CanvasTerminal({
 	onScrollRef.current = onScroll;
 	cursorStyleRef.current = cursorStyle;
 	isFocusedRef.current = isFocused;
-
-	/** Resolve the effective cursor shape. User's cursorStyle setting always wins —
-	 *  TUI DECSCUSR escape sequences are ignored so the cursor stays consistent.
-	 *  Defined as a ref to avoid triggering useCallback dependency changes. */
-	const resolveShapeRef = useRef((_snap: GridSnapshot): EffectiveCursorShape => {
-		return cursorStyleRef.current;
-	});
 
 	// Measure cell dimensions using actual font metrics (ascent + descent)
 	// instead of just fontSize, so descenders aren't clipped.
@@ -226,27 +256,22 @@ export function CanvasTerminal({
 
 		// Draw cursor overlay with current opacity
 		if (snap.cursorVisible) {
-			const shape = resolveShapeRef.current(snap);
-			ctx.fillStyle = cursorColor;
-			ctx.globalAlpha = cursorOpacity.current;
-
-			if (shape === "bar") {
-				ctx.fillRect(cx, cy, Math.max(dpr, cellW * BAR_WIDTH_RATIO), cellH);
-			} else if (shape === "underline") {
-				const h = Math.max(dpr, cellH * UNDERLINE_HEIGHT_RATIO);
-				ctx.fillRect(cx, cy + cellH - h, cellW, h);
-			} else {
-				// block — fill entire cell, invert text on top
-				ctx.fillRect(cx, cy, cellW, cellH);
-				ctx.globalAlpha = 1.0;
-				if (cursorCell?.text.trim()) {
-					ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
-					ctx.fillStyle = background;
-					ctx.globalAlpha = cursorOpacity.current / CURSOR_MAX_OPACITY;
-					ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
-				}
-			}
-			ctx.globalAlpha = 1.0;
+			drawCursorOverlay(
+				ctx,
+				cursorStyleRef.current,
+				cx,
+				cy,
+				cellW,
+				cellH,
+				dpr,
+				scaledSize,
+				fontFamily,
+				baselineOffset,
+				cursorColor,
+				background,
+				cursorOpacity.current,
+				cursorCell,
+			);
 		}
 	}, [fontSize, fontFamily, cursorColor, background]);
 
@@ -288,32 +313,26 @@ export function CanvasTerminal({
 
 		// Draw cursor
 		if (snap.cursorVisible) {
-			const shape = resolveShapeRef.current(snap);
 			const cx = snap.cursorCol * cellW;
 			const cy = snap.cursorRow * cellH;
-
-			ctx.fillStyle = cursorColor;
-			ctx.globalAlpha = cursorOpacity.current;
-
-			if (shape === "bar") {
-				ctx.fillRect(cx, cy, Math.max(dpr, cellW * BAR_WIDTH_RATIO), cellH);
-			} else if (shape === "underline") {
-				const h = Math.max(dpr, cellH * UNDERLINE_HEIGHT_RATIO);
-				ctx.fillRect(cx, cy + cellH - h, cellW, h);
-			} else {
-				// block — fill entire cell, invert text on top
-				ctx.fillRect(cx, cy, cellW, cellH);
-				ctx.globalAlpha = 1.0;
-				const cursorRow = snap.rows[snap.cursorRow];
-				const cursorCell = cursorRow?.[snap.cursorCol];
-				if (cursorCell?.text.trim()) {
-					ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
-					ctx.fillStyle = background;
-					ctx.globalAlpha = cursorOpacity.current / CURSOR_MAX_OPACITY;
-					ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
-				}
-			}
-			ctx.globalAlpha = 1.0;
+			const cursorRow = snap.rows[snap.cursorRow];
+			const cursorCell = cursorRow?.[snap.cursorCol];
+			drawCursorOverlay(
+				ctx,
+				cursorStyleRef.current,
+				cx,
+				cy,
+				cellW,
+				cellH,
+				dpr,
+				scaledSize,
+				fontFamily,
+				baselineOffset,
+				cursorColor,
+				background,
+				cursorOpacity.current,
+				cursorCell,
+			);
 		}
 	}, [background, cursorColor, fontSize, fontFamily, lineHeight]);
 
@@ -453,17 +472,27 @@ export function CanvasTerminal({
 		return () => cancelAnimationFrame(animFrame.current);
 	}, [isFocused, grid, repaintCursor]);
 
-	/** Read clipboard and write contents to PTY. */
+	/** Write text to PTY wrapped in bracketed paste escape sequences. */
+	const writePaste = useCallback(
+		(text: string) => {
+			if (!text) return;
+			const MAX_PASTE_BYTES = 1_048_576; // 1 MB
+			const clamped = text.length > MAX_PASTE_BYTES ? text.slice(0, MAX_PASTE_BYTES) : text;
+			onWrite(`\x1b[200~${clamped}\x1b[201~`);
+		},
+		[onWrite],
+	);
+
+	/** Read clipboard and write contents to PTY. Complements the PASTE_SENTINEL
+	 *  path in handleKeyDown — both ultimately call writePaste. */
 	const pasteFromClipboard = useCallback(() => {
 		navigator.clipboard
 			.readText()
-			.then((text) => {
-				if (text) onWrite(text);
-			})
+			.then(writePaste)
 			.catch((err: unknown) => {
 				console.error("[terminal] clipboard read failed:", err);
 			});
-	}, [onWrite]);
+	}, [writePaste]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
@@ -488,7 +517,7 @@ export function CanvasTerminal({
 			}
 
 			const ansi = keyEventToAnsi(e.nativeEvent);
-			if (ansi === "paste") {
+			if (ansi === PASTE_SENTINEL) {
 				e.preventDefault();
 				pasteFromClipboard();
 				return;
@@ -506,9 +535,9 @@ export function CanvasTerminal({
 		(e: React.ClipboardEvent) => {
 			e.preventDefault();
 			const text = e.clipboardData.getData("text/plain");
-			if (text) onWrite(text);
+			writePaste(text);
 		},
-		[onWrite],
+		[writePaste],
 	);
 
 	return (
