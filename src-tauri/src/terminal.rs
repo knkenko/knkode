@@ -52,7 +52,7 @@ pub struct GridSnapshot {
     pub cursor_visible: bool,
     /// Cursor shape: "block", "underline", "bar", or "default" (let frontend decide).
     /// Set by TUI apps via DECSCUSR escape sequence.
-    pub cursor_shape: String,
+    pub cursor_shape: &'static str,
     /// Whether the terminal requests cursor blinking (from DECSCUSR).
     pub cursor_blink: bool,
     pub cols: usize,
@@ -391,14 +391,14 @@ impl TerminalState {
 
         // Cursor is only meaningful when viewing the live viewport (offset 0).
         let cursor = terminal.cursor_pos();
-        let (cursor_shape, cursor_blink) = match cursor.shape {
-            CursorShape::Default => ("default".to_string(), true),
-            CursorShape::BlinkingBlock => ("block".to_string(), true),
-            CursorShape::SteadyBlock => ("block".to_string(), false),
-            CursorShape::BlinkingUnderline => ("underline".to_string(), true),
-            CursorShape::SteadyUnderline => ("underline".to_string(), false),
-            CursorShape::BlinkingBar => ("bar".to_string(), true),
-            CursorShape::SteadyBar => ("bar".to_string(), false),
+        let (cursor_shape, cursor_blink): (&'static str, bool) = match cursor.shape {
+            CursorShape::Default => ("default", false),
+            CursorShape::BlinkingBlock => ("block", true),
+            CursorShape::SteadyBlock => ("block", false),
+            CursorShape::BlinkingUnderline => ("underline", true),
+            CursorShape::SteadyUnderline => ("underline", false),
+            CursorShape::BlinkingBar => ("bar", true),
+            CursorShape::SteadyBar => ("bar", false),
         };
         GridSnapshot {
             rows,
