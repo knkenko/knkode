@@ -260,7 +260,10 @@ export function CanvasTerminal({
 	/** Pending selection RAF frame — coalesces rapid mousemove into one redraw per frame. */
 	const selectionRafRef = useRef(0);
 	/** Active window listeners attached during selection drag — cleaned up on unmount. */
-	const dragListenersRef = useRef<{ move: (e: MouseEvent) => void; up: (e: MouseEvent) => void } | null>(null);
+	const dragListenersRef = useRef<{
+		move: (e: MouseEvent) => void;
+		up: (e: MouseEvent) => void;
+	} | null>(null);
 
 	// Keep refs in sync
 	gridRef.current = grid;
@@ -270,7 +273,8 @@ export function CanvasTerminal({
 	isFocusedRef.current = isFocused;
 	selectionColorRef.current = selectionColor;
 
-	/** Convert client (mouse) coordinates to a viewport-relative cell position. */
+	/** Convert client (mouse) coordinates to a viewport-relative cell position.
+	 *  Returns viewport-relative {row, col} — NOT absolute physical rows. */
 	const cellAtPixel = useCallback(
 		(clientX: number, clientY: number): { row: number; col: number } | null => {
 			const canvas = canvasRef.current;
@@ -715,7 +719,10 @@ export function CanvasTerminal({
 			const cachedRect = canvas?.getBoundingClientRect();
 			const cachedDpr = dprRef.current;
 
-			const cellAtCachedRect = (clientX: number, clientY: number): { row: number; col: number } | null => {
+			const cellAtCachedRect = (
+				clientX: number,
+				clientY: number,
+			): { row: number; col: number } | null => {
 				if (!cachedRect) return null;
 				const { width: cellW, height: cellH } = cellMetrics.current;
 				if (cellW === 0 || cellH === 0) return null;
