@@ -186,10 +186,7 @@ export function Pane({
 				pendingScrollDelta.current = 0;
 
 				const rawOffset = scrollOffsetRef.current + totalDelta;
-				const newOffset = Math.max(
-					0,
-					Math.min(maxScrollRef.current, Math.round(rawOffset)),
-				);
+				const newOffset = Math.max(0, Math.min(maxScrollRef.current, Math.round(rawOffset)));
 				if (newOffset === scrollOffsetRef.current) return;
 				scrollOffsetRef.current = newOffset;
 				isScrolledRef.current = newOffset > 0;
@@ -236,6 +233,26 @@ export function Pane({
 			window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
 		}
 	}, [paneId]);
+
+	const scrollToTop = useCallback(() => {
+		const max = maxScrollRef.current;
+		if (max <= 0) return;
+		scrollOffsetRef.current = max;
+		isScrolledRef.current = true;
+		window.api.scrollTerminal(paneId, max).then(setGrid).catch(console.error);
+	}, [paneId]);
+
+	// Listen for Mod+Up/Down scroll shortcuts dispatched by useKeyboardShortcuts
+	useEffect(() => {
+		const handler = (e: Event) => {
+			const { paneId: targetId, to } = (e as CustomEvent).detail;
+			if (targetId !== paneId) return;
+			if (to === "bottom") scrollToBottom();
+			else scrollToTop();
+		};
+		window.addEventListener("pane:scroll", handler);
+		return () => window.removeEventListener("pane:scroll", handler);
+	}, [paneId, scrollToBottom, scrollToTop]);
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(config.label, (label) =>
 		onUpdateConfig(paneId, { label }),
@@ -389,6 +406,7 @@ export function Pane({
 							fontSize={mergedTheme.fontSize}
 							fontFamily={mergedTheme.fontFamily}
 							background={mergedTheme.background}
+							cursorStyle={mergedTheme.cursorStyle}
 							cursorColor={mergedTheme.cursorColor ?? mergedTheme.foreground}
 							isFocused={isFocused}
 						/>
