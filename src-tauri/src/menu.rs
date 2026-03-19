@@ -10,12 +10,13 @@ pub fn build_menu(handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         handle,
         "Edit",
         true,
+        // Cut & Copy omitted — they intercept Cmd+C / Cmd+X at the OS menu level
+        // before the keydown event reaches the WebView, breaking canvas-based
+        // terminal copy. The webview handles copy/cut via keydown handlers instead.
         &[
             &PredefinedMenuItem::undo(handle, None)?,
             &PredefinedMenuItem::redo(handle, None)?,
             &PredefinedMenuItem::separator(handle)?,
-            &PredefinedMenuItem::cut(handle, None)?,
-            &PredefinedMenuItem::copy(handle, None)?,
             &PredefinedMenuItem::paste(handle, None)?,
             &PredefinedMenuItem::separator(handle)?,
             &PredefinedMenuItem::select_all(handle, None)?,
