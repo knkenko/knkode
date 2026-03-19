@@ -9,6 +9,10 @@
 
 import { isMac } from "../utils/platform";
 
+/** Sentinel return value indicating the caller should paste from clipboard.
+ *  Exported so consumers (e.g. CanvasTerminal) can compare without magic strings. */
+export const PASTE_SENTINEL = "paste" as const;
+
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
 
 const SPECIAL_KEYS = {
@@ -43,7 +47,7 @@ const SPECIAL_KEYS = {
 /** Convert a DOM KeyboardEvent to an ANSI string for the terminal.
  *  Returns null if the event should not be sent (modifier-only keys, Cmd combos
  *  handled by the native menu, etc.).
- *  Returns "paste" when the caller should perform a clipboard paste into PTY. */
+ *  Returns {@link PASTE_SENTINEL} when the caller should perform a clipboard paste into PTY. */
 export function keyEventToAnsi(e: KeyboardEvent): string | null {
 	if (MODIFIER_KEYS.has(e.key)) return null;
 
@@ -55,10 +59,8 @@ export function keyEventToAnsi(e: KeyboardEvent): string | null {
 
 	// Windows/Linux copy: Ctrl+C with no other modifiers.
 	// Ctrl+C without Shift is ambiguous: if text is selected it should copy,
-	// otherwise it should send SIGINT (\x03). We return "copy-or-sigint" to
-	// let the caller decide based on selection state. However, for simplicity
-	// we handle this in handleKeyDown — here we just return null so the caller
-	// can check selection.
+	// otherwise it should send SIGINT (\x03). We return null so the caller
+	// (handleKeyDown) can decide based on selection state.
 	if (!isMac && e.ctrlKey && !e.altKey) {
 		const k = e.key.toLowerCase();
 		// Ctrl+Shift+C → always copy
@@ -66,7 +68,7 @@ export function keyEventToAnsi(e: KeyboardEvent): string | null {
 		// Ctrl+C → caller handles (copy if selection, SIGINT if not)
 		if (k === "c") return null;
 		// Ctrl+V / Ctrl+Shift+V → paste from clipboard
-		if (k === "v") return "paste";
+		if (k === "v") return PASTE_SENTINEL;
 	}
 
 	// --- Shift+Enter → literal newline (LF) instead of CR ---
