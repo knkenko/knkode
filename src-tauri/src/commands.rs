@@ -1,5 +1,6 @@
 use crate::config::ConfigStore;
 use crate::pty::PtyManager;
+use crate::terminal::{AnsiThemeColors, TerminalState};
 use crate::tracker::CwdTracker;
 use serde_json::Value;
 use std::sync::Arc;
@@ -116,6 +117,19 @@ pub fn kill_pty(
 ) -> Result<(), String> {
     tracker.untrack_pane(&id);
     pty_mgr.kill(&id)
+}
+
+// --- Terminal colors ---
+
+#[tauri::command]
+pub fn set_terminal_colors(
+    id: String,
+    ansi_colors: AnsiThemeColors,
+    foreground: String,
+    background: String,
+    terminal_state: State<'_, Arc<TerminalState>>,
+) -> Result<(), String> {
+    terminal_state.set_colors(&id, &ansi_colors, &foreground, &background)
 }
 
 // --- Debug ---

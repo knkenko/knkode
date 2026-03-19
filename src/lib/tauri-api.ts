@@ -73,6 +73,10 @@ const _api: KnkodeApi = {
 	resizePty: (id, cols, rows) => invoke("resize_pty", { id, cols, rows }),
 	killPty: (id) => invoke("kill_pty", { id }),
 
+	// Terminal colors
+	setTerminalColors: (id, ansiColors, foreground, background) =>
+		invoke("set_terminal_colors", { id, ansiColors, foreground, background }),
+
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered grid snapshots.
 	onTerminalRender: (cb) =>
 		createListener<{ id: string; grid: GridSnapshot }>(IPC_EVENTS.terminalRender, ({ id, grid }) =>

@@ -34,7 +34,8 @@ const MAX_MIGRATED_DIM: f64 = 0.7;
 const CURSOR_STYLES: &[&str] = &["block", "underline", "bar"];
 const EFFECT_LEVELS: &[&str] = &["off", "subtle", "medium", "intense"];
 
-// Must match AnsiColors interface keys in src/shared/types.ts
+// Must match AnsiColors interface in src/shared/types.ts and
+// AnsiThemeColors struct in terminal.rs. Keep all three in sync.
 const ANSI_KEYS: &[&str] = &[
     "black",
     "red",

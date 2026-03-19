@@ -164,6 +164,30 @@ export function Pane({
 		[workspaceTheme, config.themeOverride],
 	);
 
+	// Stable key — prevents the effect from firing when the ansiColors object
+	// reference changes but values are identical (e.g. useMemo recompute).
+	const ansiColorsKey = useMemo(
+		() => (mergedTheme.ansiColors ? JSON.stringify(mergedTheme.ansiColors) : null),
+		[mergedTheme.ansiColors],
+	);
+
+	// Sync theme ANSI palette to Rust when palette-related fields change.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: ansiColorsKey replaces mergedTheme.ansiColors — JSON serialization avoids redundant IPC on object-reference churn
+	useEffect(() => {
+		if (mergedTheme.ansiColors) {
+			window.api
+				.setTerminalColors(
+					paneId,
+					mergedTheme.ansiColors,
+					mergedTheme.foreground,
+					mergedTheme.background,
+				)
+				.catch((err: unknown) => {
+					console.error(`[pane] setTerminalColors failed for ${paneId}:`, err);
+				});
+		}
+	}, [paneId, ansiColorsKey, mergedTheme.foreground, mergedTheme.background]);
+
 	const handleOpenExternal = useCallback((url: string) => {
 		window.api.openExternal(url).catch((err: unknown) => {
 			console.error("[pane] Failed to open URL:", url, err);

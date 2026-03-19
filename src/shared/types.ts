@@ -56,7 +56,9 @@ export function isCursorStyle(v: string): v is CursorStyle {
 	return (CURSOR_STYLES as readonly string[]).includes(v);
 }
 
-/** ANSI 16-color palette for terminal themes. All values are hex strings (#RRGGBB). */
+/** ANSI 16-color palette for terminal themes. All values are hex strings (#RRGGBB).
+ *  Mirrors `AnsiThemeColors` in `src-tauri/src/terminal.rs` and
+ *  `ANSI_KEYS` in `src-tauri/src/config.rs`. Keep all three in sync. */
 export interface AnsiColors {
 	readonly black: string;
 	readonly red: string;
@@ -249,6 +251,9 @@ export interface KnkodeApi {
 	writePty(id: string, data: string): Promise<void>;
 	resizePty(id: string, cols: number, rows: number): Promise<void>;
 	killPty(id: string): Promise<void>;
+
+	// Terminal colors — send theme ANSI palette to Rust for per-terminal color resolution
+	setTerminalColors(id: string, ansiColors: AnsiColors, foreground: string, background: string): Promise<void>;
 
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered snapshots
 	onTerminalRender(cb: (id: string, grid: GridSnapshot) => void): Unsubscribe;

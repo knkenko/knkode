@@ -561,10 +561,14 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 
 /** Optional PaneTheme fields that can be filled from a preset. */
 const PRESET_FILL_KEYS = [
+	// Typography
 	"fontFamily",
 	"fontSize",
 	"lineHeight",
+	// Colors
 	"cursorColor",
+	"ansiColors",
+	// Effects
 	"gradientLevel",
 	"glowLevel",
 	"scanlineLevel",
