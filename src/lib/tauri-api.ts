@@ -80,6 +80,16 @@ const _api: KnkodeApi = {
 	setTerminalColors: (id, ansiColors, foreground, background) =>
 		invoke("set_terminal_colors", { id, ansiColors, foreground, background }),
 
+	// Terminal selection
+	getSelectionText: (id, range) =>
+		invoke<string>("get_selection_text", {
+			id,
+			startRow: range.startRow,
+			startCol: range.startCol,
+			endRow: range.endRow,
+			endCol: range.endCol,
+		}),
+
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered grid snapshots.
 	onTerminalRender: (cb) =>
 		createListener<{ id: string; grid: GridSnapshot }>(IPC_EVENTS.terminalRender, ({ id, grid }) =>
