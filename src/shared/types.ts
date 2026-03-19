@@ -244,6 +244,17 @@ export interface GridSnapshot {
 	readonly defaultBg: string;
 }
 
+// --- Selection ---
+
+/** Cell range for text extraction. Row indices are absolute (physical row in
+ *  the scrollback buffer), not viewport-relative. */
+export interface SelectionRange {
+	readonly startRow: number;
+	readonly startCol: number;
+	readonly endRow: number;
+	readonly endCol: number;
+}
+
 // --- API interface ---
 
 export type Unsubscribe = () => void;
@@ -271,6 +282,9 @@ export interface KnkodeApi {
 
 	// Terminal scroll — request a snapshot at a given scrollback offset (0 = bottom)
 	scrollTerminal(id: string, offset: number): Promise<GridSnapshot>;
+
+	// Terminal selection — extract text from a cell range (absolute row indices)
+	getSelectionText(id: string, range: SelectionRange): Promise<string>;
 
 	// Terminal colors — send theme ANSI palette to Rust for per-terminal color resolution
 	setTerminalColors(
