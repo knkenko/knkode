@@ -109,6 +109,44 @@ function findWordBounds(
 	return { startCol, endCol };
 }
 
+/** Move one word left/right from a column, skipping whitespace first.
+ *  Returns the column at the start (left) or end (right) of the next word.
+ *  If no word is found, returns 0 (left) or totalCols-1 (right). */
+function moveByWord(
+	rows: readonly (readonly CellSnapshot[])[],
+	viewportRow: number,
+	col: number,
+	totalCols: number,
+	direction: "left" | "right",
+): number {
+	const row = rows[viewportRow];
+	if (!row) return col;
+
+	const isWordChar = (c: number): boolean => {
+		const cell = row[c];
+		return cell != null && WORD_CHAR_RE.test(cell.text);
+	};
+
+	if (direction === "left") {
+		let c = col - 1;
+		// Skip non-word chars
+		while (c >= 0 && !isWordChar(c)) c--;
+		if (c < 0) return 0;
+		// Find start of this word
+		while (c > 0 && isWordChar(c - 1)) c--;
+		return c;
+	}
+
+	// right
+	let c = col + 1;
+	// Skip non-word chars
+	while (c < totalCols && !isWordChar(c)) c++;
+	if (c >= totalCols) return totalCols - 1;
+	// Find end of this word
+	while (c < totalCols - 1 && isWordChar(c + 1)) c++;
+	return c;
+}
+
 /** Convert client (mouse) coordinates to a viewport-relative cell position
  *  using a pre-computed rect and DPR. Returns null if metrics are unavailable. */
 function cellFromRect(
@@ -642,6 +680,11 @@ export function CanvasTerminal({
 			return;
 		}
 
+		// Ensure DOM focus matches logical focus (e.g. after snippet command)
+		if (containerRef.current && document.activeElement !== containerRef.current) {
+			containerRef.current.focus();
+		}
+
 		// Reset blink start so cursor is fully visible when pane gains focus
 		blinkStart.current = performance.now();
 		cursorOpacity.current = CURSOR_MAX_OPACITY;
@@ -665,6 +708,16 @@ export function CanvasTerminal({
 		animFrame.current = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(animFrame.current);
 	}, [isFocused, grid, repaintCursor]);
+
+	// Kill native browser text selection on the terminal container — CSS user-select:none
+	// doesn't prevent keyboard-driven selection in WKWebView.
+	useEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		const prevent = (e: Event) => e.preventDefault();
+		el.addEventListener("selectstart", prevent);
+		return () => el.removeEventListener("selectstart", prevent);
+	}, []);
 
 	// Cleanup drag listeners and selection RAF on unmount — prevents leaks if
 	// the component unmounts mid-drag (pane close, workspace switch).
@@ -734,6 +787,46 @@ export function CanvasTerminal({
 					e.preventDefault();
 					onWrite("\x03");
 				}
+				return;
+			}
+
+			// Shift+Arrow → char selection; Alt+Shift+Arrow → word selection
+			if (
+				e.shiftKey &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				(e.key === "ArrowLeft" || e.key === "ArrowRight")
+			) {
+				e.preventDefault();
+				const snap = gridRef.current;
+				if (!snap) return;
+
+				const left = e.key === "ArrowLeft";
+
+				// If no selection, start from cursor position
+				if (!selectionAnchorRef.current || !selectionActiveRef.current) {
+					const absRow = toAbsoluteRow(snap, snap.cursorRow);
+					selectionAnchorRef.current = { row: absRow, col: snap.cursorCol };
+					selectionEndRef.current = { row: absRow, col: snap.cursorCol };
+					selectionActiveRef.current = true;
+				}
+
+				const end = selectionEndRef.current;
+				if (!end) return;
+				const vpRow = end.row - snap.scrollbackRows + snap.scrollOffset;
+				if (vpRow < 0 || vpRow >= snap.totalRows) return;
+
+				let newCol: number;
+				if (e.altKey) {
+					// Word granularity
+					newCol = moveByWord(snap.rows, vpRow, end.col, snap.cols, left ? "left" : "right");
+				} else {
+					// Character granularity
+					newCol = left ? Math.max(0, end.col - 1) : Math.min(snap.cols - 1, end.col + 1);
+				}
+				selectionEndRef.current = { row: end.row, col: newCol };
+
+				drawRef.current();
 				return;
 			}
 
@@ -930,7 +1023,7 @@ export function CanvasTerminal({
 		// biome-ignore lint/a11y/useSemanticElements: canvas terminal cannot be a native textarea
 		<div
 			ref={containerRef}
-			className="relative h-full w-full overflow-hidden outline-none"
+			className="relative h-full w-full overflow-hidden outline-none select-none"
 			tabIndex={0}
 			role="textbox"
 			aria-label="Terminal"

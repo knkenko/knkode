@@ -74,6 +74,10 @@ export function keyEventToAnsi(e: KeyboardEvent): string | null {
 	// --- Shift+Enter → literal newline (LF) instead of CR ---
 	if (e.key === "Enter" && e.shiftKey) return "\n";
 
+	// Shift+Arrow / Alt+Shift+Arrow → null so caller handles terminal-level selection
+	if (e.shiftKey && !e.ctrlKey && !e.metaKey && (e.key === "ArrowLeft" || e.key === "ArrowRight"))
+		return null;
+
 	// Ctrl+key: a-z maps to 0x01-0x1A; also handles Ctrl+[ ] \ and Space
 	if (e.ctrlKey && !e.altKey && !e.metaKey) {
 		if (e.key.length === 1) {
@@ -90,6 +94,13 @@ export function keyEventToAnsi(e: KeyboardEvent): string | null {
 
 	// Alt+key → ESC prefix
 	if (e.altKey && !e.ctrlKey && !e.metaKey) {
+		// Alt+Arrow → readline word navigation (ESC b / ESC f)
+		if (e.key === "ArrowLeft") return "\x1bb";
+		if (e.key === "ArrowRight") return "\x1bf";
+
+		// Alt+Backspace → backward-kill-word
+		if (e.key === "Backspace") return "\x1b\x7f";
+
 		if (e.key.length === 1) {
 			return `\x1b${e.key}`;
 		}
