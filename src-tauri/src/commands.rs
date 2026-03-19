@@ -145,6 +145,20 @@ pub fn set_terminal_colors(
     terminal_state.set_colors(&id, &ansi_colors, &foreground, &background)
 }
 
+// --- Terminal selection ---
+
+#[tauri::command]
+pub fn get_selection_text(
+    id: String,
+    start_row: usize,
+    start_col: usize,
+    end_row: usize,
+    end_col: usize,
+    terminal_state: State<'_, Arc<TerminalState>>,
+) -> Result<String, String> {
+    terminal_state.extract_text(&id, start_row, start_col, end_row, end_col)
+}
+
 // --- Debug ---
 
 #[tauri::command]
