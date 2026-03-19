@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants.
+Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -33,13 +33,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-
-### PR #20 — fix: apply theme ANSI colors to terminal renderer
-- Branch: `fix/ansi-theme-colors`
-- State: `docs/reviews/PR-20/_state.json`
-- Review: 10/10 agents completed, compiled report written
-- Fixes: 2 commits pushed (Rust hardening + TS stabilization)
-- Status: awaiting merge
+None
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
