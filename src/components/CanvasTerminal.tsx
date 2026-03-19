@@ -648,26 +648,17 @@ export function CanvasTerminal({
 				const end = selectionEndRef.current;
 				if (anchor && end && (anchor.row !== end.row || anchor.col !== end.col)) {
 					e.preventDefault();
-					// Normalize selection direction
-					let sr: number, sc: number, er: number, ec: number;
-					if (anchor.row < end.row || (anchor.row === end.row && anchor.col <= end.col)) {
-						sr = anchor.row;
-						sc = anchor.col;
-						er = end.row;
-						ec = end.col;
-					} else {
-						sr = end.row;
-						sc = end.col;
-						er = anchor.row;
-						ec = anchor.col;
-					}
+					const range = normalizeSelection(anchor, end);
 					window.api
-						.getSelectionText(paneId, { startRow: sr, startCol: sc, endRow: er, endCol: ec })
+						.getSelectionText(paneId, range)
 						.then((text) => {
-							if (text) navigator.clipboard.writeText(text);
+							if (text) return navigator.clipboard.writeText(text);
 						})
-						.catch((err: unknown) => console.error("[terminal] copy failed:", err));
-					clearSelection();
+						.then(() => clearSelection())
+						.catch((err: unknown) => {
+							console.error(`[terminal] copy failed for ${paneId}:`, err);
+							clearSelection();
+						});
 					return;
 				}
 				// No selection: macOS Cmd+C = no-op; Windows/Linux Ctrl+C = SIGINT
