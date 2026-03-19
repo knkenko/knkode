@@ -219,6 +219,11 @@ export interface GridSnapshot {
 	readonly cursorRow: number;
 	readonly cursorCol: number;
 	readonly cursorVisible: boolean;
+	/** Cursor shape from terminal state (DECSCUSR): "default", "block", "underline", or "bar".
+	 *  "default" means no TUI override — use the user's cursorStyle setting. */
+	readonly cursorShape: string;
+	/** Whether the terminal requests cursor blinking (from DECSCUSR). */
+	readonly cursorBlink: boolean;
 	readonly cols: number;
 	readonly totalRows: number;
 	/** Number of rows available above the visible viewport (scrollback depth). */
@@ -259,7 +264,12 @@ export interface KnkodeApi {
 	scrollTerminal(id: string, offset: number): Promise<GridSnapshot>;
 
 	// Terminal colors — send theme ANSI palette to Rust for per-terminal color resolution
-	setTerminalColors(id: string, ansiColors: AnsiColors, foreground: string, background: string): Promise<void>;
+	setTerminalColors(
+		id: string,
+		ansiColors: AnsiColors,
+		foreground: string,
+		background: string,
+	): Promise<void>;
 
 	// Terminal grid events — Rust processes PTY data via wezterm-term, sends rendered snapshots
 	onTerminalRender(cb: (id: string, grid: GridSnapshot) => void): Unsubscribe;
