@@ -1,6 +1,13 @@
 /** Maps DOM KeyboardEvent to ANSI escape sequences for terminal input.
  *  Simplified version -- no input mode awareness (application cursor mode deferred).
- *  Modifier parameters applied to both CSI and SS3 (F1-F4) sequences. */
+ *  Modifier parameters applied to both CSI and SS3 (F1-F4) sequences.
+ *
+ *  Returns:
+ *    string  → send this ANSI sequence to the PTY
+ *    null    → ignore, let browser/Tauri handle (e.g. Cmd+C, Cmd+V)
+ *    "paste" → caller should trigger clipboard paste into the PTY */
+
+import { isMac } from "../utils/platform";
 
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
 
@@ -34,9 +41,36 @@ const SPECIAL_KEYS = {
 } as const satisfies Record<string, string>;
 
 /** Convert a DOM KeyboardEvent to an ANSI string for the terminal.
- *  Returns null if the event should not be sent (modifier-only keys, unhandled combos). */
+ *  Returns null if the event should not be sent (modifier-only keys, Cmd combos
+ *  handled by the native menu, etc.).
+ *  Returns "paste" when the caller should perform a clipboard paste into PTY. */
 export function keyEventToAnsi(e: KeyboardEvent): string | null {
 	if (MODIFIER_KEYS.has(e.key)) return null;
+
+	// --- Platform clipboard / menu keys: return null so the browser/Tauri handles them ---
+
+	// macOS: Cmd+<key> is always handled by the native menu or global shortcuts.
+	// Never send Cmd combos to the PTY.
+	if (isMac && e.metaKey) return null;
+
+	// Windows/Linux copy: Ctrl+C with no other modifiers.
+	// Ctrl+C without Shift is ambiguous: if text is selected it should copy,
+	// otherwise it should send SIGINT (\x03). We return "copy-or-sigint" to
+	// let the caller decide based on selection state. However, for simplicity
+	// we handle this in handleKeyDown — here we just return null so the caller
+	// can check selection.
+	if (!isMac && e.ctrlKey && !e.altKey) {
+		const k = e.key.toLowerCase();
+		// Ctrl+Shift+C → always copy
+		if (k === "c" && e.shiftKey) return null;
+		// Ctrl+C → caller handles (copy if selection, SIGINT if not)
+		if (k === "c") return null;
+		// Ctrl+V / Ctrl+Shift+V → paste from clipboard
+		if (k === "v") return "paste";
+	}
+
+	// --- Shift+Enter → literal newline (LF) instead of CR ---
+	if (e.key === "Enter" && e.shiftKey) return "\n";
 
 	// Ctrl+key: a-z maps to 0x01-0x1A; also handles Ctrl+[ ] \ and Space
 	if (e.ctrlKey && !e.altKey && !e.metaKey) {
