@@ -252,10 +252,10 @@ export function CanvasTerminal({
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
 
-	// Selection state — stored as absolute physical row indices for scroll stability
+	// Selection state — stored as absolute physical row indices so the selection
+	// survives viewport scrolling without needing recalculation.
 	const selectionAnchorRef = useRef<CellPosition | null>(null);
 	const selectionEndRef = useRef<CellPosition | null>(null);
-	const isSelectingRef = useRef(false);
 	const selectionColorRef = useRef(selectionColor);
 
 	// Keep refs in sync
@@ -265,14 +265,6 @@ export function CanvasTerminal({
 	cursorStyleRef.current = cursorStyle;
 	isFocusedRef.current = isFocused;
 	selectionColorRef.current = selectionColor;
-
-	/** Clear selection state and trigger a redraw. */
-	const clearSelection = useCallback(() => {
-		selectionAnchorRef.current = null;
-		selectionEndRef.current = null;
-		isSelectingRef.current = false;
-		drawRef.current();
-	}, []);
 
 	/** Convert client (mouse) coordinates to a viewport-relative cell position. */
 	const cellAtPixel = useCallback(
@@ -462,6 +454,13 @@ export function CanvasTerminal({
 	// without being recreated when draw's dependencies change.
 	const drawRef = useRef(draw);
 	drawRef.current = draw;
+
+	/** Clear selection state and trigger a redraw. */
+	const clearSelection = useCallback(() => {
+		selectionAnchorRef.current = null;
+		selectionEndRef.current = null;
+		drawRef.current();
+	}, []);
 
 	// Handle resize: compute cols/rows from container dimensions
 	useEffect(() => {
@@ -692,24 +691,21 @@ export function CanvasTerminal({
 			const snap = gridRef.current;
 			if (!snap) return;
 
-			const absRow = snap.scrollbackRows - snap.scrollOffset + cell.row;
+			const absRow = toAbsoluteRow(snap, cell.row);
 			selectionAnchorRef.current = { row: absRow, col: cell.col };
 			selectionEndRef.current = { row: absRow, col: cell.col };
-			isSelectingRef.current = true;
 			drawRef.current();
 
 			const onMove = (ev: MouseEvent) => {
-				const c = cellAtPixel(ev.clientX, ev.clientY);
-				if (!c) return;
-				const s = gridRef.current;
-				if (!s) return;
-				const ar = s.scrollbackRows - s.scrollOffset + c.row;
-				selectionEndRef.current = { row: ar, col: c.col };
+				const cell = cellAtPixel(ev.clientX, ev.clientY);
+				if (!cell) return;
+				const snap = gridRef.current;
+				if (!snap) return;
+				selectionEndRef.current = { row: toAbsoluteRow(snap, cell.row), col: cell.col };
 				drawRef.current();
 			};
 
 			const onUp = () => {
-				isSelectingRef.current = false;
 				window.removeEventListener("mousemove", onMove);
 				window.removeEventListener("mouseup", onUp);
 			};
