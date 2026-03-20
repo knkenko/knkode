@@ -659,7 +659,16 @@ export function CanvasTerminal({
 				for (let col = 0; col < rowCells.length; col++) {
 					const cell = rowCells[col];
 					if (!cell?.images) continue;
-					drawCellImages(ctx, cell.images, imgCache, col * cellW, row * cellH, cellW, cellH, "above");
+					drawCellImages(
+						ctx,
+						cell.images,
+						imgCache,
+						col * cellW,
+						row * cellH,
+						cellW,
+						cellH,
+						"above",
+					);
 				}
 			}
 		}
@@ -760,6 +769,31 @@ export function CanvasTerminal({
 			observer.disconnect();
 			if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
 		};
+	}, [measureCell]);
+
+	// Re-measure cells + resize + redraw when font metrics change (fontSize, fontFamily, lineHeight).
+	// The ResizeObserver only fires on container size changes, so metric-only changes need this.
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		const container = containerRef.current;
+		if (!canvas || !container || !ctxRef.current) return;
+
+		measureCell();
+
+		const dpr = dprRef.current;
+		const { width: cellW, height: cellH } = cellMetrics.current;
+		if (cellW > 0 && cellH > 0) {
+			const rect = container.getBoundingClientRect();
+			const w = Math.floor(rect.width * dpr);
+			const h = Math.floor(rect.height * dpr);
+			const cols = Math.floor(w / cellW);
+			const rows = Math.floor(h / cellH);
+			if (cols > 0 && rows > 0) {
+				onResizeRef.current(cols, rows, Math.round(cellW * cols), Math.round(cellH * rows));
+			}
+		}
+
+		drawRef.current();
 	}, [measureCell]);
 
 	// Wheel scroll → convert pixel/line/page delta to line count and call onScroll.

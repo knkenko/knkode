@@ -53,7 +53,7 @@ export const DEFAULT_BACKGROUND = "#1e1e1e";
 export const DEFAULT_FOREGROUND = "#e0e0e0";
 export const DEFAULT_CURSOR_COLOR = "#c0c0c0";
 
-export const DEFAULT_LINE_HEIGHT = 1.0;
+export const DEFAULT_LINE_HEIGHT = 1.2;
 export const MIN_LINE_HEIGHT = 1.0;
 export const MAX_LINE_HEIGHT = 2.0;
 
