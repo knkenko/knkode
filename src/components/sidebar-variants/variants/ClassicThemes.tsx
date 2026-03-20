@@ -1,5 +1,5 @@
 import { AgentStatusIndicator } from "../AgentStatusIndicator";
-import type { BasePaneEntryProps, BaseWorkspaceHeaderProps } from "../types";
+import type { BasePaneEntryProps, BaseWorkspaceHeaderProps, CollapsedVariantProps } from "../types";
 
 // --- Default Dark ---
 export function DefaultDarkHeader({ name, isActive, isCollapsed, paneCount, isEditing, inputProps, onClick, onContextMenu }: BaseWorkspaceHeaderProps) {
@@ -291,6 +291,78 @@ export function EverforestEntry({ label, cwd, branch, pr, agentStatus, isFocused
 					{pr && <span className="text-[9px] text-[#dbbc7f] shrink-0">PR-{pr.number}</span>}
 				</div>
 			)}
+		</button>
+	);
+}
+
+// ── Collapsed variants ───────────────────────────────────────────
+
+export function DefaultDarkCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 justify-center cursor-pointer border-none transition-colors duration-150 ${isActive ? "text-[#e0e0e0] bg-[#232946]/5" : "bg-transparent text-[#8892b0] hover:text-[#e0e0e0]"}`}>
+			<span className="sidebar-header text-[11px] font-medium truncate">{name}</span>
+		</button>
+	);
+}
+
+export function DraculaCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-1.5 justify-center cursor-pointer border-none rounded-t-md transition-all ${isActive ? "text-[#f8f8f2] bg-[#44475a]/40 border-b border-[#44475a]" : "bg-transparent text-[#6272a4] hover:text-[#f8f8f2] hover:bg-[#44475a]/20"}`}>
+			<div className={`w-2 h-2 rounded-full shrink-0 transition-all ${isActive ? "bg-[#ff79c6] shadow-[0_0_8px_#ff79c6]" : "bg-[#6272a4]"}`} />
+			<span className="sidebar-header text-[12px] font-bold tracking-wide truncate">{name}</span>
+		</button>
+	);
+}
+
+export function TokyoNightCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-1 justify-center cursor-pointer border-none transition-all ${isActive ? "text-[#c0caf5] bg-[#1f2335]" : "bg-transparent text-[#565f89] hover:text-[#a9b1d6] hover:bg-[#1f2335]/50"}`}>
+			<span className={`sidebar-header text-[11px] font-bold tracking-wider uppercase truncate ${isActive ? "drop-shadow-[0_0_8px_rgba(122,162,247,0.5)] text-[#7aa2f7]" : ""}`}>{name}</span>
+		</button>
+	);
+}
+
+export function NordCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer border-none transition-all ${isActive ? "text-[#eceff4] bg-[#3b4252]" : "bg-transparent text-[#4c566a] hover:text-[#d8dee9] hover:bg-[#3b4252]/50"}`}>
+			<span className="sidebar-header text-[12px] font-medium tracking-wide truncate">{name}</span>
+		</button>
+	);
+}
+
+export function CatppuccinCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer border-none transition-all ${isActive ? "text-[#cdd6f4] bg-[#313244]" : "bg-transparent text-[#7f849c] hover:text-[#bac2de] hover:bg-[#313244]/50"}`}>
+			<div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-colors ${isActive ? "bg-[#cba6f7]" : "bg-[#585b70]"}`} />
+			<span className="sidebar-header text-[12px] font-semibold truncate">{name}</span>
+		</button>
+	);
+}
+
+export function GruvboxCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-1 w-full px-2 py-1 justify-center cursor-pointer border-none transition-none ${isActive ? "text-[#ebdbb2] bg-[#3c3836]" : "bg-transparent text-[#a89984] hover:text-[#ebdbb2] hover:bg-[#3c3836]"}`}>
+			<span className="sidebar-header font-mono text-[11px] font-bold uppercase truncate">[{name}]</span>
+		</button>
+	);
+}
+
+export function MonokaiCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-1.5 justify-center cursor-pointer border-none transition-colors ${isActive ? "text-[#f8f8f2] bg-[#3e3d32]" : "bg-transparent text-[#75715e] hover:text-[#f8f8f2] hover:bg-[#3e3d32]/50"}`}>
+			<svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" className={`shrink-0 transition-transform ${isActive ? "text-[#a6e22e]" : "text-[#75715e]"}`}>
+				<path d="M0 0L10 5L0 10Z" />
+			</svg>
+			<span className="sidebar-header text-[12px] font-medium truncate">{name}</span>
+		</button>
+	);
+}
+
+export function EverforestCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer border-none transition-colors border-b border-[#3d474d] ${isActive ? "text-[#d3c6aa] bg-[#3a454a]" : "bg-transparent text-[#859289] hover:text-[#d3c6aa] hover:bg-[#343f44]"}`}>
+			<div className={`w-1.5 h-1.5 rotate-45 shrink-0 transition-transform ${isActive ? "bg-[#a7c080] scale-125" : "bg-[#4a555b]"}`} />
+			<span className="sidebar-header text-[12px] font-medium truncate">{name}</span>
 		</button>
 	);
 }

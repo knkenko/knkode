@@ -1,4 +1,4 @@
-import type { BasePaneEntryProps, BaseWorkspaceHeaderProps } from "../types";
+import type { BasePaneEntryProps, BaseWorkspaceHeaderProps, CollapsedVariantProps } from "../types";
 
 // --- Matrix ---
 export function MatrixHeader({
@@ -815,6 +815,77 @@ export function ArcticEntry({
 					)}
 				</div>
 			)}
+		</button>
+	);
+}
+
+// ── Collapsed variants ───────────────────────────────────────────
+
+export function MatrixCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-2 py-1 justify-center cursor-pointer transition-none border-y border-[#00ff41]/20 bg-[#050505] uppercase font-mono font-bold tracking-widest ${isActive ? "text-[#00ff41] border-[#00ff41]/60 shadow-[0_0_8px_rgba(0,255,65,0.3)]" : "text-[#009933] hover:text-[#00ff41] hover:border-[#00ff41]/40"}`}>
+			<span className="sidebar-header text-[12px] truncate">{name}</span>
+		</button>
+	);
+}
+
+export function CyberpunkCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)" }} className={`sidebar-item flex items-center gap-2 w-full px-3 py-1.5 justify-center cursor-pointer transition-all border-l-4 font-bold uppercase tracking-widest ${isActive ? "text-[#0d0221] bg-[#ff2a6d] border-[#05d9e8]" : "bg-[#130228] text-[#ff6e96] border-[#2a0550] hover:bg-[#2a0550] hover:text-[#05d9e8]"}`}>
+			<span className="sidebar-header text-[11px] truncate">{name}</span>
+		</button>
+	);
+}
+
+export function SolanaCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer rounded-full transition-all backdrop-blur-sm ${isActive ? "text-[#f5f5ff] bg-gradient-to-r from-[#9945ff]/40 to-[#14f195]/20 shadow-[0_0_12px_rgba(153,69,255,0.3)]" : "bg-[#0f0f24]/80 text-[#b380ff] hover:text-[#e0e0f0] hover:bg-[#1e1e3d]"}`}>
+			<div className={`w-3 h-3 rounded-full shrink-0 flex items-center justify-center transition-all ${isActive ? "bg-gradient-to-tr from-[#9945ff] to-[#14f195]" : "bg-[#3d3d5c]"}`}>
+				<div className="w-1 h-1 rounded-full bg-[#0c0c1d] transition-transform scale-100" />
+			</div>
+			<span className="sidebar-header text-[12px] font-semibold truncate">{name}</span>
+		</button>
+	);
+}
+
+export function AmberCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-1.5 justify-center cursor-pointer transition-none border-b-2 font-mono uppercase tracking-wider ${isActive ? "text-[#ffb000] bg-[#ffb000]/10 border-[#ffb000] shadow-[0_2px_8px_rgba(255,176,0,0.2)]" : "bg-transparent text-[#b37a00] border-[#5c3d10] hover:text-[#ffb000] hover:bg-[#0c0900]"}`}>
+			<span className="sidebar-header text-[12px] font-bold truncate">{name}</span>
+		</button>
+	);
+}
+
+export function VaporwaveCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer transition-all border-b font-sans tracking-widest uppercase ${isActive ? "text-[#ff71ce] bg-gradient-to-r from-[#100024] to-[#220050] border-[#01cdfe] shadow-[0_1px_8px_rgba(1,205,254,0.4)]" : "bg-transparent text-[#a855f7] border-[#2d1b4e] hover:text-[#f0d0ff] hover:bg-[#100024]"}`}>
+			<div className={`w-2 h-2 rotate-45 shrink-0 transition-all ${isActive ? "bg-[#01cdfe] shadow-[0_0_8px_#01cdfe]" : "bg-[#2d1b4e]"}`} />
+			<span className="sidebar-header text-[11px] font-bold italic truncate">{name}</span>
+		</button>
+	);
+}
+
+export function OceanCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer rounded-t-2xl transition-all duration-500 ${isActive ? "text-[#d0eff8] bg-[#0070a0]/30 shadow-[inset_0_0_12px_rgba(0,200,255,0.2)]" : "bg-transparent text-[#2890b8] hover:text-[#a0d8e8] hover:bg-[#051218]"}`}>
+			<span className="sidebar-header text-[12px] font-medium truncate">{name}</span>
+		</button>
+	);
+}
+
+export function SunsetCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer border-none transition-all border-l-4 ${isActive ? "text-[#fff0d8] bg-gradient-to-r from-[#e04028]/20 to-transparent border-[#e8a040]" : "bg-transparent text-[#d04830] border-transparent hover:text-[#f0d8b0] hover:bg-[#180c0a]"}`}>
+			<div className={`w-3 h-3 rounded-full shrink-0 transition-all ${isActive ? "bg-gradient-to-b from-[#e8a040] to-[#e04028] shadow-[0_0_10px_rgba(232,160,64,0.5)]" : "bg-[#4d2418]"}`} />
+			<span className="sidebar-header text-[12px] font-bold tracking-wide truncate">{name}</span>
+		</button>
+	);
+}
+
+export function ArcticCollapsed({ name, isActive, onClick }: CollapsedVariantProps) {
+	return (
+		<button type="button" onClick={onClick} title={name} className={`sidebar-item flex items-center gap-2 w-full px-3 py-2 justify-center cursor-pointer rounded-t-lg transition-all backdrop-blur-md ${isActive ? "text-[#f0f8ff] bg-[#1e3550]/80 shadow-sm border-b border-[#48c8e0]/30" : "bg-transparent text-[#78b8d0] border-b border-transparent hover:text-[#c8e4f0] hover:bg-[#1e3550]/40"}`}>
+			<span className="sidebar-header text-[11px] font-medium uppercase tracking-widest truncate">{name}</span>
 		</button>
 	);
 }
