@@ -8,7 +8,7 @@ import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
 
 /** px */ const SIDEBAR_WIDTH = 200;
-/** px */ const SIDEBAR_COLLAPSED_WIDTH = 48;
+/** px — wide enough to contain macOS traffic lights (90px) and show truncated workspace names */ const SIDEBAR_COLLAPSED_WIDTH = 96;
 
 interface SidebarProps {
 	onOpenSettings: () => void;
@@ -340,7 +340,7 @@ function CollapsedView({
 	onActivate: (id: string) => void;
 }) {
 	return (
-		<div className="flex flex-col items-center gap-1.5 py-2">
+		<div className="flex flex-col gap-0.5 py-1">
 			{workspaces.map((ws) => {
 				const isActive = ws.id === activeWorkspaceId;
 				return (
@@ -350,14 +350,17 @@ function CollapsedView({
 						onClick={() => onActivate(ws.id)}
 						title={ws.name}
 						aria-label={`Switch to ${ws.name}`}
-						className={`flex items-center justify-center w-8 h-8 rounded-md border-none cursor-pointer transition-colors duration-200 ${
-							isActive ? "bg-overlay-active" : "bg-transparent hover:bg-overlay"
+						className={`flex items-center gap-2 w-full px-2.5 py-1.5 border-none cursor-pointer rounded-sm transition-colors duration-200 ${
+							isActive
+								? "bg-overlay-active text-content"
+								: "bg-transparent text-content-muted hover:bg-overlay hover:text-content"
 						}`}
 					>
 						<span
-							className={`rounded-full ${isActive ? "w-3 h-3" : "w-2.5 h-2.5"}`}
+							className={`rounded-full shrink-0 ${isActive ? "w-2.5 h-2.5" : "w-2 h-2"}`}
 							style={{ background: ws.color }}
 						/>
+						<span className="text-[10px] truncate min-w-0">{ws.name}</span>
 					</button>
 				);
 			})}
