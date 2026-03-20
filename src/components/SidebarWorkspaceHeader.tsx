@@ -88,13 +88,6 @@ export function SidebarWorkspaceHeader({
 					<path d="M2.5 3.5L5 6.5L7.5 3.5" />
 				</svg>
 
-				{/* Color dot */}
-				<span
-					aria-hidden="true"
-					className="w-2 h-2 rounded-full shrink-0"
-					style={{ background: workspace.color }}
-				/>
-
 				{/* Workspace name — inline editable */}
 				{isEditing ? (
 					<input
