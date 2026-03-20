@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
-import { getPaneIdsInOrder, useStore } from "../store";
+import { getPaneIdsInOrder, useStore, WORKSPACE_COLORS } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
@@ -27,8 +27,15 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const toggleSidebarSection = useStore((s) => s.toggleSidebarSection);
 	const collapsedSections = useStore((s) => s.collapsedSidebarSections);
 	const openWorkspace = useStore((s) => s.openWorkspace);
+	const closeWorkspaceTab = useStore((s) => s.closeWorkspaceTab);
+	const createDefaultWorkspace = useStore((s) => s.createDefaultWorkspace);
+	const updateWorkspace = useStore((s) => s.updateWorkspace);
+	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
+	const closePane = useStore((s) => s.closePane);
 
 	const handleBarMouseDown = useWindowDrag();
+
+	const [actionError, setActionError] = useState<string | null>(null);
 
 	const openWorkspaces = useMemo(() => {
 		return openWorkspaceIds
@@ -56,6 +63,44 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 		},
 		[setActiveWorkspace, setFocusedPane],
 	);
+
+	const showTransientError = useCallback((msg: string) => {
+		setActionError(msg);
+		setTimeout(() => setActionError(null), 3000);
+	}, []);
+
+	const handleRename = useCallback(
+		(wsId: string, name: string) => {
+			const ws = workspaces.find((w) => w.id === wsId);
+			if (ws) updateWorkspace({ ...ws, name });
+		},
+		[workspaces, updateWorkspace],
+	);
+
+	const handleChangeColor = useCallback(
+		(wsId: string, color: string) => {
+			const ws = workspaces.find((w) => w.id === wsId);
+			if (ws) updateWorkspace({ ...ws, color });
+		},
+		[workspaces, updateWorkspace],
+	);
+
+	const handleDuplicate = useCallback(
+		(wsId: string) => {
+			duplicateWorkspace(wsId).catch((err: unknown) => {
+				console.error("[sidebar] Failed to duplicate workspace:", err);
+				showTransientError("Failed to duplicate workspace");
+			});
+		},
+		[duplicateWorkspace, showTransientError],
+	);
+
+	const handleNewWorkspace = useCallback(() => {
+		createDefaultWorkspace().catch((err: unknown) => {
+			console.error("[sidebar] Failed to create workspace:", err);
+			showTransientError("Failed to create workspace");
+		});
+	}, [createDefaultWorkspace, showTransientError]);
 
 	return (
 		<div
@@ -88,8 +133,13 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 										isActive={isActive}
 										isCollapsed={isSectionCollapsed}
 										paneCount={paneIds.length}
+										colors={WORKSPACE_COLORS}
 										onToggleCollapse={() => toggleSidebarSection(ws.id)}
 										onActivate={() => setActiveWorkspace(ws.id)}
+										onRename={(name) => handleRename(ws.id, name)}
+										onChangeColor={(color) => handleChangeColor(ws.id, color)}
+										onDuplicate={() => handleDuplicate(ws.id)}
+										onClose={() => closeWorkspaceTab(ws.id)}
 									/>
 									{!isSectionCollapsed && (
 										<div className="flex flex-col pb-1">
@@ -100,9 +150,12 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 													<SidebarPaneEntry
 														key={paneId}
 														paneId={paneId}
+														workspaceId={ws.id}
 														config={config}
 														isFocused={focusedPaneId === paneId && isActive}
+														canClose={paneIds.length > 1}
 														onClick={() => handlePaneClick(ws.id, paneId)}
+														onClose={() => closePane(ws.id, paneId)}
 													/>
 												);
 											})}
@@ -166,6 +219,28 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 						)}
 					</div>
 				)}
+
+				{/* New workspace button */}
+				<button
+					type="button"
+					onClick={handleNewWorkspace}
+					title={`New workspace (${modKey}+T)`}
+					aria-label="Create new workspace"
+					className="flex items-center justify-center w-7 h-7 bg-transparent border-none text-content-muted cursor-pointer rounded-sm hover:text-content hover:bg-overlay focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none transition-colors duration-200"
+				>
+					<svg
+						width="12"
+						height="12"
+						viewBox="0 0 12 12"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="1.5"
+						strokeLinecap="round"
+						aria-hidden="true"
+					>
+						<path d="M6 1v10M1 6h10" />
+					</svg>
+				</button>
 
 				<div className="flex-1" />
 
@@ -244,6 +319,13 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 					</svg>
 				</button>
 			</div>
+
+			{/* Transient error indicator */}
+			{actionError && (
+				<span className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-danger bg-danger/10 rounded px-2 py-0.5 pointer-events-none z-10">
+					{actionError}
+				</span>
+			)}
 		</div>
 	);
 }
