@@ -79,6 +79,32 @@ export function GitIcon({ className }: { className?: string | undefined }) {
 	);
 }
 
+/** Pane label button with double-click rename and Enter key a11y. */
+export function LabelButton({
+	onEdit,
+	className,
+	style,
+	children,
+}: {
+	onEdit: () => void;
+	className?: string | undefined;
+	style?: React.CSSProperties | undefined;
+	children: React.ReactNode;
+}) {
+	return (
+		<button
+			type="button"
+			onDoubleClick={onEdit}
+			onKeyDown={(e) => { if (e.key === "Enter") onEdit(); }}
+			title="Double-click to rename"
+			className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS} ${className ?? ""}`}
+			style={style}
+		>
+			{children}
+		</button>
+	);
+}
+
 /** Clickable PR badge — shared structure, per-variant styling via className/style/children. */
 export function PrBadge({
 	pr,

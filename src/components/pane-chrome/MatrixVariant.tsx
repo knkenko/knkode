@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, PrBadge, resolveGlow } from "./shared";
+import { FOCUS_VIS, LabelButton, PrBadge, resolveGlow } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
@@ -49,14 +49,9 @@ function Frame({
 					style={{ borderColor: theme.accent, color: fg }}
 				/>
 			) : (
-				<button
-					type="button"
-					onDoubleClick={onDoubleClickLabel}
-					onKeyDown={(e) => { if (e.key === "Enter") onDoubleClickLabel(); }}
-					className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS}`}
-				>
+				<LabelButton onEdit={onDoubleClickLabel}>
 					{label}
-				</button>
+				</LabelButton>
 			)}
 
 			<span className="mx-1 opacity-40">|</span>
