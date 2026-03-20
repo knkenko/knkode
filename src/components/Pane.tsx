@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findPreset, mergeThemeWithPreset } from "../data/theme-presets";
 import { useFileDrop } from "../hooks/useFileDrop";
 import { useInlineEdit } from "../hooks/useInlineEdit";
@@ -58,7 +58,7 @@ interface PaneProps {
 	onFocus: (paneId: string) => void;
 }
 
-export function Pane({
+export const Pane = memo(function Pane({
 	paneId,
 	workspaceId,
 	config,
@@ -471,4 +471,4 @@ export function Pane({
 			)}
 		</div>
 	);
-}
+});
