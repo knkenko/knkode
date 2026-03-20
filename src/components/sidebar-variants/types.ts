@@ -1,4 +1,10 @@
-import type { ComponentType, InputHTMLAttributes, MouseEvent } from "react";
+import type {
+	CSSProperties,
+	ComponentType,
+	InputHTMLAttributes,
+	MouseEvent,
+	ReactNode,
+} from "react";
 import type { AgentStatus, PrInfo } from "../../shared/types";
 
 // Base props for visual rendering
@@ -38,9 +44,21 @@ export interface WrapperTokens {
 	inactive: string;
 }
 
+/** Tokens for collapsed workspace variant rendering. `button` is always applied; exactly one of `active`/`inactive` is appended. */
+export interface CollapsedTokens {
+	button: string;
+	active: string;
+	inactive: string;
+	label: string;
+	labelActive?: string;
+	formatName?: (name: string) => string;
+	style?: CSSProperties;
+	decorator?: (isActive: boolean) => ReactNode;
+}
+
 export interface ThemeVariantConfig {
 	wrapper: WrapperTokens;
+	collapsed: CollapsedTokens;
 	Header: ComponentType<BaseWorkspaceHeaderProps>;
 	Entry: ComponentType<BasePaneEntryProps>;
-	Collapsed: ComponentType<CollapsedVariantProps>;
 }
