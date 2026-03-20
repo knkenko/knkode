@@ -125,8 +125,7 @@
 	--sidebar-text-transform: none;
 	--sidebar-letter-spacing: 0em;
 	--sidebar-header-weight: 500;
-	--sidebar-separator: 1px solid var(--color-edge);
-	--sidebar-card-bg: var(--color-overlay);
+	--sidebar-card-bg: transparent;
 	--sidebar-card-border: none;
 	--sidebar-card-radius: 0px;
 
@@ -207,15 +206,11 @@
 
 	/* ── Sidebar theming ─────────────────────────────────────────── */
 
-	/* Container — applies background, glass blur, border, and shadow from
-	   CSS variables set by generateThemeVariables(). */
+	/* Container — default neutral background, no longer globally themed. */
 	.sidebar-themed {
-		background: var(--sidebar-bg);
-		backdrop-filter: blur(var(--sidebar-glass));
-		-webkit-backdrop-filter: blur(var(--sidebar-glass));
-		border-right: var(--sidebar-border);
-		box-shadow: var(--sidebar-shadow);
-		transition: background 0.3s var(--sidebar-transition),
+		@apply bg-canvas border-r border-edge;
+		transition:
+			background 0.3s var(--sidebar-transition),
 			border-color 0.3s var(--sidebar-transition),
 			box-shadow 0.3s var(--sidebar-transition);
 	}
@@ -225,27 +220,28 @@
 		border-radius: var(--sidebar-item-radius);
 		padding-top: calc(6px * var(--sidebar-spacing));
 		padding-bottom: calc(6px * var(--sidebar-spacing));
-		transition: background 0.2s var(--sidebar-transition),
+		transition:
+			background 0.2s var(--sidebar-transition),
 			box-shadow 0.2s var(--sidebar-transition);
 	}
 	.sidebar-item:hover {
 		background: var(--sidebar-item-hover);
 	}
+	.sidebar-item-active {
+		background: var(--sidebar-item-active);
+	}
 
 	/* Workspace section card — wraps each workspace into a visually distinct card. */
 	.sidebar-card {
-		background: var(--sidebar-card-bg);
-		border: var(--sidebar-card-border);
-		border-radius: var(--sidebar-card-radius);
-		border-left: 3px solid transparent;
-		margin: 6px 6px;
-		padding: 4px;
-		transition: background 0.3s var(--sidebar-transition),
-			border-color 0.3s var(--sidebar-transition),
-			box-shadow 0.3s var(--sidebar-transition);
+		background: transparent;
+		border: none;
+		border-radius: 0;
+		margin: 0;
+		padding: 0;
+		transition: none;
 	}
 	.sidebar-card-active {
-		box-shadow: var(--sidebar-accent-glow);
+		box-shadow: none;
 	}
 
 	/* Focused pane — left accent bar indicator. */
@@ -263,19 +259,9 @@
 		background: var(--color-accent);
 	}
 
-	/* Workspace header text treatment — text-transform and letter-spacing from theme. */
+	/* Workspace header text treatment — font-weight, text-transform, letter-spacing from theme. */
 	.sidebar-header {
-		text-transform: var(--sidebar-text-transform);
-		letter-spacing: var(--sidebar-letter-spacing);
-		font-weight: var(--sidebar-header-weight);
-	}
-
-	/* Separator between workspace sections — hidden by default since cards create
-	   their own separation; themes can enable if desired. */
-	.sidebar-separator {
-		border: none;
-		border-top: var(--sidebar-separator);
-		margin: 0 8px;
+		font-weight: 500;
 	}
 
 	/* Shared interactive elements */
@@ -348,7 +334,10 @@
 		.animate-panel-in {
 			animation: none;
 		}
-		.settings-input {
+		.settings-input,
+		.sidebar-themed,
+		.sidebar-item,
+		.sidebar-card {
 			transition: none;
 		}
 		.pane-glow,
