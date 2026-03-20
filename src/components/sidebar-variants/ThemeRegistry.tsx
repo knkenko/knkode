@@ -218,13 +218,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	},
 };
 
-const DEFAULT_CONFIG = VARIANT_REGISTRY["Default Dark"];
-
 function getConfig(preset: ThemePresetName): ThemeVariantConfig {
-	return VARIANT_REGISTRY[preset] ?? DEFAULT_CONFIG;
+	return VARIANT_REGISTRY[preset];
 }
 
-// ── Public API (same signatures as before) ───────────────────────
+// ── Public API ───────────────────────────────────────────────────
 
 export function WorkspaceSectionWrapper({
 	preset,
@@ -251,7 +249,10 @@ export function WorkspaceHeaderVariant({
 	return <Header {...props} />;
 }
 
-export function PaneEntryVariant({ preset, ...props }: BasePaneEntryProps & { preset: ThemePresetName }) {
+export function PaneEntryVariant({
+	preset,
+	...props
+}: BasePaneEntryProps & { preset: ThemePresetName }) {
 	const { Entry } = getConfig(preset);
 	return <Entry {...props} />;
 }

@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, InputHTMLAttributes, MouseEvent } from "react";
 import type { AgentStatus, PrInfo } from "../../shared/types";
 
 // Base props for visual rendering
@@ -8,9 +8,9 @@ export interface BaseWorkspaceHeaderProps {
 	isCollapsed: boolean;
 	paneCount: number;
 	isEditing: boolean;
-	inputProps: React.InputHTMLAttributes<HTMLInputElement>;
-	onClick: (e: React.MouseEvent) => void;
-	onContextMenu: (e: React.MouseEvent) => void;
+	inputProps: InputHTMLAttributes<HTMLInputElement>;
+	onClick: (e: MouseEvent) => void;
+	onContextMenu: (e: MouseEvent) => void;
 }
 
 export interface BasePaneEntryProps {
@@ -21,7 +21,7 @@ export interface BasePaneEntryProps {
 	agentStatus: AgentStatus;
 	isFocused: boolean;
 	onClick: () => void;
-	onContextMenu: (e: React.MouseEvent) => void;
+	onContextMenu: (e: MouseEvent) => void;
 	paneId: string;
 }
 
@@ -31,6 +31,7 @@ export interface CollapsedVariantProps {
 	onClick: () => void;
 }
 
+/** CSS class tokens for workspace section wrappers. `base` is always applied; exactly one of `active`/`inactive` is appended. */
 export interface WrapperTokens {
 	base: string;
 	active: string;
@@ -42,9 +43,4 @@ export interface ThemeVariantConfig {
 	Header: ComponentType<BaseWorkspaceHeaderProps>;
 	Entry: ComponentType<BasePaneEntryProps>;
 	Collapsed: ComponentType<CollapsedVariantProps>;
-}
-
-export interface WrapperProps {
-	isActive: boolean;
-	children: ReactNode;
 }
