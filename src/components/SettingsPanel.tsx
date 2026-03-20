@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { DEFAULT_PRESET_NAME, findPreset } from "../data/theme-presets";
 import {
 	type CursorStyle,
@@ -167,14 +167,18 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const currentPreset = workspace.layout.type === "preset" ? workspace.layout.preset : null;
 
-	const effects: Record<EffectCategory, EffectLevel> = {
-		dim: state.dimLevel,
-		opacity: state.opacityLevel,
-		gradient: state.gradientLevel,
-		glow: state.glowLevel,
-		scanline: state.scanlineLevel,
-		noise: state.noiseLevel,
-	};
+	const update = useCallback(
+		(patch: Partial<SettingsState>) => dispatch({ type: "UPDATE", patch }),
+		[],
+	);
+
+	const effects = useMemo(() => {
+		const rec = {} as Record<EffectCategory, EffectLevel>;
+		for (const [cat, key] of Object.entries(EFFECT_STATE_KEY) as [EffectCategory, EffectStateField][]) {
+			rec[cat] = state[key];
+		}
+		return rec;
+	}, [state.dimLevel, state.opacityLevel, state.gradientLevel, state.glowLevel, state.scanlineLevel, state.noiseLevel]);
 
 	const handleEffectChange = useCallback(
 		(category: EffectCategory, level: EffectLevel) => {
@@ -210,29 +214,15 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 			lineHeight: state.lineHeight,
 			preset: state.themePreset,
 		};
-	}, [
-		state.themePreset,
-		state.fontSize,
-		state.dimLevel,
-		state.fontFamily,
-		state.scrollback,
-		state.cursorStyle,
-		state.statusBarPosition,
-		state.opacityLevel,
-		state.gradientLevel,
-		state.glowLevel,
-		state.scanlineLevel,
-		state.noiseLevel,
-		state.lineHeight,
-	]);
+	}, [state]);
 
 	/** Persist workspace, surfacing errors to the user via saveFailed indicator. */
 	const persistWorkspace = useCallback(
 		(ws: Workspace) => {
-			dispatch({ type: "UPDATE", patch: { saveFailed: false } });
+			update({ saveFailed: false });
 			updateWorkspace(ws).catch((err: unknown) => {
 				console.error("[settings] persist failed:", err);
-				dispatch({ type: "UPDATE", patch: { saveFailed: true } });
+				update({ saveFailed: true });
 			});
 		},
 		[updateWorkspace],
@@ -243,14 +233,10 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 	// Tracks previous value via ref and compares to current value before persisting.
 	// A simple useRef(false) mount guard would misfire under React 18 StrictMode,
 	// which double-invokes effects on mount.
-	const prevAutoSaveRef = useRef({ buildThemeFromInputs });
+	const prevAutoSaveRef = useRef(buildThemeFromInputs);
 	useEffect(() => {
-		if (
-			prevAutoSaveRef.current.buildThemeFromInputs === buildThemeFromInputs
-		) {
-			return;
-		}
-		prevAutoSaveRef.current = { buildThemeFromInputs };
+		if (prevAutoSaveRef.current === buildThemeFromInputs) return;
+		prevAutoSaveRef.current = buildThemeFromInputs;
 		const latest = getLatestWorkspace(workspace.id);
 		if (!latest) return;
 		// Debounce theme persist to avoid saving on every keystroke (e.g. font-size stepper)
@@ -295,8 +281,8 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 
 	const handleDelete = useCallback(() => {
 		if (!state.confirmDelete) {
-			dispatch({ type: "UPDATE", patch: { confirmDelete: true } });
-			setTimeout(() => dispatch({ type: "UPDATE", patch: { confirmDelete: false } }), 3000);
+			update({ confirmDelete: true });
+			setTimeout(() => update({ confirmDelete: false }), 3000);
 			return;
 		}
 		removeWorkspace(workspace.id);
@@ -389,7 +375,7 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 							aria-selected={state.activeTab === tab}
 							aria-controls={`settings-tabpanel-${tab}`}
 							tabIndex={state.activeTab === tab ? 0 : -1}
-							onClick={() => dispatch({ type: "UPDATE", patch: { activeTab: tab } })}
+							onClick={() => update({ activeTab: tab })}
 							onKeyDown={(e) => {
 								const idx = SETTINGS_TABS.indexOf(tab);
 								if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -398,7 +384,7 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 										e.key === "ArrowRight"
 											? SETTINGS_TABS[(idx + 1) % SETTINGS_TABS.length]!
 											: SETTINGS_TABS[(idx - 1 + SETTINGS_TABS.length) % SETTINGS_TABS.length]!;
-									dispatch({ type: "UPDATE", patch: { activeTab: next } });
+									update({ activeTab: next });
 									document.getElementById(`settings-tab-${next}`)?.focus();
 								}
 							}}
@@ -416,14 +402,12 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 				<WorkspaceTabPanel
 					panes={workspace.panes}
 					name={state.name}
-					onNameChange={(v) => dispatch({ type: "UPDATE", patch: { name: v } })}
+					onNameChange={(v) => update({ name: v })}
 					homeDir={homeDir}
 					currentPreset={currentPreset}
 					onLayoutChange={handleLayoutChange}
 					statusBarPosition={state.statusBarPosition}
-					onStatusBarPositionChange={(v) =>
-						dispatch({ type: "UPDATE", patch: { statusBarPosition: v } })
-					}
+					onStatusBarPositionChange={(v) => update({ statusBarPosition: v })}
 					onPaneUpdate={handlePaneUpdate}
 					hidden={state.activeTab !== "Workspace"}
 				/>
@@ -432,15 +416,15 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 					selectedPreset={state.themePreset}
 					onPresetChange={(name) => dispatch({ type: "APPLY_PRESET", preset: name })}
 					fontFamily={state.fontFamily}
-					onFontFamilyChange={(v) => dispatch({ type: "UPDATE", patch: { fontFamily: v } })}
+					onFontFamilyChange={(v) => update({ fontFamily: v })}
 					fontSize={state.fontSize}
-					onFontSizeChange={(v) => dispatch({ type: "UPDATE", patch: { fontSize: v } })}
+					onFontSizeChange={(v) => update({ fontSize: v })}
 					lineHeight={state.lineHeight}
-					onLineHeightChange={(v) => dispatch({ type: "UPDATE", patch: { lineHeight: v } })}
+					onLineHeightChange={(v) => update({ lineHeight: v })}
 					cursorStyle={state.cursorStyle}
-					onCursorStyleChange={(v) => dispatch({ type: "UPDATE", patch: { cursorStyle: v } })}
+					onCursorStyleChange={(v) => update({ cursorStyle: v })}
 					scrollback={state.scrollback}
-					onScrollbackChange={(v) => dispatch({ type: "UPDATE", patch: { scrollback: v } })}
+					onScrollbackChange={(v) => update({ scrollback: v })}
 					effects={effects}
 					onEffectChange={handleEffectChange}
 					hidden={state.activeTab !== "Terminal"}
