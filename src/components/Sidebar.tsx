@@ -36,6 +36,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const handleBarMouseDown = useWindowDrag();
 
 	const [actionError, setActionError] = useState<string | null>(null);
+	const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	const openWorkspaces = useMemo(() => {
 		return openWorkspaceIds
@@ -65,8 +66,9 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	);
 
 	const showTransientError = useCallback((msg: string) => {
+		clearTimeout(errorTimerRef.current);
 		setActionError(msg);
-		setTimeout(() => setActionError(null), 3000);
+		errorTimerRef.current = setTimeout(() => setActionError(null), 3000);
 	}, []);
 
 	const handleRename = useCallback(
