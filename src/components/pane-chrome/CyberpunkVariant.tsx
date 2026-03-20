@@ -55,13 +55,15 @@ function Frame({
 					style={{ borderColor: activeC1, color: activeC1 }}
 				/>
 			) : (
-				<span
+				<button
+					type="button"
 					onDoubleClick={onDoubleClickLabel}
-					className="cursor-default shrink-0"
+					onKeyDown={(e) => { if (e.key === "Enter") onDoubleClickLabel(); }}
+					className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS}`}
 					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${activeC1}` : "none" }}
 				>
 					{label}
-				</span>
+				</button>
 			)}
 
 			<span className="opacity-30">/</span>

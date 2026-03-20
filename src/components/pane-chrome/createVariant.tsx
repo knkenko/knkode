@@ -107,13 +107,15 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 						style={sb.editInput.style(theme)}
 					/>
 				) : (
-					<span
+					<button
+						type="button"
 						onDoubleClick={onDoubleClickLabel}
-						className={`cursor-default shrink-0 ${sb.label?.className ?? "font-medium"}`}
+						onKeyDown={(e) => { if (e.key === "Enter") onDoubleClickLabel(); }}
+						className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS} ${sb.label?.className ?? "font-medium"}`}
 						style={sb.label?.style?.(theme, isFocused)}
 					>
 						{label}
-					</span>
+					</button>
 				)}
 
 				{(sb.showSeparatorAfterLabel ?? true) && <Sep theme={theme} />}

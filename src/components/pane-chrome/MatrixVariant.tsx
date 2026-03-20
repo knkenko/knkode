@@ -49,9 +49,14 @@ function Frame({
 					style={{ borderColor: theme.accent, color: fg }}
 				/>
 			) : (
-				<span onDoubleClick={onDoubleClickLabel} className="cursor-default shrink-0">
+				<button
+					type="button"
+					onDoubleClick={onDoubleClickLabel}
+					onKeyDown={(e) => { if (e.key === "Enter") onDoubleClickLabel(); }}
+					className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS}`}
+				>
 					{label}
-				</span>
+				</button>
 			)}
 
 			<span className="mx-1 opacity-40">|</span>

@@ -40,12 +40,14 @@ function Frame({
 					className="bg-elevated border border-accent rounded-sm text-content text-[11px] py-px px-1 outline-none w-20"
 				/>
 			) : (
-				<span
+				<button
+					type="button"
 					onDoubleClick={onDoubleClickLabel}
-					className="text-content font-medium cursor-default"
+					onKeyDown={(e) => { if (e.key === "Enter") onDoubleClickLabel(); }}
+					className={`bg-transparent border-none p-0 text-content font-medium cursor-default ${FOCUS_VIS}`}
 				>
 					{label}
-				</span>
+				</button>
 			)}
 
 			<span className="text-content-muted text-[10px]">·</span>
