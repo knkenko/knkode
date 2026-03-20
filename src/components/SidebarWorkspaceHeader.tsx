@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { useClickOutside } from "../hooks/useClickOutside";
+import { useContextMenu } from "../hooks/useContextMenu";
 import { useInlineEdit } from "../hooks/useInlineEdit";
 import { getPortalRoot } from "../lib/ui-constants";
 import type { Workspace } from "../shared/types";
@@ -9,6 +9,7 @@ interface SidebarWorkspaceHeaderProps {
 	workspace: Workspace;
 	isActive: boolean;
 	isCollapsed: boolean;
+	/** Number of panes in this workspace. Always >= 1. Badge shown when > 1. */
 	paneCount: number;
 	colors: readonly string[];
 	onToggleCollapse: () => void;
@@ -32,26 +33,15 @@ export function SidebarWorkspaceHeader({
 	onDuplicate,
 	onClose,
 }: SidebarWorkspaceHeaderProps) {
-	const [showContext, setShowContext] = useState(false);
 	const [showColorPicker, setShowColorPicker] = useState(false);
-	const [contextPos, setContextPos] = useState({ x: 0, y: 0 });
-	const contextRef = useRef<HTMLDivElement>(null);
+	const ctx = useContextMenu();
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(workspace.name, onRename);
 
-	const handleContextMenu = useCallback((e: React.MouseEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setContextPos({ x: e.clientX, y: e.clientY });
-		setShowContext(true);
-	}, []);
-
-	const closeContext = useCallback(() => {
-		setShowContext(false);
+	const closeContext = () => {
+		ctx.close();
 		setShowColorPicker(false);
-	}, []);
-
-	useClickOutside(contextRef, closeContext, showContext);
+	};
 
 	return (
 		<>
@@ -72,7 +62,7 @@ export function SidebarWorkspaceHeader({
 						onToggleCollapse();
 					}
 				}}
-				onContextMenu={handleContextMenu}
+				onContextMenu={ctx.open}
 				className={`flex items-center gap-2 w-full px-3 py-1.5 text-left cursor-pointer border-none border-l-[3px] rounded-sm transition-colors duration-200 ${
 					isActive
 						? "bg-overlay-active text-content"
@@ -109,6 +99,7 @@ export function SidebarWorkspaceHeader({
 				{isEditing ? (
 					<input
 						{...inputProps}
+						maxLength={64}
 						onClick={(e) => e.stopPropagation()}
 						className="bg-elevated border border-accent rounded-sm text-content text-[11px] font-medium py-px px-1 outline-none flex-1 min-w-0"
 					/>
@@ -133,12 +124,12 @@ export function SidebarWorkspaceHeader({
 			</button>
 
 			{/* Context menu — portalled to escape overflow-hidden containers */}
-			{showContext &&
+			{ctx.isOpen &&
 				createPortal(
 					<div
-						ref={contextRef}
+						ref={ctx.ref}
 						className="ctx-menu fixed z-[300]"
-						style={{ left: contextPos.x, top: contextPos.y }}
+						style={{ left: ctx.position.x, top: ctx.position.y }}
 						onKeyDown={(e) => {
 							if (e.key === "Escape") closeContext();
 						}}

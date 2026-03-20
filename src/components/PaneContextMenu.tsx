@@ -6,6 +6,7 @@ import { MAX_FONT_SIZE, MIN_FONT_SIZE, type PaneConfig, type PaneTheme } from ".
 import { useStore } from "../store";
 import { isValidCwd } from "../utils/validation";
 import { FontPicker } from "./FontPicker";
+import { MoveToWorkspaceSubmenu } from "./MoveToWorkspaceSubmenu";
 
 type ContextPanelKind = "cwd" | "cmd" | "theme" | "move";
 
@@ -155,26 +156,13 @@ export function PaneContextMenu({
 						Move to Workspace
 					</button>
 					{contextPanel === "move" && (
-						<div className="flex flex-col gap-0.5 px-1 py-1">
-							{otherOpenWorkspaces.map((ws) => (
-								<button
-									type="button"
-									key={ws.id}
-									className="ctx-item flex items-center gap-2"
-									onClick={() => {
-										movePaneToWorkspace(workspaceId, paneId, ws.id);
-										closeContext();
-									}}
-								>
-									<span
-										className="w-2 h-2 rounded-full shrink-0"
-										aria-hidden="true"
-										style={{ background: ws.color }}
-									/>
-									<span className="truncate">{ws.name}</span>
-								</button>
-							))}
-						</div>
+						<MoveToWorkspaceSubmenu
+							workspaces={otherOpenWorkspaces}
+							onMove={(toWsId) => {
+								movePaneToWorkspace(workspaceId, paneId, toWsId);
+								closeContext();
+							}}
+						/>
 					)}
 				</>
 			)}

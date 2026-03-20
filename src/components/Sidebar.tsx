@@ -75,7 +75,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 		(wsId: string, updates: Partial<Workspace>) => {
 			const ws = workspaces.find((w) => w.id === wsId);
 			if (!ws) return;
-			updateWorkspace({ ...ws, ...updates }).catch((err: unknown) => {
+			updateWorkspace({ ...ws, ...updates }).catch((err) => {
 				console.error("[sidebar] Failed to update workspace:", err);
 				showTransientError("Failed to update workspace");
 			});
@@ -85,7 +85,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 
 	const handleDuplicate = useCallback(
 		(wsId: string) => {
-			duplicateWorkspace(wsId).catch((err: unknown) => {
+			duplicateWorkspace(wsId).catch((err) => {
 				console.error("[sidebar] Failed to duplicate workspace:", err);
 				showTransientError("Failed to duplicate workspace");
 			});
@@ -94,7 +94,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	);
 
 	const handleNewWorkspace = useCallback(() => {
-		createDefaultWorkspace().catch((err: unknown) => {
+		createDefaultWorkspace().catch((err) => {
 			console.error("[sidebar] Failed to create workspace:", err);
 			showTransientError("Failed to create workspace");
 		});
@@ -123,6 +123,8 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
 							const paneIds = getPaneIdsInOrder(ws.layout.tree);
+							const otherOpen = openWorkspaces.filter((w) => w.id !== ws.id);
+							const canClose = paneIds.length > 1;
 
 							return (
 								<div key={ws.id}>
@@ -151,9 +153,10 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 														workspaceId={ws.id}
 														config={config}
 														isFocused={focusedPaneId === paneId && isActive}
-														canClose={paneIds.length > 1}
+														canClose={canClose}
+														otherOpenWorkspaces={otherOpen}
 														onClick={() => handlePaneClick(ws.id, paneId)}
-														onClose={() => closePane(ws.id, paneId)}
+														{...(canClose ? { onClose: () => closePane(ws.id, paneId) } : {})}
 													/>
 												);
 											})}
@@ -312,7 +315,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 						aria-hidden="true"
 						className={`transition-transform duration-200 ${sidebarCollapsed ? "rotate-180" : ""}`}
 					>
-						{/* Sidebar collapse icon — left-pointing chevron */}
+						{/* Sidebar collapse icon — chevron rotates 180° when collapsed */}
 						<path d="M9 3L5 7L9 11" />
 					</svg>
 				</button>
