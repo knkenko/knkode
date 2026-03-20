@@ -8,10 +8,7 @@ import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useStore } from "./store";
 import { generateThemeVariables } from "./utils/colors";
-import {
-	WINDOWS_CAPTION_BUTTON_WIDTH,
-	isWindows,
-} from "./utils/platform";
+import { isWindows, WINDOWS_CAPTION_BUTTON_WIDTH } from "./utils/platform";
 
 export function App() {
 	const initialized = useStore((s) => s.initialized);
@@ -33,8 +30,9 @@ export function App() {
 		if (focusedPaneId) setFocusedPane(focusedPaneId);
 	}, []);
 	const toggleSettings = useCallback(() => setShowSettings((v) => !v), []);
+	const toggleHotkeys = useCallback(() => setShowHotkeys((v) => !v), []);
 
-	useKeyboardShortcuts({ toggleSettings });
+	useKeyboardShortcuts({ toggleSettings, toggleHotkeys });
 
 	useEffect(() => {
 		init();
@@ -129,7 +127,7 @@ export function App() {
 					fontSize: "var(--font-size-ui)",
 				}}
 			>
-				<Sidebar />
+				<Sidebar onOpenSettings={toggleSettings} onOpenHotkeys={() => setShowHotkeys(true)} />
 				<div className="flex flex-col flex-1 min-w-0">
 					{themeFailed && (
 						<div className="px-3 py-1 text-xs text-danger bg-danger/10 border-b border-danger/20">
@@ -160,7 +158,9 @@ export function App() {
 						</>
 					) : (
 						<div className="flex items-center justify-center flex-1 bg-canvas">
-							<p className="text-content-muted text-sm">No workspace open. Click + to create one.</p>
+							<p className="text-content-muted text-sm">
+								No workspace open. Click + to create one.
+							</p>
 						</div>
 					)}
 					{showHotkeys && <HotkeyPanel onClose={() => setShowHotkeys(false)} />}

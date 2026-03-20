@@ -18,6 +18,7 @@ const PANE_NAV_DELTAS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
  * - Mod+Alt/Option+Left/Right: cycle focus to prev/next pane in layout order
  * - Mod+,: toggle settings panel
  * - Mod+B: toggle sidebar collapse
+ * - Mod+/: toggle keyboard shortcuts panel
  * - Mod+1-9: focus pane by index
  * - Mod+Down: scroll focused terminal to bottom
  * - Mod+Up: scroll focused terminal to top
@@ -25,9 +26,10 @@ const PANE_NAV_DELTAS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
 
 interface ShortcutOptions {
 	toggleSettings?: () => void;
+	toggleHotkeys?: () => void;
 }
 
-export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
+export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: ShortcutOptions = {}) {
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			// Skip events already handled by another listener (e.g. key-to-ansi sends
@@ -129,9 +131,16 @@ export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
 			}
 
 			// Mod+B — toggle sidebar collapse
-			if (e.key === "b" && !e.shiftKey) {
+			if (e.key === "b" && !e.shiftKey && !e.altKey) {
 				e.preventDefault();
 				state.toggleSidebar();
+				return;
+			}
+
+			// Mod+/ — toggle keyboard shortcuts panel
+			if (e.key === "/" && toggleHotkeys) {
+				e.preventDefault();
+				toggleHotkeys();
 				return;
 			}
 
@@ -165,5 +174,5 @@ export function useKeyboardShortcuts({ toggleSettings }: ShortcutOptions = {}) {
 
 		window.addEventListener("keydown", handler);
 		return () => window.removeEventListener("keydown", handler);
-	}, [toggleSettings]);
+	}, [toggleSettings, toggleHotkeys]);
 }
