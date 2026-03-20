@@ -66,6 +66,13 @@ struct PollState {
     gh_logged_errors: HashSet<String>,
 }
 
+/// Cached git/PR results for a single repo root within one poll cycle.
+/// Avoids duplicate subprocess calls when multiple panes share a repo.
+struct RepoCacheEntry {
+    branch: Option<String>,
+    pr: Option<Option<PrInfo>>,
+}
+
 impl CwdTracker {
     pub fn new() -> Self {
         Self {
@@ -131,11 +138,22 @@ impl CwdTracker {
                         }
                     };
 
+                    // Per-cycle repo cache: repo_root → cached branch/PR results.
+                    // Prevents duplicate git/gh calls when multiple panes share a repo.
+                    let mut repo_cache: HashMap<String, RepoCacheEntry> = HashMap::new();
+
                     for pane_id in pane_ids {
                         if !running.load(Ordering::SeqCst) {
                             break;
                         }
-                        poll_pane(&pane_id, &panes, &pty_manager, &app, &mut state);
+                        poll_pane(
+                            &pane_id,
+                            &panes,
+                            &pty_manager,
+                            &app,
+                            &mut state,
+                            &mut repo_cache,
+                        );
                     }
 
                     let elapsed = cycle_start.elapsed();
@@ -180,6 +198,7 @@ fn poll_pane(
     pty_manager: &PtyManager,
     app: &tauri::AppHandle,
     state: &mut PollState,
+    repo_cache: &mut HashMap<String, RepoCacheEntry>,
 ) {
     let current_cwd = pty_manager.get_cwd(pane_id);
     let (last_cwd, last_branch) = match panes.lock() {
@@ -209,85 +228,157 @@ fn poll_pane(
         last_cwd
     };
 
-    // Git branch detection
+    // Git branch detection — deduplicated per repo root
     if !should_retry_tool(&mut state.git_missing_since) {
         return;
     }
 
-    match get_git_branch(&cwd, &state.augmented_path) {
-        ToolOutcome::Success(current_branch) => {
-            state.git_missing_since = None;
-            let branch_changed = current_branch != last_branch;
+    // Resolve repo root to share results across panes in the same repo
+    let repo_root = get_repo_root(&cwd, &state.augmented_path);
 
-            if branch_changed {
-                with_pane_mut(panes, pane_id, |s| {
-                    s.branch = current_branch.clone();
-                });
-                let _ = app.emit(
-                    "pty:branch-changed",
-                    json!({ "paneId": pane_id, "branch": current_branch }),
-                );
-                clear_pr_if_present(panes, pane_id, app);
-            }
-
-            // PR detection
-            let should_check_pr = branch_changed
-                || with_pane_mut(panes, pane_id, |s| {
-                    s.pr_last_checked.elapsed() >= PR_REFRESH_INTERVAL
-                })
-                .unwrap_or(false);
-
-            if current_branch.is_some()
-                && should_check_pr
-                && should_retry_tool(&mut state.gh_missing_since)
-            {
-                with_pane_mut(panes, pane_id, |s| {
-                    s.pr_last_checked = Instant::now();
-                });
-
-                match get_pr_status(&cwd, &state.augmented_path, &mut state.gh_logged_errors) {
-                    ToolOutcome::Success(pr) => {
-                        state.gh_missing_since = None;
-                        let current_num = pr.as_ref().map(|p| p.number);
-                        let last_num =
-                            with_pane_mut(panes, pane_id, |s| s.pr.as_ref().map(|p| p.number))
-                                .flatten();
-                        if current_num != last_num {
-                            let _ =
-                                app.emit("pty:pr-changed", json!({ "paneId": pane_id, "pr": pr }));
-                            with_pane_mut(panes, pane_id, |s| {
-                                s.pr = pr;
-                            });
-                        }
-                    }
-                    ToolOutcome::Missing => {
-                        if state.gh_missing_since.is_none() {
-                            state.gh_missing_since = Some(Instant::now());
-                            eprintln!(
-                                "[tracker] gh CLI not found — PR detection disabled (will retry)"
-                            );
-                        }
-                    }
-                    ToolOutcome::Failed(e) => {
+    // Check if we already have cached results for this repo
+    let current_branch = if let Some(root) = &repo_root {
+        if let Some(cached) = repo_cache.get(root) {
+            cached.branch.clone()
+        } else {
+            // First pane in this repo — actually query git
+            let branch = match get_git_branch(&cwd, &state.augmented_path) {
+                ToolOutcome::Success(b) => {
+                    state.git_missing_since = None;
+                    b
+                }
+                ToolOutcome::Missing => {
+                    if state.git_missing_since.is_none() {
+                        state.git_missing_since = Some(Instant::now());
                         eprintln!(
-                            "[tracker] gh pr view error: {}",
-                            truncate_str(&e, MAX_LOG_MSG_LEN)
+                            "[tracker] git not found — branch detection disabled (will retry)"
                         );
                     }
+                    return;
                 }
-            } else if current_branch.is_none() {
-                clear_pr_if_present(panes, pane_id, app);
+                ToolOutcome::Failed(e) => {
+                    eprintln!("[tracker] git error: {}", truncate_str(&e, MAX_LOG_MSG_LEN));
+                    return;
+                }
+            };
+            repo_cache.insert(
+                root.clone(),
+                RepoCacheEntry {
+                    branch: branch.clone(),
+                    pr: None,
+                },
+            );
+            branch
+        }
+    } else {
+        // Not in a git repo — query directly (won't match other panes)
+        match get_git_branch(&cwd, &state.augmented_path) {
+            ToolOutcome::Success(b) => {
+                state.git_missing_since = None;
+                b
+            }
+            ToolOutcome::Missing => {
+                if state.git_missing_since.is_none() {
+                    state.git_missing_since = Some(Instant::now());
+                    eprintln!("[tracker] git not found — branch detection disabled (will retry)");
+                }
+                return;
+            }
+            ToolOutcome::Failed(_) => {
+                return;
             }
         }
-        ToolOutcome::Missing => {
-            if state.git_missing_since.is_none() {
-                state.git_missing_since = Some(Instant::now());
-                eprintln!("[tracker] git not found — branch detection disabled (will retry)");
+    };
+
+    let branch_changed = current_branch != last_branch;
+
+    if branch_changed {
+        with_pane_mut(panes, pane_id, |s| {
+            s.branch = current_branch.clone();
+        });
+        let _ = app.emit(
+            "pty:branch-changed",
+            json!({ "paneId": pane_id, "branch": current_branch }),
+        );
+        clear_pr_if_present(panes, pane_id, app);
+    }
+
+    // PR detection — deduplicated per repo root
+    let should_check_pr = branch_changed
+        || with_pane_mut(panes, pane_id, |s| {
+            s.pr_last_checked.elapsed() >= PR_REFRESH_INTERVAL
+        })
+        .unwrap_or(false);
+
+    if current_branch.is_some() && should_check_pr && should_retry_tool(&mut state.gh_missing_since)
+    {
+        with_pane_mut(panes, pane_id, |s| {
+            s.pr_last_checked = Instant::now();
+        });
+
+        // Try to reuse cached PR result for this repo
+        let pr_result = if let Some(root) = &repo_root {
+            if let Some(cached) = repo_cache.get(root) {
+                if let Some(ref cached_pr) = cached.pr {
+                    // Already queried gh for this repo this cycle
+                    Some(cached_pr.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
             }
+        } else {
+            None
+        };
+
+        let pr = if let Some(cached_pr) = pr_result {
+            cached_pr
+        } else {
+            // First PR check for this repo this cycle — actually query gh
+            match get_pr_status(&cwd, &state.augmented_path, &mut state.gh_logged_errors) {
+                ToolOutcome::Success(pr) => {
+                    state.gh_missing_since = None;
+                    // Cache the result for other panes in the same repo
+                    if let Some(root) = &repo_root {
+                        if let Some(cached) = repo_cache.get_mut(root) {
+                            cached.pr = Some(pr.clone());
+                        }
+                    }
+                    pr
+                }
+                ToolOutcome::Missing => {
+                    if state.gh_missing_since.is_none() {
+                        state.gh_missing_since = Some(Instant::now());
+                        eprintln!(
+                            "[tracker] gh CLI not found — PR detection disabled (will retry)"
+                        );
+                    }
+                    return;
+                }
+                ToolOutcome::Failed(e) => {
+                    eprintln!(
+                        "[tracker] gh pr view error: {}",
+                        truncate_str(&e, MAX_LOG_MSG_LEN)
+                    );
+                    // Clear stale PR on failure — if we can't verify it's
+                    // still open, remove it rather than show stale data.
+                    clear_pr_if_present(panes, pane_id, app);
+                    return;
+                }
+            }
+        };
+
+        let current_num = pr.as_ref().map(|p| p.number);
+        let last_num = with_pane_mut(panes, pane_id, |s| s.pr.as_ref().map(|p| p.number)).flatten();
+        if current_num != last_num {
+            let _ = app.emit("pty:pr-changed", json!({ "paneId": pane_id, "pr": pr }));
+            with_pane_mut(panes, pane_id, |s| {
+                s.pr = pr;
+            });
         }
-        ToolOutcome::Failed(e) => {
-            eprintln!("[tracker] git error: {}", truncate_str(&e, MAX_LOG_MSG_LEN));
-        }
+    } else if current_branch.is_none() {
+        clear_pr_if_present(panes, pane_id, app);
     }
 }
 
@@ -376,6 +467,26 @@ fn run_cli(
         Ok(output) => ToolOutcome::Success(output),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => ToolOutcome::Missing,
         Err(e) => ToolOutcome::Failed(e.to_string()),
+    }
+}
+
+/// Resolve the git repo root for a given CWD. Returns `None` if not in a repo.
+fn get_repo_root(cwd: &str, augmented_path: &str) -> Option<String> {
+    match run_cli(
+        "git",
+        &["rev-parse", "--show-toplevel"],
+        cwd,
+        augmented_path,
+    ) {
+        ToolOutcome::Success(output) if output.status.success() => {
+            let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if root.is_empty() {
+                None
+            } else {
+                Some(root)
+            }
+        }
+        _ => None,
     }
 }
 

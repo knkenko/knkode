@@ -1,4 +1,10 @@
-import type React from "react";
+import type {
+	CSSProperties,
+	ComponentType,
+	InputHTMLAttributes,
+	MouseEvent,
+	ReactNode,
+} from "react";
 import type { AgentStatus, PrInfo } from "../../shared/types";
 
 // Base props for visual rendering
@@ -8,9 +14,9 @@ export interface BaseWorkspaceHeaderProps {
 	isCollapsed: boolean;
 	paneCount: number;
 	isEditing: boolean;
-	inputProps: React.InputHTMLAttributes<HTMLInputElement>;
-	onClick: (e: React.MouseEvent) => void;
-	onContextMenu: (e: React.MouseEvent) => void;
+	inputProps: InputHTMLAttributes<HTMLInputElement>;
+	onClick: (e: MouseEvent) => void;
+	onContextMenu: (e: MouseEvent) => void;
 }
 
 export interface BasePaneEntryProps {
@@ -21,6 +27,38 @@ export interface BasePaneEntryProps {
 	agentStatus: AgentStatus;
 	isFocused: boolean;
 	onClick: () => void;
-	onContextMenu: (e: React.MouseEvent) => void;
+	onContextMenu: (e: MouseEvent) => void;
 	paneId: string;
+}
+
+export interface CollapsedVariantProps {
+	name: string;
+	isActive: boolean;
+	onClick: () => void;
+}
+
+/** CSS class tokens for workspace section wrappers. `base` is always applied; exactly one of `active`/`inactive` is appended. */
+export interface WrapperTokens {
+	base: string;
+	active: string;
+	inactive: string;
+}
+
+/** Tokens for collapsed workspace variant rendering. `button` is always applied; exactly one of `active`/`inactive` is appended. */
+export interface CollapsedTokens {
+	button: string;
+	active: string;
+	inactive: string;
+	label: string;
+	labelActive?: string;
+	formatName?: (name: string) => string;
+	style?: CSSProperties;
+	decorator?: (isActive: boolean) => ReactNode;
+}
+
+export interface ThemeVariantConfig {
+	wrapper: WrapperTokens;
+	collapsed: CollapsedTokens;
+	Header: ComponentType<BaseWorkspaceHeaderProps>;
+	Entry: ComponentType<BasePaneEntryProps>;
 }

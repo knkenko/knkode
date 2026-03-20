@@ -33,9 +33,7 @@ export function MatrixHeader({
 			) : (
 				<span className="sidebar-header text-[12px] truncate flex-1 min-w-0">{name}</span>
 			)}
-			{paneCount > 1 && (
-				<span className="text-[10px] shrink-0 opacity-80">SYS:{paneCount}</span>
-			)}
+			{paneCount > 1 && <span className="text-[10px] shrink-0 opacity-80">SYS:{paneCount}</span>}
 		</button>
 	);
 }
@@ -106,8 +104,7 @@ export function CyberpunkHeader({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			style={{
-				clipPath:
-					"polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
+				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
 			}}
 			className={`sidebar-item flex items-center gap-2 w-[calc(100%-8px)] mx-1 px-3 py-1.5 text-left cursor-pointer transition-all border-l-4 font-bold uppercase tracking-widest ${
 				isActive
@@ -115,9 +112,7 @@ export function CyberpunkHeader({
 					: "bg-[#130228] text-[#ff6e96] border-[#2a0550] hover:bg-[#2a0550] hover:text-[#05d9e8]"
 			}`}
 		>
-			<span
-				className={`text-[10px] transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-			>
+			<span className={`text-[10px] transition-transform ${isCollapsed ? "" : "rotate-90"}`}>
 				❯
 			</span>
 			{isEditing ? (
@@ -334,14 +329,10 @@ export function AmberHeader({
 					className="sidebar-header bg-[#080500] border border-[#ffb000] text-[#ffb000] text-[11px] py-px px-1 outline-none flex-1 min-w-0 font-mono uppercase"
 				/>
 			) : (
-				<span className="sidebar-header text-[12px] font-bold truncate flex-1 min-w-0">
-					{name}
-				</span>
+				<span className="sidebar-header text-[12px] font-bold truncate flex-1 min-w-0">{name}</span>
 			)}
 			{paneCount > 1 && (
-				<span className="text-[10px] px-1 border border-[#b37a00] shrink-0">
-					{paneCount}
-				</span>
+				<span className="text-[10px] px-1 border border-[#b37a00] shrink-0">{paneCount}</span>
 			)}
 		</button>
 	);
@@ -373,13 +364,9 @@ export function AmberEntry({
 			<div className="flex items-center gap-2 min-w-0 w-full">
 				<span className="shrink-0">{isFocused ? "▶" : " "}</span>
 				<span className="text-[11px] font-bold truncate flex-1">{label}</span>
-				{agentStatus === "in_progress" && (
-					<span className="text-[9px] animate-pulse">WAIT...</span>
-				)}
+				{agentStatus === "in_progress" && <span className="text-[9px] animate-pulse">WAIT...</span>}
 				{agentStatus === "input_required" && (
-					<span className="text-[9px] animate-pulse bg-[#ffb000] text-black px-1">
-						INPUT
-					</span>
+					<span className="text-[9px] animate-pulse bg-[#ffb000] text-black px-1">INPUT</span>
 				)}
 			</div>
 			<div className="flex items-center min-w-0 w-full pl-4 opacity-70">
@@ -388,9 +375,7 @@ export function AmberEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-4 opacity-80">
 					{branch && <span className="text-[9px] shrink-0 truncate max-w-[120px]">[{branch}]</span>}
-					{pr && (
-						<span className="text-[9px] shrink-0">PR:{pr.number}</span>
-					)}
+					{pr && <span className="text-[9px] shrink-0">PR:{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -475,9 +460,7 @@ export function VaporwaveEntry({
 				{agentStatus === "input_required" && (
 					<span className="text-[12px] text-[#ff2d95] animate-pulse shrink-0">!</span>
 				)}
-				<span className="text-[11px] font-semibold truncate flex-1 uppercase">
-					{label}
-				</span>
+				<span className="text-[11px] font-semibold truncate flex-1 uppercase">{label}</span>
 			</div>
 			<div className="flex items-center min-w-0 w-full opacity-80">
 				<span className="text-[9px] truncate flex-1 font-mono">{cwd}</span>
@@ -701,9 +684,7 @@ export function SunsetEntry({
 							{branch}
 						</span>
 					)}
-					{pr && (
-						<span className="text-[9px] text-[#ffc040] shrink-0">#{pr.number}</span>
-					)}
+					{pr && <span className="text-[9px] text-[#ffc040] shrink-0">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -810,9 +791,7 @@ export function ArcticEntry({
 							{branch}
 						</span>
 					)}
-					{pr && (
-						<span className="text-[9px] text-[#48c8e0] shrink-0">PR {pr.number}</span>
-					)}
+					{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">PR {pr.number}</span>}
 				</div>
 			)}
 		</button>

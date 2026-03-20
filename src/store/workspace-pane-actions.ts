@@ -613,7 +613,9 @@ export function createWorkspacePaneSlice(
 				) {
 					return {};
 				}
-				persistPaneField(state, paneId, { lastPr: pr });
+				// PR data is ephemeral remote state — don't persist to disk.
+				// Unlike branch (local git), PRs go stale on merge and cause
+				// stuck indicators if loaded from config on next startup.
 				return { panePrs: { ...state.panePrs, [paneId]: pr } };
 			});
 		},
