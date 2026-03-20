@@ -1,14 +1,31 @@
+use base64::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorPalette, RgbColor};
 use tattoy_wezterm_term::config::TerminalConfiguration;
+use tattoy_wezterm_term::image::ImageDataType;
 use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
 
 const DEFAULT_DPI: u32 = 96;
 pub const DEFAULT_COLS: usize = 80;
 pub const DEFAULT_ROWS: usize = 24;
+
+/// Estimated cell pixel dimensions for initial PTY creation (before the first
+/// frontend resize sends real measurements). wezterm-term divides pixel_width by
+/// cols to get cell_pixel_width — a zero value causes division-by-zero when
+/// placing images. These defaults are overwritten on the first resize event.
+pub const DEFAULT_CELL_PIXEL_WIDTH: usize = 8;
+pub const DEFAULT_CELL_PIXEL_HEIGHT: usize = 16;
+
+/// Maximum image payload size in bytes (width * height * 4 for RGBA, raw bytes for EncodedFile).
+/// Prevents DoS from malicious escape sequences with enormous images.
+const MAX_IMAGE_BYTES: u64 = 50 * 1024 * 1024; // 50 MB
+
+/// Maximum number of unique images per snapshot frame. Prevents unbounded
+/// IPC payload growth from a malicious program emitting thousands of images.
+const MAX_IMAGES_PER_FRAME: usize = 64;
 
 /// Minimal config for wezterm-term. The `TerminalConfiguration` trait has 15+
 /// methods with sensible defaults (scrollback sizing, unicode version, etc.).
@@ -20,16 +37,50 @@ impl tattoy_wezterm_term::config::TerminalConfiguration for TermConfig {
     fn color_palette(&self) -> ColorPalette {
         ColorPalette::default()
     }
+
+    fn enable_kitty_graphics(&self) -> bool {
+        true
+    }
 }
 
-fn term_size(cols: usize, rows: usize) -> TerminalSize {
+fn term_size(cols: usize, rows: usize, pixel_width: usize, pixel_height: usize) -> TerminalSize {
     TerminalSize {
         rows,
         cols,
-        pixel_width: 0,
-        pixel_height: 0,
+        pixel_width,
+        pixel_height,
         dpi: DEFAULT_DPI,
     }
+}
+
+/// A reference to an image slice within a terminal cell. Each cell that participates
+/// in an image has one or more of these, with texture coordinates defining which
+/// portion of the full image to render.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageCellSnapshot {
+    /// Hex-encoded SHA256 hash of the image data — used as cache key.
+    pub hash: String,
+    /// Texture UV coordinates defining the slice of the full image for this cell.
+    /// Range [0.0, 1.0] where (0,0) = top-left, (1,1) = bottom-right.
+    pub top_left_x: f32,
+    pub top_left_y: f32,
+    pub bottom_right_x: f32,
+    pub bottom_right_y: f32,
+    /// Negative z_index renders behind text; zero or positive renders on top.
+    pub z_index: i32,
+}
+
+/// Full image data sent once per unique image. Subsequent frames reference by hash only.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageSnapshot {
+    /// Base64-encoded image data. For raw RGBA sources, re-encoded as PNG.
+    /// For pre-encoded sources (iTerm/Kitty), the original format is preserved.
+    pub data: String,
+    /// Image dimensions in pixels.
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Serialize, Clone)]
@@ -41,6 +92,9 @@ pub struct CellSnapshot {
     pub italic: bool,
     pub underline: bool,
     pub strikethrough: bool,
+    /// Image slices attached to this cell (omitted when empty).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub images: Option<Vec<ImageCellSnapshot>>,
 }
 
 #[derive(Serialize, Clone)]
@@ -66,6 +120,11 @@ pub struct GridSnapshot {
     /// with an explicit colored background — only the latter get drawn, leaving
     /// default-bg cells transparent so PaneBackgroundEffects show through.
     pub default_bg: String,
+    /// Unique images visible in the current viewport, keyed by hex SHA256 hash.
+    /// Only includes images not previously sent (tracked per-session).
+    /// Frontend caches decoded ImageBitmaps by hash.
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub images: HashMap<String, ImageSnapshot>,
 }
 
 /// ANSI 16-color palette sent from the frontend theme system.
@@ -185,14 +244,58 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
 /// `GridSnapshot`s for the frontend canvas renderer.
 ///
 /// Each terminal has its own `ColorPalette` so themes are applied per-pane.
+///
+/// Lock ordering: `terminals` → `palettes` → `sent_image_hashes`.
+/// Never acquire these locks in a different order to prevent deadlocks.
 pub struct TerminalState {
     terminals: Mutex<HashMap<String, Terminal>>,
     /// Per-pane palettes for ANSI color resolution. Stored separately from
     /// terminals so palettes survive PTY restart (remove → create cycle).
     /// Cleaned up in `remove_all()` on app shutdown.
     palettes: Mutex<HashMap<String, Arc<ColorPalette>>>,
+    /// Per-session set of image hashes already sent to the frontend.
+    /// Prevents re-sending the same image data on every snapshot frame.
+    sent_image_hashes: Mutex<HashMap<String, HashSet<[u8; 32]>>>,
     default_palette: Arc<ColorPalette>,
     config: Arc<dyn TerminalConfiguration + Send + Sync>,
+}
+
+/// Encode a [u8; 32] hash as a lowercase hex string.
+fn hex_encode(bytes: &[u8; 32]) -> String {
+    bytes.iter().fold(String::with_capacity(64), |mut s, b| {
+        use std::fmt::Write;
+        write!(s, "{b:02x}").unwrap();
+        s
+    })
+}
+
+/// Encode raw RGBA8 pixel data as a PNG, returning a base64 string.
+/// Uses `PngEncoder` directly to avoid copying the pixel buffer.
+fn encode_rgba_as_png(rgba: &[u8], width: u32, height: u32) -> Option<String> {
+    use image::ImageEncoder;
+    // Size limit: reject images that exceed MAX_IMAGE_BYTES
+    let pixel_bytes = (width as u64) * (height as u64) * 4;
+    if pixel_bytes > MAX_IMAGE_BYTES {
+        eprintln!(
+            "[terminal] image too large: {width}x{height} = {pixel_bytes} bytes (max {MAX_IMAGE_BYTES})"
+        );
+        return None;
+    }
+    let expected = (width as usize) * (height as usize) * 4;
+    if rgba.len() != expected {
+        eprintln!(
+            "[terminal] RGBA buffer size mismatch: expected {expected}, got {}",
+            rgba.len()
+        );
+        return None;
+    }
+    let mut buf = Vec::new();
+    let encoder = image::codecs::png::PngEncoder::new(&mut buf);
+    if let Err(e) = encoder.write_image(rgba, width, height, image::ExtendedColorType::Rgba8) {
+        eprintln!("[terminal] PNG encoding failed for {width}x{height} image: {e}");
+        return None;
+    }
+    Some(BASE64_STANDARD.encode(&buf))
 }
 
 impl TerminalState {
@@ -200,16 +303,24 @@ impl TerminalState {
         Self {
             terminals: Mutex::new(HashMap::new()),
             palettes: Mutex::new(HashMap::new()),
+            sent_image_hashes: Mutex::new(HashMap::new()),
             default_palette: Arc::new(ColorPalette::default()),
             config: Arc::new(TermConfig),
         }
     }
 
-    pub fn create(&self, id: &str, cols: usize, rows: usize) {
+    pub fn create(
+        &self,
+        id: &str,
+        cols: usize,
+        rows: usize,
+        pixel_width: usize,
+        pixel_height: usize,
+    ) {
         // NOTE: Terminal writer is sink() — shell DSR responses (e.g. cursor position
         // reports via \e[6n) are discarded. Known limitation for Phase 5a.
         let terminal = Terminal::new(
-            term_size(cols, rows),
+            term_size(cols, rows, pixel_width, pixel_height),
             Arc::clone(&self.config),
             "knkode",
             env!("CARGO_PKG_VERSION"),
@@ -270,6 +381,9 @@ impl TerminalState {
 
     /// Take a snapshot at a given scroll offset (rows from bottom).
     /// `scroll_offset = 0` → live viewport; `scroll_offset = N` → N rows into scrollback.
+    ///
+    /// Lock ordering: terminals → palettes → sent_image_hashes.
+    /// All code paths must follow this order to prevent deadlocks.
     pub fn snapshot_at_offset(&self, id: &str, scroll_offset: usize) -> Option<GridSnapshot> {
         let terminals = match self.lock_terminals() {
             Ok(t) => t,
@@ -283,10 +397,19 @@ impl TerminalState {
             None => return None,
         };
         let palette = self.get_palette(id);
+        let mut sent_hashes = match self.lock_sent_hashes() {
+            Ok(h) => h,
+            Err(e) => {
+                eprintln!("[terminal] snapshot sent_hashes lock failed for {id}: {e}");
+                return None;
+            }
+        };
+        let session_hashes = sent_hashes.entry(id.to_string()).or_default();
         Some(Self::snapshot_with_palette(
             terminal,
             &palette,
             scroll_offset,
+            session_hashes,
         ))
     }
 
@@ -372,11 +495,18 @@ impl TerminalState {
         Ok(result)
     }
 
-    pub fn resize(&self, id: &str, cols: usize, rows: usize) {
+    pub fn resize(
+        &self,
+        id: &str,
+        cols: usize,
+        rows: usize,
+        pixel_width: usize,
+        pixel_height: usize,
+    ) {
         match self.lock_terminals() {
             Ok(mut terminals) => {
                 if let Some(terminal) = terminals.get_mut(id) {
-                    terminal.resize(term_size(cols, rows));
+                    terminal.resize(term_size(cols, rows, pixel_width, pixel_height));
                 } else {
                     eprintln!("[terminal] resize called for unknown session {id}");
                 }
@@ -392,6 +522,13 @@ impl TerminalState {
             }
             Err(e) => eprintln!("[terminal] remove lock failed for {id}: {e}"),
         }
+        // Clean up sent image hashes for this session
+        match self.lock_sent_hashes() {
+            Ok(mut hashes) => {
+                hashes.remove(id);
+            }
+            Err(e) => eprintln!("[terminal] remove sent_image_hashes lock failed for {id}: {e}"),
+        }
         // Palette intentionally NOT removed — survives pane restart.
         // Cleaned up in remove_all() on app shutdown.
     }
@@ -404,10 +541,12 @@ impl TerminalState {
             Err(e) => eprintln!("[terminal] remove_all lock failed: {e}"),
         }
         match self.lock_palettes() {
-            Ok(mut palettes) => {
-                palettes.clear();
-            }
+            Ok(mut palettes) => palettes.clear(),
             Err(e) => eprintln!("[terminal] remove_all palettes lock failed: {e}"),
+        }
+        match self.lock_sent_hashes() {
+            Ok(mut hashes) => hashes.clear(),
+            Err(e) => eprintln!("[terminal] remove_all sent_image_hashes lock failed: {e}"),
         }
     }
 
@@ -430,6 +569,7 @@ impl TerminalState {
         terminal: &Terminal,
         palette: &ColorPalette,
         scroll_offset: usize,
+        sent_hashes: &mut HashSet<[u8; 32]>,
     ) -> GridSnapshot {
         let screen = terminal.screen();
         let phys_rows = screen.physical_rows;
@@ -449,6 +589,11 @@ impl TerminalState {
         let lines = screen.lines_in_phys_range(viewport_top..viewport_bottom);
 
         let mut rows = Vec::with_capacity(phys_rows);
+        // Collect unique images for this frame — keyed by hash hex string.
+        // frame_hex_cache avoids recomputing hex_encode per cell for the same image.
+        let mut frame_images: HashMap<String, ImageSnapshot> = HashMap::new();
+        let mut frame_hex_cache: HashMap<[u8; 32], String> = HashMap::new();
+
         for line in &lines {
             let mut cells = Vec::with_capacity(phys_cols);
             for cell_ref in line.visible_cells() {
@@ -469,6 +614,59 @@ impl TerminalState {
                     )
                 };
 
+                // Extract image attachments from cell attributes.
+                // filter_map returns None when encoding fails for a new image,
+                // preventing dangling hash references in the frontend.
+                let cell_images = attrs.images().map(|img_cells| {
+                    img_cells
+                        .iter()
+                        .filter_map(|img| {
+                            let image_data = img.image_data();
+                            let hash = image_data.hash();
+                            let hash_hex = frame_hex_cache
+                                .entry(hash)
+                                .or_insert_with(|| hex_encode(&hash))
+                                .clone();
+
+                            // Only include full image data if not previously sent
+                            if !sent_hashes.contains(&hash) {
+                                if frame_images.len() >= MAX_IMAGES_PER_FRAME {
+                                    // Cap reached — skip this image entirely
+                                    return None;
+                                }
+                                match Self::encode_image_data(image_data) {
+                                    Some(snapshot) => {
+                                        sent_hashes.insert(hash);
+                                        frame_images.insert(hash_hex.clone(), snapshot);
+                                    }
+                                    None => {
+                                        // Encoding failed — mark as sent to avoid retrying
+                                        // every frame for unsupported types (AnimRgba8, etc.)
+                                        sent_hashes.insert(hash);
+                                        return None;
+                                    }
+                                }
+                            }
+
+                            let tl = img.top_left();
+                            let br = img.bottom_right();
+                            Some(ImageCellSnapshot {
+                                hash: hash_hex,
+                                top_left_x: *tl.x,
+                                top_left_y: *tl.y,
+                                bottom_right_x: *br.x,
+                                bottom_right_y: *br.y,
+                                z_index: img.z_index(),
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                });
+
+                // Only include images field if there are actual image attachments.
+                // Defensive: images() never returns Some(vec![]) but filter_map may now
+                // produce an empty vec if all images failed to encode.
+                let images = cell_images.and_then(|v| if v.is_empty() { None } else { Some(v) });
+
                 cells.push(CellSnapshot {
                     text: cell_ref.str().to_string(),
                     fg,
@@ -477,6 +675,7 @@ impl TerminalState {
                     italic: attrs.italic(),
                     underline: !matches!(attrs.underline(), Underline::None),
                     strikethrough: attrs.strikethrough(),
+                    images,
                 });
             }
             rows.push(cells);
@@ -505,6 +704,58 @@ impl TerminalState {
             scrollback_rows: max_offset,
             scroll_offset: clamped_offset,
             default_bg: palette.background.to_rgb_string(),
+            images: frame_images,
+        }
+    }
+
+    /// Encode image data from wezterm-term into a base64 ImageSnapshot.
+    /// Returns None if the image type is unsupported, exceeds size limits, or encoding fails.
+    fn encode_image_data(
+        image_data: &Arc<tattoy_wezterm_term::image::ImageData>,
+    ) -> Option<ImageSnapshot> {
+        let data_guard = image_data.data();
+        match &*data_guard {
+            ImageDataType::EncodedFile(bytes) => {
+                if bytes.len() as u64 > MAX_IMAGE_BYTES {
+                    eprintln!(
+                        "[terminal] EncodedFile too large: {} bytes (max {MAX_IMAGE_BYTES})",
+                        bytes.len()
+                    );
+                    return None;
+                }
+                let (width, height) = match data_guard.dimensions() {
+                    Ok(dims) => dims,
+                    Err(e) => {
+                        eprintln!("[terminal] failed to read EncodedFile dimensions: {e}");
+                        return None;
+                    }
+                };
+                Some(ImageSnapshot {
+                    data: BASE64_STANDARD.encode(bytes),
+                    width,
+                    height,
+                })
+            }
+            ImageDataType::Rgba8 {
+                data,
+                width,
+                height,
+                ..
+            } => {
+                // Encode raw RGBA as PNG for efficient IPC transfer
+                Some(ImageSnapshot {
+                    data: encode_rgba_as_png(data, *width, *height)?,
+                    width: *width,
+                    height: *height,
+                })
+            }
+            _ => {
+                // AnimRgba8 and EncodedLease — not yet supported
+                eprintln!(
+                    "[terminal] unsupported image type (AnimRgba8 or EncodedLease) — skipping"
+                );
+                None
+            }
         }
     }
 
@@ -518,5 +769,13 @@ impl TerminalState {
         self.palettes
             .lock()
             .map_err(|e| format!("Palettes lock poisoned: {e}"))
+    }
+
+    fn lock_sent_hashes(
+        &self,
+    ) -> Result<MutexGuard<'_, HashMap<String, HashSet<[u8; 32]>>>, String> {
+        self.sent_image_hashes
+            .lock()
+            .map_err(|e| format!("Sent image hashes lock poisoned: {e}"))
     }
 }

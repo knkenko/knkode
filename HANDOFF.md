@@ -32,7 +32,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 
 ## What's Next
 - [x] File drag-and-drop to paste paths into terminal (PR #25 merged)
-- [ ] Inline terminal images (iTerm2/Kitty/Sixel)
+- [ ] Inline terminal images (iTerm2/Kitty/Sixel) — in progress on feature/terminal-images
 - [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
@@ -40,7 +40,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-None
+None — PR #26 review complete, all findings addressed
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev

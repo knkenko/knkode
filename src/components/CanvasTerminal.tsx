@@ -2,7 +2,14 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
-import type { CellSnapshot, CursorStyle, GridSnapshot, SelectionRange } from "../shared/types";
+import type {
+	CellSnapshot,
+	CursorStyle,
+	GridSnapshot,
+	ImageCellSnapshot,
+	ImageSnapshot,
+	SelectionRange,
+} from "../shared/types";
 import {
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
@@ -14,7 +21,7 @@ import { isMac } from "../utils/platform";
 export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;
 	readonly onWrite: (data: string) => void;
-	readonly onResize: (cols: number, rows: number) => void;
+	readonly onResize: (cols: number, rows: number, pixelWidth: number, pixelHeight: number) => void;
 	/** Scroll delta in lines: positive = scroll up (into scrollback), negative = toward bottom. */
 	readonly onScroll: (deltaLines: number) => void;
 	readonly fontSize?: number | undefined;
@@ -191,42 +198,113 @@ function drawHLine(
 	ctx.stroke();
 }
 
-/** Draw a single terminal cell (background, text, decorations).
- *  Cells whose bg matches `defaultBg` (the terminal palette default) are left
- *  transparent so PaneBackgroundEffects show through. */
-function drawCell(
+/** Decode a base64-encoded image into an ImageBitmap. */
+async function decodeImageData(snapshot: ImageSnapshot): Promise<ImageBitmap> {
+	const binary = atob(snapshot.data);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+	const blob = new Blob([bytes]);
+	return createImageBitmap(blob);
+}
+
+/** Maximum cached ImageBitmaps before LRU eviction kicks in. */
+const MAX_IMAGE_CACHE_SIZE = 128;
+
+/** Cache for decoded terminal images. Maps SHA256 hex hash → ImageBitmap.
+ *  Evicts least-recently-used entries when the cache exceeds MAX_IMAGE_CACHE_SIZE.
+ *  Tracks permanently failed hashes to avoid infinite decode retries. */
+class TerminalImageCache {
+	private cache = new Map<string, ImageBitmap>();
+	private pending = new Set<string>();
+	private failed = new Set<string>();
+
+	/** Get a cached ImageBitmap by hash, or null if not yet decoded. */
+	get(hash: string): ImageBitmap | null {
+		const bitmap = this.cache.get(hash);
+		if (!bitmap) return null;
+		// Move to end for LRU ordering (Map iteration is insertion-order)
+		this.cache.delete(hash);
+		this.cache.set(hash, bitmap);
+		return bitmap;
+	}
+
+	/** Ingest new images from a GridSnapshot. Decodes asynchronously;
+	 *  resolves to true if any new images were successfully decoded and cached. */
+	async ingest(images: Readonly<Record<string, ImageSnapshot>>): Promise<boolean> {
+		const promises: Promise<boolean>[] = [];
+		for (const [hash, snapshot] of Object.entries(images)) {
+			if (this.cache.has(hash) || this.pending.has(hash) || this.failed.has(hash)) continue;
+			this.pending.add(hash);
+			promises.push(
+				decodeImageData(snapshot)
+					.then((bitmap) => {
+						this.cache.set(hash, bitmap);
+						this.pending.delete(hash);
+						this.evict();
+						return true;
+					})
+					.catch((err) => {
+						console.error(`[image-cache] Failed to decode image ${hash.slice(0, 8)}:`, err);
+						this.pending.delete(hash);
+						this.failed.add(hash);
+						return false;
+					}),
+			);
+		}
+		if (promises.length === 0) return false;
+		const results = await Promise.all(promises);
+		return results.some(Boolean);
+	}
+
+	/** Evict oldest entries when cache exceeds max size. */
+	private evict() {
+		while (this.cache.size > MAX_IMAGE_CACHE_SIZE) {
+			const oldest = this.cache.keys().next().value;
+			if (oldest === undefined) break;
+			const bitmap = this.cache.get(oldest);
+			if (bitmap) bitmap.close();
+			this.cache.delete(oldest);
+		}
+	}
+
+	/** Clean up all cached bitmaps. */
+	dispose() {
+		for (const bitmap of this.cache.values()) bitmap.close();
+		this.cache.clear();
+		this.failed.clear();
+	}
+}
+
+/** Draw image slices for a cell. Renders below-text (z < 0) or above-text (z >= 0)
+ *  images based on the `layer` parameter. */
+function drawCellImages(
 	ctx: CanvasRenderingContext2D,
-	cell: CellSnapshot,
+	images: readonly ImageCellSnapshot[],
+	cache: TerminalImageCache,
 	x: number,
 	y: number,
 	cellW: number,
 	cellH: number,
-	baselineOffset: number,
-	scaledSize: number,
-	fontFamily: string,
-	defaultBg: string,
+	layer: "below" | "above",
 ) {
-	// Background — only draw cells with a custom (non-default) background
-	if (cell.bg !== defaultBg) {
-		ctx.fillStyle = cell.bg;
-		ctx.fillRect(x, y, cellW, cellH);
-	}
+	for (const img of images) {
+		if (layer === "below" && img.zIndex >= 0) continue;
+		if (layer === "above" && img.zIndex < 0) continue;
 
-	// Text
-	if (cell.text.trim()) {
-		ctx.font = buildFont(cell, scaledSize, fontFamily);
-		ctx.fillStyle = cell.fg;
-		ctx.fillText(cell.text, x, y + baselineOffset);
-	}
+		const bitmap = cache.get(img.hash);
+		if (!bitmap) continue;
 
-	// Underline
-	if (cell.underline) {
-		drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
-	}
+		// Texture coordinates (0.0-1.0) → source pixel rect
+		const sx = img.topLeftX * bitmap.width;
+		const sy = img.topLeftY * bitmap.height;
+		const sw = (img.bottomRightX - img.topLeftX) * bitmap.width;
+		const sh = (img.bottomRightY - img.topLeftY) * bitmap.height;
 
-	// Strikethrough
-	if (cell.strikethrough) {
-		drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
+		if (sw > 0 && sh > 0) {
+			ctx.drawImage(bitmap, sx, sy, sw, sh, x, y, cellW, cellH);
+		}
 	}
 }
 
@@ -347,6 +425,8 @@ export function CanvasTerminal({
 	const cursorStyleRef = useRef(cursorStyle);
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
+	const imageCacheRef = useRef<TerminalImageCache>(null!);
+	if (!imageCacheRef.current) imageCacheRef.current = new TerminalImageCache();
 
 	// Selection state — stored as absolute physical row indices so the selection
 	// survives viewport scrolling without needing recalculation.
@@ -450,10 +530,17 @@ export function CanvasTerminal({
 		// Clear cursor rect to transparent
 		ctx.clearRect(cx, cy, cellW, cellH);
 
+		const imgCache = imageCacheRef.current;
+
 		// Redraw cell background if it has a custom color
 		if (cursorCell && cursorCell.bg !== snap.defaultBg) {
 			ctx.fillStyle = cursorCell.bg;
 			ctx.fillRect(cx, cy, cellW, cellH);
+		}
+
+		// Redraw below-text images
+		if (cursorCell?.images) {
+			drawCellImages(ctx, cursorCell.images, imgCache, cx, cy, cellW, cellH, "below");
 		}
 
 		// Redraw cell content
@@ -469,6 +556,11 @@ export function CanvasTerminal({
 			if (cursorCell.strikethrough) {
 				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH / 2, cellW);
 			}
+		}
+
+		// Redraw above-text images
+		if (cursorCell?.images) {
+			drawCellImages(ctx, cursorCell.images, imgCache, cx, cy, cellW, cellH, "above");
 		}
 
 		// Draw cursor overlay with current opacity
@@ -513,8 +605,15 @@ export function CanvasTerminal({
 		ctx.lineWidth = dpr;
 
 		const defaultBg = snap.defaultBg;
+		const imgCache = imageCacheRef.current;
+		// Check if this snapshot has images — skip_serializing_if means
+		// grid.images is absent (undefined) when empty, so truthiness suffices.
+		const snapshotHasImages = !!snap.images;
+		let hasImages = false;
 
-		// Draw cells
+		// Single pass: backgrounds + below-text images + text + decorations.
+		// Below-text images (zIndex < 0) render after background, before text,
+		// which is correct because they layer bg → below-images → text.
 		for (let row = 0; row < snap.rows.length; row++) {
 			const rowCells = snap.rows[row];
 			if (!rowCells) continue;
@@ -524,7 +623,44 @@ export function CanvasTerminal({
 				const x = col * cellW;
 				const y = row * cellH;
 
-				drawCell(ctx, cell, x, y, cellW, cellH, baselineOffset, scaledSize, fontFamily, defaultBg);
+				// Background
+				if (cell.bg !== defaultBg) {
+					ctx.fillStyle = cell.bg;
+					ctx.fillRect(x, y, cellW, cellH);
+				}
+
+				// Below-text images (zIndex < 0)
+				if (cell.images) {
+					hasImages = true;
+					drawCellImages(ctx, cell.images, imgCache, x, y, cellW, cellH, "below");
+				}
+
+				// Text
+				if (cell.text.trim()) {
+					ctx.font = buildFont(cell, scaledSize, fontFamily);
+					ctx.fillStyle = cell.fg;
+					ctx.fillText(cell.text, x, y + baselineOffset);
+				}
+				if (cell.underline) {
+					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
+				}
+				if (cell.strikethrough) {
+					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
+				}
+			}
+		}
+
+		// Separate pass for above-text images (zIndex >= 0) — must render after
+		// all text so they layer on top correctly.
+		if (hasImages || snapshotHasImages) {
+			for (let row = 0; row < snap.rows.length; row++) {
+				const rowCells = snap.rows[row];
+				if (!rowCells) continue;
+				for (let col = 0; col < rowCells.length; col++) {
+					const cell = rowCells[col];
+					if (!cell?.images) continue;
+					drawCellImages(ctx, cell.images, imgCache, col * cellW, row * cellH, cellW, cellH, "above");
+				}
 			}
 		}
 
@@ -610,7 +746,7 @@ export function CanvasTerminal({
 					const cols = Math.floor(w / cellW);
 					const rows = Math.floor(h / cellH);
 					if (cols > 0 && rows > 0) {
-						onResizeRef.current(cols, rows);
+						onResizeRef.current(cols, rows, Math.round(cellW * cols), Math.round(cellH * rows));
 					}
 				}
 
@@ -668,6 +804,19 @@ export function CanvasTerminal({
 		blinkStart.current = performance.now();
 		cursorOpacity.current = CURSOR_MAX_OPACITY;
 		draw();
+
+		// Ingest any new images from this snapshot. If new images were decoded,
+		// trigger a redraw so they appear without waiting for the next grid change.
+		if (grid?.images) {
+			imageCacheRef.current
+				.ingest(grid.images)
+				.then((added) => {
+					if (added) drawRef.current();
+				})
+				.catch((err) => {
+					console.error("[image-cache] ingest failed:", err);
+				});
+		}
 	}, [grid, draw]);
 
 	// Smooth cursor blink animation — runs whenever the pane is focused.
@@ -719,9 +868,10 @@ export function CanvasTerminal({
 		return () => el.removeEventListener("selectstart", prevent);
 	}, []);
 
-	// Cleanup drag listeners and selection RAF on unmount — prevents leaks if
+	// Cleanup drag listeners, selection RAF, and image cache on unmount — prevents leaks if
 	// the component unmounts mid-drag (pane close, workspace switch).
 	useEffect(() => {
+		const cache = imageCacheRef.current;
 		return () => {
 			const listeners = dragListenersRef.current;
 			if (listeners) {
@@ -733,6 +883,7 @@ export function CanvasTerminal({
 				cancelAnimationFrame(selectionRafRef.current);
 				selectionRafRef.current = 0;
 			}
+			cache.dispose();
 		};
 	}, []);
 

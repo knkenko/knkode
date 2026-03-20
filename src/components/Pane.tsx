@@ -176,8 +176,8 @@ export function Pane({
 	);
 
 	const handleResize = useCallback(
-		(cols: number, rows: number) => {
-			window.api.resizePty(paneId, cols, rows).catch((err: unknown) => {
+		(cols: number, rows: number, pixelWidth: number, pixelHeight: number) => {
+			window.api.resizePty(paneId, cols, rows, pixelWidth, pixelHeight).catch((err: unknown) => {
 				console.error(`[pane] resizePty failed for ${paneId}:`, err);
 			});
 		},
