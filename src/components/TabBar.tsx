@@ -1,7 +1,7 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useDragReorder } from "../hooks/useDragReorder";
+import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
 import { useStore, WORKSPACE_COLORS } from "../store";
 import { modKey } from "../utils/platform";
@@ -85,14 +85,7 @@ export function TabBar({ onOpenSettings, onOpenHotkeys }: TabBarProps) {
 		});
 	}, [createDefaultWorkspace, showTransientError]);
 
-	const handleBarMouseDown = useCallback((e: React.MouseEvent) => {
-		// Only left-click triggers window drag
-		if (e.button !== 0) return;
-		// Don't drag if clicking on an interactive element (tabs, buttons, etc.)
-		if ((e.target as HTMLElement).closest(".no-drag")) return;
-		e.preventDefault();
-		getCurrentWindow().startDragging();
-	}, []);
+	const handleBarMouseDown = useWindowDrag();
 
 	return (
 		<div
