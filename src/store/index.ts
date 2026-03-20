@@ -250,13 +250,13 @@ export const useStore = create<StoreState>((set, get) => ({
 			const activeWs = workspaces.find((w) => w.id === appState.activeWorkspaceId);
 			const initialFocusedPaneId = activeWs ? (Object.keys(activeWs.panes)[0] ?? null) : null;
 
-			// Hydrate branch/PR from persisted pane configs for instant sidebar rendering
+			// Hydrate branch from persisted pane configs for instant sidebar rendering.
+			// PR data is NOT hydrated — it's ephemeral remote state that goes stale
+			// on merge and must be re-detected by the tracker each session.
 			const paneBranches: Record<string, string | null> = {};
-			const panePrs: Record<string, PrInfo | null> = {};
 			for (const ws of workspaces) {
 				for (const [paneId, config] of Object.entries(ws.panes)) {
 					if (config.lastBranch !== undefined) paneBranches[paneId] = config.lastBranch;
-					if (config.lastPr !== undefined) panePrs[paneId] = config.lastPr;
 				}
 			}
 
@@ -270,7 +270,7 @@ export const useStore = create<StoreState>((set, get) => ({
 				focusedPaneId: initialFocusedPaneId,
 				focusGeneration: initialFocusedPaneId ? 1 : 0,
 				paneBranches,
-				panePrs,
+				panePrs: {},
 			});
 		} catch (err) {
 			console.error("[store] Failed to initialize:", err);
