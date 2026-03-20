@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, PrBadge, resolveGlow } from "./shared";
+import { FOCUS_VIS, LabelButton, PrBadge, resolveGlow } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
@@ -56,13 +56,13 @@ function Frame({
 					style={{ borderColor: theme.accent, color: theme.accent }}
 				/>
 			) : (
-				<span
-					onDoubleClick={onDoubleClickLabel}
-					className="cursor-default shrink-0 font-medium"
+				<LabelButton
+					onEdit={onDoubleClickLabel}
+					className="font-medium"
 					style={{ color: theme.accent, textShadow: isFocused ? `0 0 8px ${c1}` : "none" }}
 				>
 					{label}
-				</span>
+				</LabelButton>
 			)}
 
 			<span

@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, PrBadge } from "./shared";
+import { FOCUS_VIS, LabelButton, PrBadge } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
@@ -49,9 +49,9 @@ function Frame({
 					style={{ borderColor: theme.accent, color: theme.foreground }}
 				/>
 			) : (
-				<span onDoubleClick={onDoubleClickLabel} className="cursor-default shrink-0 font-medium">
+				<LabelButton onEdit={onDoubleClickLabel} className="font-medium">
 					{label}
-				</span>
+				</LabelButton>
 			)}
 
 			<span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap opacity-35 text-[10px]">

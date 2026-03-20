@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, FolderIcon, LeafIcon, PrBadge } from "./shared";
+import { FOCUS_VIS, FolderIcon, LabelButton, LeafIcon, PrBadge } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps, VariantTheme } from "./types";
 
 export type StyleFn = (theme: VariantTheme, isFocused: boolean) => React.CSSProperties;
@@ -107,13 +107,13 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 						style={sb.editInput.style(theme)}
 					/>
 				) : (
-					<span
-						onDoubleClick={onDoubleClickLabel}
-						className={`cursor-default shrink-0 ${sb.label?.className ?? "font-medium"}`}
+					<LabelButton
+						onEdit={onDoubleClickLabel}
+						className={sb.label?.className ?? "font-medium"}
 						style={sb.label?.style?.(theme, isFocused)}
 					>
 						{label}
-					</span>
+					</LabelButton>
 				)}
 
 				{(sb.showSeparatorAfterLabel ?? true) && <Sep theme={theme} />}
