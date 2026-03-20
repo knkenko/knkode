@@ -11,7 +11,12 @@ import type {
 } from "../shared/types";
 import { createLayoutFromPreset } from "./layout-tree";
 import { createSnippetSlice } from "./snippet-actions";
-import { createWorkspacePaneSlice, defaultTheme, WORKSPACE_COLORS } from "./workspace-pane-actions";
+import {
+	createWorkspacePaneSlice,
+	defaultTheme,
+	persistAppState,
+	WORKSPACE_COLORS,
+} from "./workspace-pane-actions";
 
 interface StoreState {
 	// Data
@@ -36,8 +41,9 @@ interface StoreState {
 	paneBranches: Record<string, string | null>;
 	/** Current PR info per pane. Ephemeral runtime state — not persisted to disk. */
 	panePrs: Record<string, PrInfo | null>;
-	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted. */
-	collapsedSidebarSections: Set<string>;
+	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
+	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
+	collapsedSidebarSections: ReadonlySet<string>;
 
 	// Actions
 	setFocusedPane: (paneId: string | null) => void;
@@ -126,9 +132,7 @@ export const useStore = create<StoreState>((set, get) => ({
 		const { appState } = get();
 		const updated = { ...appState, sidebarCollapsed: !appState.sidebarCollapsed };
 		set({ appState: updated });
-		window.api.saveAppState(updated).catch((err) => {
-			console.error("[store] Failed to save sidebar state:", err);
-		});
+		persistAppState(updated);
 	},
 
 	toggleSidebarSection: (workspaceId) => {
@@ -191,10 +195,12 @@ export const useStore = create<StoreState>((set, get) => ({
 			]);
 
 			let workspaces = loadedWorkspaces;
-			// Backfill sidebarCollapsed for configs saved before sidebar was added
+			// Backfill sidebarCollapsed for configs saved before sidebar was added.
+			// The ?? is intentional: loadedAppState comes from JSON and may lack this field
+			// even though the AppState type requires it. Remove once all users have migrated.
 			let appState: AppState = {
 				...loadedAppState,
-				sidebarCollapsed: loadedAppState.sidebarCollapsed ?? false,
+				sidebarCollapsed: (loadedAppState as Partial<AppState>).sidebarCollapsed ?? false,
 			};
 
 			// If no workspaces exist, create a default one
