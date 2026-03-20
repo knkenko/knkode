@@ -392,6 +392,7 @@ export const Pane = memo(function Pane({
 							onScroll={handleScroll}
 							fontSize={mergedTheme.fontSize}
 							fontFamily={mergedTheme.fontFamily}
+							lineHeight={mergedTheme.lineHeight}
 							background={mergedTheme.background}
 							cursorStyle={mergedTheme.cursorStyle}
 							cursorColor={mergedTheme.cursorColor ?? mergedTheme.foreground}
