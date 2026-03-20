@@ -71,20 +71,16 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 		errorTimerRef.current = setTimeout(() => setActionError(null), 3000);
 	}, []);
 
-	const handleRename = useCallback(
-		(wsId: string, name: string) => {
+	const updateWorkspaceField = useCallback(
+		(wsId: string, updates: Partial<Workspace>) => {
 			const ws = workspaces.find((w) => w.id === wsId);
-			if (ws) updateWorkspace({ ...ws, name });
+			if (!ws) return;
+			updateWorkspace({ ...ws, ...updates }).catch((err: unknown) => {
+				console.error("[sidebar] Failed to update workspace:", err);
+				showTransientError("Failed to update workspace");
+			});
 		},
-		[workspaces, updateWorkspace],
-	);
-
-	const handleChangeColor = useCallback(
-		(wsId: string, color: string) => {
-			const ws = workspaces.find((w) => w.id === wsId);
-			if (ws) updateWorkspace({ ...ws, color });
-		},
-		[workspaces, updateWorkspace],
+		[workspaces, updateWorkspace, showTransientError],
 	);
 
 	const handleDuplicate = useCallback(
@@ -138,8 +134,8 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 										colors={WORKSPACE_COLORS}
 										onToggleCollapse={() => toggleSidebarSection(ws.id)}
 										onActivate={() => setActiveWorkspace(ws.id)}
-										onRename={(name) => handleRename(ws.id, name)}
-										onChangeColor={(color) => handleChangeColor(ws.id, color)}
+										onRename={(name) => updateWorkspaceField(ws.id, { name })}
+										onChangeColor={(color) => updateWorkspaceField(ws.id, { color })}
 										onDuplicate={() => handleDuplicate(ws.id)}
 										onClose={() => closeWorkspaceTab(ws.id)}
 									/>
