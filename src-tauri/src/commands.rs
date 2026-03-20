@@ -114,6 +114,26 @@ pub fn resize_pty(
     pty_mgr.resize(&id, cols, rows, pw, ph)
 }
 
+/// Register a pane for git branch/PR tracking without spawning a PTY.
+/// Used for panes whose workspace hasn't been visited yet — the CwdTracker
+/// will poll their CWD for branch info so the sidebar shows git status.
+#[tauri::command]
+pub fn track_pane_git(
+    id: String,
+    cwd: String,
+    tracker: State<'_, CwdTracker>,
+) -> Result<(), String> {
+    if cwd.contains('\0') {
+        return Err("cwd must not contain null bytes".to_string());
+    }
+    let cwd_path = std::path::Path::new(&cwd);
+    if !cwd_path.is_absolute() {
+        return Err("cwd must be an absolute path".to_string());
+    }
+    tracker.track_pane(id, cwd);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn kill_pty(
     id: String,

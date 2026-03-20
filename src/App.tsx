@@ -45,6 +45,22 @@ export function App() {
 		document.title = activeWorkspaceName ? `${activeWorkspaceName} — knkode` : "knkode";
 	}, [activeWorkspaceName]);
 
+	// Pre-track all open workspace panes for git info — even those without PTYs.
+	// Without this, panes in unvisited workspaces show no branch/PR in the sidebar.
+	const openWorkspaceIds = appState.openWorkspaceIds;
+	useEffect(() => {
+		if (!initialized) return;
+		const { workspaces: allWs, activePtyIds } = useStore.getState();
+		for (const ws of allWs) {
+			if (!openWorkspaceIds.includes(ws.id)) continue;
+			for (const [paneId, config] of Object.entries(ws.panes)) {
+				if (!activePtyIds.has(paneId)) {
+					window.api.trackPaneGit(paneId, config.cwd).catch(() => {});
+				}
+			}
+		}
+	}, [initialized, openWorkspaceIds]);
+
 	// Listen for backend PTY events (CWD, git branch, PR status).
 	// Unified into a single effect to avoid three identical subscribe/lookup patterns.
 	useEffect(() => {

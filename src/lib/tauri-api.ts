@@ -69,6 +69,7 @@ const _api: KnkodeApi = {
 	saveSnippets: (snippets) => invoke("save_snippets", { snippets }),
 
 	// PTY
+	trackPaneGit: (id, cwd) => invoke("track_pane_git", { id, cwd }),
 	createPty: (id, cwd, startupCommand) => invoke("create_pty", { id, cwd, startupCommand }),
 	writePty: (id, data) => invoke("write_pty", { id, data }),
 	resizePty: (id, cols, rows, pixelWidth, pixelHeight) =>

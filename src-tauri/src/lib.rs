@@ -36,6 +36,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::get_snippets,
             commands::save_snippets,
             commands::create_pty,
+            commands::track_pane_git,
             commands::write_pty,
             commands::resize_pty,
             commands::kill_pty,
