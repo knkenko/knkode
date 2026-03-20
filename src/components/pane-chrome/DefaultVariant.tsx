@@ -1,4 +1,4 @@
-import { FOCUS_VIS, FolderIcon, GitIcon, PrBadge } from "./shared";
+import { FOCUS_VIS, FolderIcon, GitIcon, LabelButton, PrBadge } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 // DefaultVariant intentionally uses Tailwind semantic classes (bg-elevated, text-accent, etc.)
@@ -40,12 +40,9 @@ function Frame({
 					className="bg-elevated border border-accent rounded-sm text-content text-[11px] py-px px-1 outline-none w-20"
 				/>
 			) : (
-				<span
-					onDoubleClick={onDoubleClickLabel}
-					className="text-content font-medium cursor-default"
-				>
+				<LabelButton onEdit={onDoubleClickLabel} className="text-content font-medium">
 					{label}
-				</span>
+				</LabelButton>
 			)}
 
 			<span className="text-content-muted text-[10px]">·</span>

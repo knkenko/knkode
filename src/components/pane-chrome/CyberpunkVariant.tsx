@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, PrBadge, resolveGlow } from "./shared";
+import { FOCUS_VIS, LabelButton, PrBadge, resolveGlow } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
@@ -55,13 +55,12 @@ function Frame({
 					style={{ borderColor: activeC1, color: activeC1 }}
 				/>
 			) : (
-				<span
-					onDoubleClick={onDoubleClickLabel}
-					className="cursor-default shrink-0"
+				<LabelButton
+					onEdit={onDoubleClickLabel}
 					style={{ color: activeC1, textShadow: isFocused ? `0 0 4px ${activeC1}` : "none" }}
 				>
 					{label}
-				</span>
+				</LabelButton>
 			)}
 
 			<span className="opacity-30">/</span>
