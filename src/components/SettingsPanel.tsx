@@ -3,6 +3,7 @@ import { DEFAULT_PRESET_NAME, findPreset } from "../data/theme-presets";
 import {
 	type CursorStyle,
 	DEFAULT_CURSOR_STYLE,
+	DEFAULT_FONT_SIZE,
 	DEFAULT_LINE_HEIGHT,
 	DEFAULT_PANE_OPACITY,
 	DEFAULT_SCROLLBACK,
@@ -89,8 +90,11 @@ type SettingsAction =
 	| { type: "SET_EFFECT"; category: EffectCategory; level: EffectLevel }
 	| { type: "APPLY_PRESET"; preset: string };
 
-/** Maps effect UI categories to their corresponding state field names. */
-const EFFECT_STATE_KEY: Record<EffectCategory, keyof SettingsState> = {
+/** Effect-level field names within SettingsState. */
+type EffectStateField = "dimLevel" | "opacityLevel" | "gradientLevel" | "glowLevel" | "scanlineLevel" | "noiseLevel";
+
+/** Maps effect UI categories to their corresponding state field names, used by SET_EFFECT. */
+const EFFECT_STATE_KEY: Record<EffectCategory, EffectStateField> = {
 	dim: "dimLevel",
 	opacity: "opacityLevel",
 	gradient: "gradientLevel",
@@ -130,6 +134,7 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
 			return { ...state, [EFFECT_STATE_KEY[action.category]]: action.level };
 		case "APPLY_PRESET": {
 			const p = findPreset(action.preset);
+			if (!p) console.warn("[settings] unknown theme preset:", action.preset);
 			return {
 				...state,
 				themePreset: action.preset,
@@ -139,10 +144,12 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
 				noiseLevel: p?.noiseLevel ?? "off",
 				statusBarPosition: p?.statusBarPosition ?? "top",
 				fontFamily: p?.fontFamily ?? "",
-				fontSize: p?.fontSize ?? 14,
+				fontSize: p?.fontSize ?? DEFAULT_FONT_SIZE,
 				lineHeight: p?.lineHeight ?? DEFAULT_LINE_HEIGHT,
 			};
 		}
+		default:
+			return state;
 	}
 }
 
@@ -231,9 +238,9 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 		[updateWorkspace],
 	);
 
-	// Auto-persist: save full workspace with updated theme whenever those fields change.
+	// Auto-persist: save full workspace with updated theme whenever buildThemeFromInputs changes.
 	// Reads latest workspace from store (not the prop) to avoid overwriting concurrent updates.
-	// Tracks previous values via ref and compares to current values before persisting.
+	// Tracks previous value via ref and compares to current value before persisting.
 	// A simple useRef(false) mount guard would misfire under React 18 StrictMode,
 	// which double-invokes effects on mount.
 	const prevAutoSaveRef = useRef({ buildThemeFromInputs });
