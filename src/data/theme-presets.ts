@@ -864,6 +864,13 @@ export function buildTerminalTheme(
 
 export const DEFAULT_PRESET_NAME = THEME_PRESETS[0].name;
 
+const PRESET_NAMES = new Set<string>(THEME_PRESETS.map((p) => p.name));
+
+/** Coerce a string to ThemePresetName, falling back to DEFAULT_PRESET_NAME for unknown values. */
+export function toPresetName(name: string | undefined): ThemePresetName {
+	return name && PRESET_NAMES.has(name) ? (name as ThemePresetName) : DEFAULT_PRESET_NAME;
+}
+
 /** Look up a theme preset by name. Returns undefined if not found. */
 export function findPreset(name: string): ThemePreset | undefined {
 	return THEME_PRESETS.find((p) => p.name === name);

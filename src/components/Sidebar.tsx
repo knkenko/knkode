@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useWindowDrag } from "../hooks/useWindowDrag";
-import { DEFAULT_PRESET_NAME } from "../data/theme-presets";
+import { toPresetName } from "../data/theme-presets";
 import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
@@ -40,7 +40,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 
 	const activePreset = useMemo(() => {
 		const active = workspaces.find((w) => w.id === activeWorkspaceId);
-		return active?.theme.preset ?? DEFAULT_PRESET_NAME;
+		return toPresetName(active?.theme.preset);
 	}, [workspaces, activeWorkspaceId]);
 
 	const [actionError, setActionError] = useState<string | null>(null);
@@ -349,7 +349,7 @@ function CollapsedView({
 	activeWorkspaceId: string | null;
 	onActivate: (id: string) => void;
 }) {
-	const activePreset = workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset ?? DEFAULT_PRESET_NAME;
+	const activePreset = toPresetName(workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset);
 
 	return (
 		<div className="flex flex-col py-1">

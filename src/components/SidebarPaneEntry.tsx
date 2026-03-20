@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useContextMenu } from "../hooks/useContextMenu";
 import { getPortalRoot } from "../lib/ui-constants";
-import { DEFAULT_PRESET_NAME } from "../data/theme-presets";
+import { toPresetName, type ThemePresetName } from "../data/theme-presets";
 import type { PaneConfig, Workspace } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
@@ -12,7 +12,7 @@ import { PaneEntryVariant } from "./sidebar-variants/ThemeRegistry";
 interface SidebarPaneEntryProps {
 	paneId: string;
 	workspaceId: string;
-	workspacePreset?: string | undefined;
+	workspacePreset?: ThemePresetName | undefined;
 	config: PaneConfig;
 	isFocused: boolean;
 	canClose: boolean;
@@ -39,7 +39,7 @@ export function SidebarPaneEntry({
 	const movePaneToWorkspace = useStore((s) => s.movePaneToWorkspace);
 
 	const shortCwd = shortenPath(config.cwd, homeDir);
-	const preset = config.themeOverride?.preset ?? workspacePreset ?? DEFAULT_PRESET_NAME;
+	const preset = toPresetName(config.themeOverride?.preset ?? workspacePreset);
 
 	const ctx = useContextMenu();
 	const [showMoveMenu, setShowMoveMenu] = useState(false);
