@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #20 merged — per-pane ANSI theme colors working. PR #21 merged — keyboard input (Shift+Enter, copy/paste, Mod shortcuts), render throttle with trailing-edge flush, cursor style fixes, and full review pass (22 findings addressed). PR #25 merged — native file drag-and-drop to paste shell-quoted paths into terminal panes, with control-char sanitization and RAF-throttled hit testing.
+Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #26 merged — inline terminal image rendering via iTerm2, Kitty, and Sixel protocols. Images are extracted from wezterm-term cells, sent as base64 PNG over IPC, cached as ImageBitmaps with LRU eviction, and rendered in a two-layer canvas pass (below-text + above-text by z-index).
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -32,7 +32,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 
 ## What's Next
 - [x] File drag-and-drop to paste paths into terminal (PR #25 merged)
-- [ ] Inline terminal images (iTerm2/Kitty/Sixel) — in progress on feature/terminal-images
+- [x] Inline terminal images (iTerm2/Kitty/Sixel) (PR #26 merged)
 - [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
@@ -40,7 +40,7 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - V1 codebase: `/Users/sfory/dev/knkode/`
 
 ## Active Reviews
-None — PR #26 review complete, all findings addressed
+None
 
 ## Known Issues
 - DMG bundling fails (macOS code signing) — not blocking for dev
