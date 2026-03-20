@@ -46,8 +46,28 @@ fn detect_cwd(pid: u32) -> Option<String> {
     None
 }
 
-// TODO: Linux support via `/proc/<pid>/cwd` (readlink)
-#[cfg(not(target_os = "macos"))]
+/// Detect the CWD of a child process on Linux via `/proc/<pid>/cwd` symlink.
+/// The kernel appends ` (deleted)` when the directory has been removed — strip it.
+#[cfg(target_os = "linux")]
+fn detect_cwd(pid: u32) -> Option<String> {
+    std::fs::read_link(format!("/proc/{pid}/cwd"))
+        .ok()
+        .and_then(|p| {
+            p.to_str()
+                .map(|s| s.trim_end_matches(" (deleted)").to_string())
+        })
+}
+
+/// Windows CWD detection requires NtQueryInformationProcess (ntapi crate) or
+/// the `windows` crate — not worth the dependency for now. Falls back to
+/// initial CWD which is set at PTY creation time.
+#[cfg(target_os = "windows")]
+fn detect_cwd(_pid: u32) -> Option<String> {
+    None
+}
+
+/// Catch-all for platforms without CWD detection (FreeBSD, etc.).
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn detect_cwd(_pid: u32) -> Option<String> {
     None
 }
@@ -136,16 +156,19 @@ impl PtyManager {
             ))
             .map_err(|e| format!("Failed to open PTY: {e}"))?;
 
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| {
-            if cfg!(windows) {
-                "powershell.exe".to_string()
-            } else {
-                "/bin/sh".to_string()
-            }
-        });
+        let shell = if cfg!(windows) {
+            // Always use PowerShell on Windows. COMSPEC points to cmd.exe which
+            // has incompatible quoting rules — the frontend quotes for PowerShell.
+            "powershell.exe".to_string()
+        } else {
+            std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+        };
+        eprintln!("[pty] Using shell: {shell}");
 
         let mut cmd = CommandBuilder::new(&shell);
         if !cfg!(windows) {
+            // Login shell flag — POSIX only. Windows shells (PowerShell/cmd)
+            // have no equivalent concept.
             cmd.arg("-l");
         }
         cmd.cwd(&cwd);
@@ -389,8 +412,8 @@ impl PtyManager {
     }
 
     /// Get the current working directory for a pane.
-    /// On macOS, uses `lsof` to read the child process's CWD from the OS.
-    /// Falls back to the initial CWD if detection fails or on non-macOS.
+    /// On macOS uses `lsof`; on Linux reads `/proc/<pid>/cwd`.
+    /// Falls back to the initial CWD if detection fails or on Windows.
     pub fn get_cwd(&self, id: &str) -> Option<String> {
         let sessions = self.lock_sessions().ok()?;
         let session = sessions.get(id)?;

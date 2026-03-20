@@ -96,7 +96,7 @@ export function TabBar({ onOpenSettings, onOpenHotkeys }: TabBarProps) {
 
 	return (
 		<div
-			className="flex items-end bg-sunken border-b border-edge relative shrink-0"
+			className="flex items-end bg-sunken border-b border-edge relative shrink-0 pr-caption"
 			onMouseDown={handleBarMouseDown}
 		>
 			{/* Tabs */}

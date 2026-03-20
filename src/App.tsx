@@ -8,7 +8,12 @@ import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useStore } from "./store";
 import { generateThemeVariables } from "./utils/colors";
-import { isMac } from "./utils/platform";
+import {
+	MACOS_TRAFFIC_LIGHT_WIDTH,
+	WINDOWS_CAPTION_BUTTON_WIDTH,
+	isMac,
+	isWindows,
+} from "./utils/platform";
 
 export function App() {
 	const initialized = useStore((s) => s.initialized);
@@ -120,7 +125,8 @@ export function App() {
 				className="flex flex-col h-full w-full relative"
 				style={{
 					...themeStyles,
-					...(isMac && { "--spacing-traffic": "90px" }),
+					...(isMac && { "--spacing-traffic": MACOS_TRAFFIC_LIGHT_WIDTH }),
+					...(isWindows && { "--spacing-caption": WINDOWS_CAPTION_BUTTON_WIDTH }),
 					color: "var(--color-content)",
 					fontFamily: "var(--font-family-ui)",
 					fontSize: "var(--font-size-ui)",
