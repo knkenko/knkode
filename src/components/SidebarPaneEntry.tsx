@@ -2,14 +2,17 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useContextMenu } from "../hooks/useContextMenu";
 import { getPortalRoot } from "../lib/ui-constants";
+import { DEFAULT_PRESET_NAME } from "../data/theme-presets";
 import type { PaneConfig, Workspace } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
 import { MoveToWorkspaceSubmenu } from "./MoveToWorkspaceSubmenu";
+import { PaneEntryVariant } from "./sidebar-variants/ThemeRegistry";
 
 interface SidebarPaneEntryProps {
 	paneId: string;
 	workspaceId: string;
+	workspacePreset?: string | undefined;
 	config: PaneConfig;
 	isFocused: boolean;
 	canClose: boolean;
@@ -21,6 +24,7 @@ interface SidebarPaneEntryProps {
 export function SidebarPaneEntry({
 	paneId,
 	workspaceId,
+	workspacePreset,
 	config,
 	isFocused,
 	canClose,
@@ -30,10 +34,12 @@ export function SidebarPaneEntry({
 }: SidebarPaneEntryProps) {
 	const branch = useStore((s) => s.paneBranches[paneId] ?? null);
 	const pr = useStore((s) => s.panePrs[paneId] ?? null);
+	const agentStatus = useStore((s) => s.paneAgentStatuses[paneId] ?? "idle");
 	const homeDir = useStore((s) => s.homeDir);
 	const movePaneToWorkspace = useStore((s) => s.movePaneToWorkspace);
 
 	const shortCwd = shortenPath(config.cwd, homeDir);
+	const preset = config.themeOverride?.preset ?? workspacePreset ?? DEFAULT_PRESET_NAME;
 
 	const ctx = useContextMenu();
 	const [showMoveMenu, setShowMoveMenu] = useState(false);
@@ -45,31 +51,18 @@ export function SidebarPaneEntry({
 
 	return (
 		<>
-			<button
-				type="button"
+			<PaneEntryVariant
+				preset={preset}
+				paneId={paneId}
+				label={config.label}
+				cwd={shortCwd}
+				branch={branch}
+				pr={pr}
+				agentStatus={agentStatus}
+				isFocused={isFocused}
 				onClick={onClick}
 				onContextMenu={ctx.open}
-				data-pane-id={paneId}
-				className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-7 pr-3 border-none cursor-pointer ${
-					isFocused
-						? "sidebar-pane-focused text-content"
-						: "bg-transparent text-content-muted hover:text-content-secondary"
-				}`}
-			>
-				{/* Pane label + branch + PR */}
-				<div className="flex items-center gap-1.5 min-w-0">
-					<span className={`text-[11px] truncate ${isFocused ? "font-medium" : ""}`}>
-						{config.label}
-					</span>
-					{branch && (
-						<span className="text-[10px] text-accent truncate max-w-[80px]">{branch}</span>
-					)}
-					{pr && <span className="text-[10px] text-accent font-medium shrink-0">#{pr.number}</span>}
-				</div>
-
-				{/* CWD */}
-				<span className="text-[9px] text-content-muted truncate">{shortCwd}</span>
-			</button>
+			/>
 
 			{/* Context menu — portalled to escape overflow-hidden containers */}
 			{ctx.isOpen &&

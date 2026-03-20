@@ -8,6 +8,9 @@ export const DEFAULT_PANE_OPACITY = 1;
 /** Minimum pane background opacity. UI clamps to [MIN_PANE_OPACITY, 1]. */
 export const MIN_PANE_OPACITY = 0.05;
 
+/** Agent activity status for a terminal pane. */
+export type AgentStatus = "idle" | "in_progress" | "input_required";
+
 export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
 /** Cursor shape from terminal state (DECSCUSR). "default" = no TUI override. */
@@ -132,7 +135,7 @@ export interface SidebarTheme {
 	readonly glass?: number;
 	/** Right border style. Default: "solid". */
 	readonly borderStyle?: "solid" | "gradient" | "glow" | "none";
-	/** Border/glow color override. Default: derived from edge or accent. */
+	/** Border/glow color override. Default: derived from edge. */
 	readonly borderColor?: string;
 	/** Item hover background override. Default: derived overlay. */
 	readonly itemHover?: string;
@@ -204,7 +207,6 @@ export type WorkspaceLayout =
 export interface Workspace {
 	readonly id: string;
 	readonly name: string;
-	readonly color: string;
 	readonly theme: PaneTheme;
 	readonly layout: WorkspaceLayout;
 	readonly panes: Record<string, PaneConfig>;
@@ -348,6 +350,7 @@ export interface KnkodeApi {
 	saveSnippets(snippets: Snippet[]): Promise<void>;
 
 	// PTY
+	trackPaneGit(id: string, cwd: string): Promise<void>;
 	createPty(id: string, cwd: string, startupCommand: string | null): Promise<void>;
 	writePty(id: string, data: string): Promise<void>;
 	resizePty(

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+	AgentStatus,
 	AppState,
 	DropPosition,
 	LayoutPreset,
@@ -15,7 +16,6 @@ import {
 	createWorkspacePaneSlice,
 	defaultTheme,
 	persistAppState,
-	WORKSPACE_COLORS,
 } from "./workspace-pane-actions";
 
 interface StoreState {
@@ -41,6 +41,8 @@ interface StoreState {
 	paneBranches: Record<string, string | null>;
 	/** Current PR info per pane. Ephemeral runtime state — not persisted to disk. */
 	panePrs: Record<string, PrInfo | null>;
+	/** Current agent status per pane. Ephemeral runtime state. */
+	paneAgentStatuses: Record<string, AgentStatus>;
 	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
 	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
 	collapsedSidebarSections: ReadonlySet<string>;
@@ -56,7 +58,7 @@ interface StoreState {
 	/** Remove a single pane ID from activePtyIds (e.g. on natural PTY exit). */
 	removePtyId: (paneId: string) => void;
 	init: () => Promise<void>;
-	createWorkspace: (name: string, color: string, preset: LayoutPreset) => Promise<Workspace>;
+	createWorkspace: (name: string, preset: LayoutPreset) => Promise<Workspace>;
 	createDefaultWorkspace: () => Promise<Workspace>;
 	updateWorkspace: (workspace: Workspace) => Promise<void>;
 	duplicateWorkspace: (id: string) => Promise<Workspace | null>;
@@ -91,6 +93,11 @@ interface StoreState {
 	/** Update PR info for a pane. No workspaceId needed — PR state is a flat
 	 *  ephemeral map (not persisted inside workspace objects). */
 	updatePanePr: (paneId: string, pr: PrInfo | null) => void;
+	/** Update agent status for a pane. */
+	updatePaneAgentStatus: (
+		paneId: string,
+		status: AgentStatus,
+	) => void;
 	/** Persist pixel sizes as percentages at a given tree path.
 	 *  `path` is an array of child indices from the root to the target branch node.
 	 *  An empty array `[]` targets the root node itself.
@@ -123,6 +130,7 @@ export const useStore = create<StoreState>((set, get) => ({
 	activePtyIds: new Set(),
 	paneBranches: {},
 	panePrs: {},
+	paneAgentStatuses: {},
 	collapsedSidebarSections: new Set(),
 
 	setFocusedPane: (paneId) =>
@@ -141,6 +149,10 @@ export const useStore = create<StoreState>((set, get) => ({
 		if (next.has(workspaceId)) next.delete(workspaceId);
 		else next.add(workspaceId);
 		set({ collapsedSidebarSections: next });
+	},
+
+	updatePaneAgentStatus: (paneId, status) => {
+		set((state) => ({ paneAgentStatuses: { ...state.paneAgentStatuses, [paneId]: status } }));
 	},
 
 	ensurePty: (paneId, cwd, startupCommand) => {
@@ -209,7 +221,6 @@ export const useStore = create<StoreState>((set, get) => ({
 				const defaultWorkspace: Workspace = {
 					id: crypto.randomUUID(),
 					name: "Default",
-					color: WORKSPACE_COLORS[0]!,
 					theme: defaultTheme(),
 					layout,
 					panes,
@@ -271,4 +282,3 @@ export {
 	getFirstPaneId,
 	getPaneIdsInOrder,
 } from "./layout-tree";
-export { WORKSPACE_COLORS } from "./workspace-pane-actions";

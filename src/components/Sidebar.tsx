@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useWindowDrag } from "../hooks/useWindowDrag";
+import { DEFAULT_PRESET_NAME } from "../data/theme-presets";
 import type { Workspace } from "../shared/types";
-import { getPaneIdsInOrder, useStore, WORKSPACE_COLORS } from "../store";
+import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
+
+import { CollapsedWorkspaceVariant, WorkspaceSectionWrapper } from "./sidebar-variants/ThemeRegistry";
 
 /** px */ const SIDEBAR_WIDTH = 200;
 /** px — wide enough to contain macOS traffic lights (90px) and show truncated workspace names */ const SIDEBAR_COLLAPSED_WIDTH = 96;
@@ -34,6 +37,11 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const closePane = useStore((s) => s.closePane);
 
 	const handleBarMouseDown = useWindowDrag();
+
+	const activePreset = useMemo(() => {
+		const active = workspaces.find((w) => w.id === activeWorkspaceId);
+		return active?.theme.preset ?? DEFAULT_PRESET_NAME;
+	}, [workspaces, activeWorkspaceId]);
 
 	const [actionError, setActionError] = useState<string | null>(null);
 	const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -128,42 +136,42 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 
 							return (
 								<div key={ws.id}>
-									<div className={`sidebar-card ${isActive ? "sidebar-card-active" : ""}`} style={isActive ? { borderLeftColor: ws.color } : undefined}>
-									<SidebarWorkspaceHeader
-										workspace={ws}
-										isActive={isActive}
-										isCollapsed={isSectionCollapsed}
-										paneCount={paneIds.length}
-										colors={WORKSPACE_COLORS}
-										onToggleCollapse={() => toggleSidebarSection(ws.id)}
-										onActivate={() => setActiveWorkspace(ws.id)}
-										onRename={(name) => updateWorkspaceField(ws.id, { name })}
-										onChangeColor={(color) => updateWorkspaceField(ws.id, { color })}
-										onDuplicate={() => handleDuplicate(ws.id)}
-										onClose={() => closeWorkspaceTab(ws.id)}
-									/>
-									{!isSectionCollapsed && (
-										<div className="flex flex-col pb-1">
-											{paneIds.map((paneId) => {
-												const config = ws.panes[paneId];
-												if (!config) return null;
-												return (
-													<SidebarPaneEntry
-														key={paneId}
-														paneId={paneId}
-														workspaceId={ws.id}
-														config={config}
-														isFocused={focusedPaneId === paneId && isActive}
-														canClose={canClose}
-														otherOpenWorkspaces={otherOpen}
-														onClick={() => handlePaneClick(ws.id, paneId)}
-														{...(canClose ? { onClose: () => closePane(ws.id, paneId) } : {})}
-													/>
-												);
-											})}
-										</div>
-									)}
-									</div>
+									<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
+										<SidebarWorkspaceHeader
+											workspace={ws}
+											preset={activePreset}
+											isActive={isActive}
+											isCollapsed={isSectionCollapsed}
+											paneCount={paneIds.length}
+											onToggleCollapse={() => toggleSidebarSection(ws.id)}
+											onActivate={() => setActiveWorkspace(ws.id)}
+											onRename={(name) => updateWorkspaceField(ws.id, { name })}
+											onDuplicate={() => handleDuplicate(ws.id)}
+											onClose={() => closeWorkspaceTab(ws.id)}
+										/>
+										{!isSectionCollapsed && (
+											<div className="flex flex-col pb-1">
+												{paneIds.map((paneId) => {
+													const config = ws.panes[paneId];
+													if (!config) return null;
+													return (
+														<SidebarPaneEntry
+															key={paneId}
+															paneId={paneId}
+															workspaceId={ws.id}
+															workspacePreset={activePreset}
+															config={config}
+															isFocused={focusedPaneId === paneId && isActive}
+															canClose={canClose}
+															otherOpenWorkspaces={otherOpen}
+															onClick={() => handlePaneClick(ws.id, paneId)}
+															{...(canClose ? { onClose: () => closePane(ws.id, paneId) } : {})}
+														/>
+													);
+												})}
+											</div>
+										)}
+									</WorkspaceSectionWrapper>
 								</div>
 							);
 						})}
@@ -212,8 +220,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 									>
 										<span
 											aria-hidden="true"
-											className="w-2.5 h-2.5 rounded-full shrink-0"
-											style={{ background: ws.color }}
+											className="w-2.5 h-2.5 rounded-full shrink-0 bg-content-muted"
 										/>
 										{ws.name}
 									</button>
@@ -342,25 +349,23 @@ function CollapsedView({
 	activeWorkspaceId: string | null;
 	onActivate: (id: string) => void;
 }) {
+	const activePreset = workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset ?? DEFAULT_PRESET_NAME;
+
 	return (
-		<div className="flex flex-col gap-0.5 py-1">
+		<div className="flex flex-col py-1">
 			{workspaces.map((ws) => {
 				const isActive = ws.id === activeWorkspaceId;
 				return (
-					<button
-						key={ws.id}
-						type="button"
-						onClick={() => onActivate(ws.id)}
-						title={ws.name}
-						aria-label={`Switch to ${ws.name}`}
-						className={`sidebar-item flex items-center w-full px-2.5 border-none cursor-pointer ${
-							isActive
-								? "sidebar-item-active text-content font-medium"
-								: "bg-transparent text-content-muted hover:text-content"
-						}`}
-					>
-						<span className="text-[10px] truncate min-w-0">{ws.name}</span>
-					</button>
+					<div key={ws.id}>
+						<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
+							<CollapsedWorkspaceVariant
+								preset={activePreset}
+								name={ws.name}
+								isActive={isActive}
+								onClick={() => onActivate(ws.id)}
+							/>
+						</WorkspaceSectionWrapper>
+					</div>
 				);
 			})}
 		</div>
