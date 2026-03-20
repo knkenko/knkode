@@ -42,6 +42,17 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 		[workspace.id, closePane],
 	);
 
+	// iTerm2 convention: "Split Horizontal" = horizontal divider = vertical stacking
+	const handleSplitHorizontal = useCallback(
+		(paneId: string) => handleSplit(paneId, "vertical"),
+		[handleSplit],
+	);
+	// iTerm2 convention: "Split Vertical" = vertical divider = horizontal (side-by-side)
+	const handleSplitVertical = useCallback(
+		(paneId: string) => handleSplit(paneId, "horizontal"),
+		[handleSplit],
+	);
+
 	const renderNode = (node: LayoutNode, path: number[] = []): React.ReactNode => {
 		if (!isLayoutBranch(node)) {
 			const config = workspace.panes[node.paneId];
@@ -61,10 +72,8 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 					config={config}
 					workspaceTheme={workspace.theme}
 					onUpdateConfig={handleUpdateConfig}
-					// iTerm2 convention: "Split Horizontal" = horizontal divider = vertical stacking
-					onSplitHorizontal={(id) => handleSplit(id, "vertical")}
-					// iTerm2 convention: "Split Vertical" = vertical divider = horizontal (side-by-side)
-					onSplitVertical={(id) => handleSplit(id, "horizontal")}
+					onSplitHorizontal={handleSplitHorizontal}
+					onSplitVertical={handleSplitVertical}
 					onClose={handleClose}
 					canClose={paneCount > 1}
 					branch={paneBranches[node.paneId] ?? null}
