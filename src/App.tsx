@@ -8,7 +8,7 @@ import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useStore } from "./store";
 import { generateThemeVariables } from "./utils/colors";
-import { isMac } from "./utils/platform";
+import { isMac, isWindows } from "./utils/platform";
 
 export function App() {
 	const initialized = useStore((s) => s.initialized);
@@ -121,6 +121,7 @@ export function App() {
 				style={{
 					...themeStyles,
 					...(isMac && { "--spacing-traffic": "90px" }),
+					...(isWindows && { "--spacing-caption": "138px" }),
 					color: "var(--color-content)",
 					fontFamily: "var(--font-family-ui)",
 					fontSize: "var(--font-size-ui)",

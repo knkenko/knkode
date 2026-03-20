@@ -118,13 +118,14 @@
 	/* Layout dimensions */
 	--spacing-tab: 38px;
 	--spacing-header: 28px;
-	--spacing-traffic: 0; /* overridden to 78px on macOS via App.tsx for window controls (close/minimize/maximize) */
+	--spacing-traffic: 0; /* overridden to 90px on macOS via App.tsx for traffic lights */
+	--spacing-caption: 0; /* overridden to 138px on Windows via App.tsx for caption buttons */
 
 	/* Mechanical spring easing — quick attack, soft settle */
 	--ease-mechanical: cubic-bezier(0.2, 0.8, 0.2, 1);
 
 	/* Typography — overridden at runtime by generateThemeVariables() in App.tsx. */
-	--font-mono-fallback: "IBM Plex Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+	--font-mono-fallback: "IBM Plex Mono", "JetBrains Mono", Consolas, Menlo, Monaco, monospace;
 	--font-family-ui: var(--font-mono-fallback);
 	--font-size-ui: 13px;
 
