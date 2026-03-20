@@ -91,10 +91,10 @@ export function SidebarWorkspaceHeader({
 						{...inputProps}
 						maxLength={64}
 						onClick={(e) => e.stopPropagation()}
-						className="bg-elevated border border-accent rounded-sm text-content text-[11px] font-medium py-px px-1 outline-none flex-1 min-w-0"
+						className="sidebar-header bg-elevated border border-accent rounded-sm text-content text-[11px] py-px px-1 outline-none flex-1 min-w-0"
 					/>
 				) : (
-					<span className="text-[11px] font-medium truncate flex-1 min-w-0">{workspace.name}</span>
+					<span className="sidebar-header text-[11px] truncate flex-1 min-w-0">{workspace.name}</span>
 				)}
 
 				{/* Pane count badge */}

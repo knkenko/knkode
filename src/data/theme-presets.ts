@@ -85,6 +85,10 @@ export const THEME_PRESETS = [
 			borderColor: "#6272a4",
 			accentGlow: true,
 			itemRadius: 4,
+			separatorStyle: "glow",
+			separatorColor: "#6272a4",
+			cardBg: "#262830",
+			cardRadius: 6,
 		},
 	},
 	{
@@ -117,6 +121,9 @@ export const THEME_PRESETS = [
 			background: "#16161e",
 			borderStyle: "solid",
 			spacing: "compact",
+			separatorStyle: "solid",
+			separatorColor: "#24283b",
+			cardBg: "#1a1b27",
 		},
 	},
 	{
@@ -150,6 +157,10 @@ export const THEME_PRESETS = [
 			itemRadius: 6,
 			spacing: "spacious",
 			transition: "cubic-bezier(0.22, 1, 0.36, 1)",
+			separatorStyle: "solid",
+			separatorColor: "#3b4252",
+			cardBg: "#2c3340",
+			cardRadius: 8,
 		},
 	},
 	{
@@ -185,6 +196,10 @@ export const THEME_PRESETS = [
 			accentGlow: true,
 			itemRadius: 4,
 			spacing: "spacious",
+			separatorStyle: "glow",
+			separatorColor: "#45475a",
+			cardBg: "#1e1e2e",
+			cardRadius: 8,
 		},
 	},
 	{
@@ -218,6 +233,10 @@ export const THEME_PRESETS = [
 			borderColor: "#3c3836",
 			itemRadius: 0,
 			spacing: "compact",
+			separatorStyle: "solid",
+			separatorColor: "#3c3836",
+			cardBg: "#222425",
+			cardRadius: 0,
 		},
 	},
 	{
@@ -251,6 +270,10 @@ export const THEME_PRESETS = [
 			borderColor: "#3e3d32",
 			itemRadius: 0,
 			spacing: "compact",
+			separatorStyle: "solid",
+			separatorColor: "#3e3d32",
+			cardBg: "#23241f",
+			cardRadius: 0,
 		},
 	},
 	{
@@ -281,6 +304,10 @@ export const THEME_PRESETS = [
 		sidebar: {
 			borderStyle: "solid",
 			itemRadius: 4,
+			separatorStyle: "solid",
+			separatorColor: "#3d474d",
+			cardBg: "#2f3940",
+			cardRadius: 4,
 		},
 	},
 	// ── Identity themes (brand/aesthetic identity, always have accent + glow) ──
@@ -328,6 +355,14 @@ export const THEME_PRESETS = [
 			spacing: "compact",
 			accentGlow: true,
 			transition: "linear",
+			textTransform: "uppercase",
+			letterSpacing: 0.1,
+			headerWeight: "bold",
+			separatorStyle: "glow",
+			separatorColor: "#00ff41",
+			cardBg: "#0a0a0a",
+			cardBorder: "#0d1a0f",
+			cardRadius: 0,
 		},
 	},
 	{
@@ -372,6 +407,13 @@ export const THEME_PRESETS = [
 			accentGlow: true,
 			itemRadius: 2,
 			transition: "cubic-bezier(0.4, 0, 0.2, 1)",
+			textTransform: "uppercase",
+			letterSpacing: 0.15,
+			headerWeight: "bold",
+			separatorStyle: "gradient",
+			cardBg: "#120328",
+			cardBorder: "#1a0440",
+			cardRadius: 2,
 		},
 	},
 	{
@@ -413,6 +455,10 @@ export const THEME_PRESETS = [
 			borderStyle: "gradient",
 			accentGlow: true,
 			itemRadius: 4,
+			separatorStyle: "gradient",
+			cardBg: "#0e0e22",
+			cardBorder: "#1a1a35",
+			cardRadius: 6,
 		},
 	},
 	{
@@ -458,6 +504,13 @@ export const THEME_PRESETS = [
 			itemRadius: 0,
 			spacing: "compact",
 			transition: "linear",
+			textTransform: "uppercase",
+			letterSpacing: 0.08,
+			headerWeight: "bold",
+			separatorStyle: "dashed",
+			separatorColor: "#3d2800",
+			cardBg: "#0a0700",
+			cardRadius: 0,
 		},
 	},
 	{
@@ -503,6 +556,10 @@ export const THEME_PRESETS = [
 			itemRadius: 6,
 			spacing: "spacious",
 			transition: "cubic-bezier(0.22, 1, 0.36, 1)",
+			separatorStyle: "gradient",
+			cardBg: "#0e0020",
+			cardBorder: "#1a0040",
+			cardRadius: 8,
 		},
 	},
 	{
@@ -545,6 +602,10 @@ export const THEME_PRESETS = [
 			borderStyle: "none",
 			shadow: "1px 0 16px rgba(0, 200, 255, 0.12)",
 			itemRadius: 4,
+			separatorStyle: "glow",
+			separatorColor: "#0070a0",
+			cardBg: "#041018",
+			cardRadius: 6,
 		},
 	},
 	{
@@ -588,6 +649,10 @@ export const THEME_PRESETS = [
 			borderStyle: "glow",
 			borderColor: "#4d2418",
 			itemRadius: 4,
+			separatorStyle: "glow",
+			separatorColor: "#4d2418",
+			cardBg: "#150a08",
+			cardRadius: 4,
 		},
 	},
 	{
@@ -632,12 +697,17 @@ export const THEME_PRESETS = [
 			itemRadius: 6,
 			spacing: "spacious",
 			transition: "cubic-bezier(0.22, 1, 0.36, 1)",
+			textTransform: "uppercase",
+			letterSpacing: 0.12,
+			headerWeight: "normal",
+			separatorStyle: "solid",
+			separatorColor: "#1e3550",
+			cardRadius: 4,
 		},
 	},
 ] as const satisfies readonly ThemePreset[];
 
 /** Union of all theme preset names. Used for compile-time variant completeness checks. */
-/** Union of all theme preset names. */
 export type ThemePresetName = (typeof THEME_PRESETS)[number]["name"];
 
 export const TERMINAL_FONTS = [

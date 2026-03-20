@@ -138,6 +138,13 @@ export type ThemeVariables = {
 	"--sidebar-spacing": string;
 	"--sidebar-transition": string;
 	"--sidebar-accent-glow": string;
+	"--sidebar-text-transform": string;
+	"--sidebar-letter-spacing": string;
+	"--sidebar-header-weight": string;
+	"--sidebar-separator": string;
+	"--sidebar-card-bg": string;
+	"--sidebar-card-border": string;
+	"--sidebar-card-radius": string;
 } & React.CSSProperties;
 
 /** Sidebar spacing density multiplier — hoisted to avoid per-call allocation. */
@@ -243,6 +250,34 @@ export function generateThemeVariables(opts: ThemeVarOptions): ThemeVariables {
 	const sidebarAccentGlow =
 		sidebar?.accentGlow && isValidHex(accent) ? `0 0 6px ${hexToRgba(accent, 0.4)}` : "none";
 
+	// Section card styling
+	const sidebarTextTransform = sidebar?.textTransform ?? "none";
+	const sidebarLetterSpacing = `${Math.max(0, Math.min(0.3, sidebar?.letterSpacing ?? 0))}em`;
+	const sidebarHeaderWeight =
+		sidebar?.headerWeight === "bold" ? "700" : sidebar?.headerWeight === "normal" ? "400" : "500";
+	const sepColor =
+		sidebar?.separatorColor && isValidHex(sidebar.separatorColor)
+			? sidebar.separatorColor
+			: edge;
+	const sepStyle = sidebar?.separatorStyle ?? "solid";
+	const sidebarSeparator =
+		sepStyle === "none"
+			? "none"
+			: sepStyle === "dashed"
+				? `1px dashed ${sepColor}`
+				: sepStyle === "gradient"
+					? `1px solid ${accent}`
+					: sepStyle === "glow"
+						? `1px solid ${hexToRgba(sepColor, 0.5)}`
+						: `1px solid ${sepColor}`;
+	const sidebarCardBg =
+		sidebar?.cardBg && isValidHex(sidebar.cardBg) ? sidebar.cardBg : "transparent";
+	const sidebarCardBorder =
+		sidebar?.cardBorder && isValidHex(sidebar.cardBorder)
+			? `1px solid ${sidebar.cardBorder}`
+			: "none";
+	const sidebarCardRadius = `${Math.max(0, Math.min(12, sidebar?.cardRadius ?? 0))}px`;
+
 	return {
 		"--color-canvas": safeBg,
 		"--color-elevated": elevated,
@@ -269,5 +304,12 @@ export function generateThemeVariables(opts: ThemeVarOptions): ThemeVariables {
 		"--sidebar-spacing": sidebarSpacing,
 		"--sidebar-transition": sidebarTransition,
 		"--sidebar-accent-glow": sidebarAccentGlow,
+		"--sidebar-text-transform": sidebarTextTransform,
+		"--sidebar-letter-spacing": sidebarLetterSpacing,
+		"--sidebar-header-weight": sidebarHeaderWeight,
+		"--sidebar-separator": sidebarSeparator,
+		"--sidebar-card-bg": sidebarCardBg,
+		"--sidebar-card-border": sidebarCardBorder,
+		"--sidebar-card-radius": sidebarCardRadius,
 	};
 }

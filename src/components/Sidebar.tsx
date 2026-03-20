@@ -119,7 +119,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 					/>
 				) : (
 					<div className="flex flex-col py-1">
-						{openWorkspaces.map((ws) => {
+						{openWorkspaces.map((ws, idx) => {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
 							const paneIds = getPaneIdsInOrder(ws.layout.tree);
@@ -128,6 +128,8 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 
 							return (
 								<div key={ws.id}>
+									{idx > 0 && <hr className="sidebar-separator" />}
+									<div className={`sidebar-card ${isActive ? "sidebar-card-active" : ""}`}>
 									<SidebarWorkspaceHeader
 										workspace={ws}
 										isActive={isActive}
@@ -162,6 +164,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 											})}
 										</div>
 									)}
+									</div>
 								</div>
 							);
 						})}

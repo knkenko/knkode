@@ -148,6 +148,24 @@ export interface SidebarTheme {
 	readonly spacing?: "compact" | "default" | "spacious";
 	/** CSS transition-timing-function for hover/active transitions. Default: "ease". */
 	readonly transition?: string;
+
+	// ── Section card styling ──────────────────────────────────────
+	/** Text transform on workspace headers. Default: "none". */
+	readonly textTransform?: "none" | "uppercase";
+	/** Letter spacing on workspace headers in em. Default: 0. */
+	readonly letterSpacing?: number;
+	/** Font weight on workspace headers. Default: "medium". */
+	readonly headerWeight?: "normal" | "medium" | "bold";
+	/** Separator between workspace sections. Default: "solid". */
+	readonly separatorStyle?: "solid" | "dashed" | "gradient" | "glow" | "none";
+	/** Separator color override. Default: derived from edge. */
+	readonly separatorColor?: string;
+	/** Workspace section card background. Default: "transparent". */
+	readonly cardBg?: string;
+	/** Workspace card border color. "none" for no border. Default: "none". */
+	readonly cardBorder?: string;
+	/** Workspace card border radius (0–12px). Default: 0. */
+	readonly cardRadius?: number;
 }
 
 export interface PaneConfig {
