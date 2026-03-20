@@ -11,7 +11,12 @@ import type {
 } from "../shared/types";
 import { createLayoutFromPreset } from "./layout-tree";
 import { createSnippetSlice } from "./snippet-actions";
-import { createWorkspacePaneSlice, defaultTheme, WORKSPACE_COLORS } from "./workspace-pane-actions";
+import {
+	createWorkspacePaneSlice,
+	defaultTheme,
+	persistAppState,
+	WORKSPACE_COLORS,
+} from "./workspace-pane-actions";
 
 interface StoreState {
 	// Data
@@ -36,9 +41,14 @@ interface StoreState {
 	paneBranches: Record<string, string | null>;
 	/** Current PR info per pane. Ephemeral runtime state — not persisted to disk. */
 	panePrs: Record<string, PrInfo | null>;
+	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
+	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
+	collapsedSidebarSections: ReadonlySet<string>;
 
 	// Actions
 	setFocusedPane: (paneId: string | null) => void;
+	toggleSidebar: () => void;
+	toggleSidebarSection: (workspaceId: string) => void;
 	/** Ensure a PTY exists for the given pane. No-op if already requested or active. */
 	ensurePty: (paneId: string, cwd: string, startupCommand: string | null) => void;
 	/** Kill PTYs for the given pane IDs and remove them from activePtyIds. */
@@ -100,6 +110,7 @@ export const useStore = create<StoreState>((set, get) => ({
 	appState: {
 		openWorkspaceIds: [],
 		activeWorkspaceId: null,
+		sidebarCollapsed: false,
 		windowBounds: { x: 100, y: 100, width: 1200, height: 800 },
 	},
 	homeDir: "/tmp",
@@ -112,9 +123,25 @@ export const useStore = create<StoreState>((set, get) => ({
 	activePtyIds: new Set(),
 	paneBranches: {},
 	panePrs: {},
+	collapsedSidebarSections: new Set(),
 
 	setFocusedPane: (paneId) =>
 		set((state) => ({ focusedPaneId: paneId, focusGeneration: state.focusGeneration + 1 })),
+
+	toggleSidebar: () => {
+		const { appState } = get();
+		const updated = { ...appState, sidebarCollapsed: !appState.sidebarCollapsed };
+		set({ appState: updated });
+		persistAppState(updated);
+	},
+
+	toggleSidebarSection: (workspaceId) => {
+		const current = get().collapsedSidebarSections;
+		const next = new Set(current);
+		if (next.has(workspaceId)) next.delete(workspaceId);
+		else next.add(workspaceId);
+		set({ collapsedSidebarSections: next });
+	},
 
 	ensurePty: (paneId, cwd, startupCommand) => {
 		const { activePtyIds } = get();
@@ -168,7 +195,13 @@ export const useStore = create<StoreState>((set, get) => ({
 			]);
 
 			let workspaces = loadedWorkspaces;
-			let appState = loadedAppState;
+			// Backfill sidebarCollapsed for configs saved before sidebar was added.
+			// The ?? is intentional: loadedAppState comes from JSON and may lack this field
+			// even though the AppState type requires it. Remove once all users have migrated.
+			let appState: AppState = {
+				...loadedAppState,
+				sidebarCollapsed: (loadedAppState as Partial<AppState>).sidebarCollapsed ?? false,
+			};
 
 			// If no workspaces exist, create a default one
 			if (workspaces.length === 0) {

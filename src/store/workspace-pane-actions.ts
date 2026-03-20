@@ -68,7 +68,7 @@ function cleanPaneEphemeral(
 	return { paneBranches, panePrs };
 }
 
-function persistAppState(appState: AppState): void {
+export function persistAppState(appState: AppState): void {
 	window.api.saveAppState(appState).catch((err) => {
 		console.error("[store] Failed to save app state:", err);
 	});

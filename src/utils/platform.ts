@@ -11,3 +11,5 @@ export const modKey = isMac ? "Cmd" : "Ctrl";
 export const MACOS_TRAFFIC_LIGHT_WIDTH = "90px";
 /** Windows caption-button (minimize/maximize/close) width in px. */
 export const WINDOWS_CAPTION_BUTTON_WIDTH = "138px";
+/** macOS sidebar top inset in px — accounts for traffic-light position (y:24) + button height (~14) + padding. */
+export const MACOS_SIDEBAR_TOP_INSET = 52;

@@ -15,6 +15,7 @@ import {
 	type PrInfo,
 } from "../shared/types";
 import { useStore } from "../store";
+import { shortenPath } from "../utils/path";
 import { modKey } from "../utils/platform";
 import { CanvasTerminal } from "./CanvasTerminal";
 import { PaneContextMenu } from "./PaneContextMenu";
@@ -253,10 +254,7 @@ export function Pane({
 		setShowContext(true);
 	}, []);
 
-	// Use homeDir from store for cross-platform path shortening
-	const shortCwd = config.cwd.startsWith(homeDir)
-		? `~${config.cwd.slice(homeDir.length)}`
-		: config.cwd;
+	const shortCwd = shortenPath(config.cwd, homeDir);
 	const statusBarPosition = workspaceTheme.statusBarPosition ?? "top";
 
 	const preset = workspaceTheme.preset ? findPreset(workspaceTheme.preset) : undefined;

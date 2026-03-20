@@ -3,17 +3,12 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { HotkeyPanel } from "./components/HotkeyPanel";
 import { PaneArea } from "./components/PaneArea";
 import { SettingsPanel } from "./components/SettingsPanel";
-import { TabBar } from "./components/TabBar";
+import { Sidebar } from "./components/Sidebar";
 import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useStore } from "./store";
 import { generateThemeVariables } from "./utils/colors";
-import {
-	MACOS_TRAFFIC_LIGHT_WIDTH,
-	WINDOWS_CAPTION_BUTTON_WIDTH,
-	isMac,
-	isWindows,
-} from "./utils/platform";
+import { isWindows, WINDOWS_CAPTION_BUTTON_WIDTH } from "./utils/platform";
 
 export function App() {
 	const initialized = useStore((s) => s.initialized);
@@ -35,8 +30,9 @@ export function App() {
 		if (focusedPaneId) setFocusedPane(focusedPaneId);
 	}, []);
 	const toggleSettings = useCallback(() => setShowSettings((v) => !v), []);
+	const toggleHotkeys = useCallback(() => setShowHotkeys((v) => !v), []);
 
-	useKeyboardShortcuts({ toggleSettings });
+	useKeyboardShortcuts({ toggleSettings, toggleHotkeys });
 
 	useEffect(() => {
 		init();
@@ -122,53 +118,53 @@ export function App() {
 	return (
 		<ErrorBoundary>
 			<div
-				className="flex flex-col h-full w-full relative"
+				className="flex flex-row h-full w-full relative"
 				style={{
 					...themeStyles,
-					...(isMac && { "--spacing-traffic": MACOS_TRAFFIC_LIGHT_WIDTH }),
 					...(isWindows && { "--spacing-caption": WINDOWS_CAPTION_BUTTON_WIDTH }),
 					color: "var(--color-content)",
 					fontFamily: "var(--font-family-ui)",
 					fontSize: "var(--font-size-ui)",
 				}}
 			>
-				<TabBar
-					onOpenSettings={() => setShowSettings(true)}
-					onOpenHotkeys={() => setShowHotkeys(true)}
-				/>
-				{themeFailed && (
-					<div className="px-3 py-1 text-xs text-danger bg-danger/10 border-b border-danger/20">
-						Theme failed to load — using defaults.
-					</div>
-				)}
-				{visitedWorkspaces.length > 0 ? (
-					<>
-						<div className="relative flex flex-1 overflow-hidden">
-							{visitedWorkspaces.map((ws) => (
-								<div
-									key={ws.id}
-									className={
-										ws.id === appState.activeWorkspaceId
-											? "absolute inset-0 flex flex-col"
-											: "absolute inset-0 invisible pointer-events-none"
-									}
-								>
-									<ErrorBoundary>
-										<PaneArea workspace={ws} />
-									</ErrorBoundary>
-								</div>
-							))}
+				<Sidebar onOpenSettings={toggleSettings} onOpenHotkeys={() => setShowHotkeys(true)} />
+				<div className="flex flex-col flex-1 min-w-0">
+					{themeFailed && (
+						<div className="px-3 py-1 text-xs text-danger bg-danger/10 border-b border-danger/20">
+							Theme failed to load — using defaults.
 						</div>
-						{showSettings && activeWorkspace && (
-							<SettingsPanel workspace={activeWorkspace} onClose={closeSettings} />
-						)}
-					</>
-				) : (
-					<div className="flex items-center justify-center flex-1 bg-canvas">
-						<p className="text-content-muted text-sm">No workspace open. Click + to create one.</p>
-					</div>
-				)}
-				{showHotkeys && <HotkeyPanel onClose={() => setShowHotkeys(false)} />}
+					)}
+					{visitedWorkspaces.length > 0 ? (
+						<>
+							<div className="relative flex flex-1 overflow-hidden">
+								{visitedWorkspaces.map((ws) => (
+									<div
+										key={ws.id}
+										className={
+											ws.id === appState.activeWorkspaceId
+												? "absolute inset-0 flex flex-col"
+												: "absolute inset-0 invisible pointer-events-none"
+										}
+									>
+										<ErrorBoundary>
+											<PaneArea workspace={ws} />
+										</ErrorBoundary>
+									</div>
+								))}
+							</div>
+							{showSettings && activeWorkspace && (
+								<SettingsPanel workspace={activeWorkspace} onClose={closeSettings} />
+							)}
+						</>
+					) : (
+						<div className="flex items-center justify-center flex-1 bg-canvas">
+							<p className="text-content-muted text-sm">
+								No workspace open. Click + to create one.
+							</p>
+						</div>
+					)}
+					{showHotkeys && <HotkeyPanel onClose={() => setShowHotkeys(false)} />}
+				</div>
 				{/* Portal root for menus that need to escape pane stacking/overflow
 				    but still inherit theme CSS variables */}
 				<div id="portal-root" />
