@@ -538,8 +538,8 @@ export const TERMINAL_FONTS = [
 ] as const;
 
 // Fallbacks intentionally overlap with TERMINAL_FONTS; unavailable fonts are skipped.
-// Order: Windows-first (Consolas, Cascadia Mono), then macOS (Menlo, Monaco), then generic.
-const FONT_FALLBACKS = "Consolas, Cascadia Mono, Menlo, Monaco, monospace";
+// Order: Windows-first (Consolas, Cascadia Code), then macOS (Menlo, Monaco), then generic.
+const FONT_FALLBACKS = "Consolas, Cascadia Code, Menlo, Monaco, monospace";
 
 export const DEFAULT_FONT_FAMILY = `${TERMINAL_FONTS[0]}, ${FONT_FALLBACKS}`;
 
