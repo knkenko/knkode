@@ -1,26 +1,29 @@
 import { isWindows } from "../utils/platform";
 
-/** Strip control characters (except tab) — newlines would execute as Enter in a PTY. */
-function sanitize(path: string): string {
-	return path.replace(/[\x00-\x08\x0a-\x1f\x7f]/g, "");
+/** Strip control characters (except tab) and Unicode bidirectional overrides.
+ *  Newlines would execute as Enter in a PTY; bidi chars can visually disguise paths. */
+function stripControlChars(path: string): string {
+	return path.replace(/[\x00-\x08\x0a-\x1f\x7f\u202A-\u202E\u2066-\u2069]/g, "");
 }
 
-/** Shell-quote a file path for safe insertion into a POSIX terminal (bash/zsh/sh).
+/** Shell-quote a file path for a POSIX shell (bash/zsh/sh).
  *  Wraps in single quotes with the `'` → `'\''` escape idiom. */
-function posixQuote(path: string): string {
-	return `'${sanitize(path).replace(/'/g, "'\\''")}'`;
+function posixQuote(clean: string): string {
+	return `'${clean.replace(/'/g, "'\\''")}'`;
 }
 
-/** Shell-quote a file path for PowerShell / cmd.exe.
- *  Uses double quotes with backtick-escaped special characters. */
-function powershellQuote(path: string): string {
-	const escaped = sanitize(path).replace(/[`"$]/g, "`$&");
-	return `"${escaped}"`;
+/** Shell-quote a file path for PowerShell.
+ *  Uses single quotes where only `'` needs escaping (doubled as `''`).
+ *  PowerShell single-quoted strings have no interpolation or metacharacters. */
+function powershellQuote(clean: string): string {
+	return `'${clean.replace(/'/g, "''")}'`;
 }
 
-/** Shell-quote a file path for the current platform's default shell. */
+/** Shell-quote a file path for the current platform's default shell.
+ *  Sanitizes control/bidi characters, then applies platform-appropriate quoting. */
 export function shellQuote(path: string): string {
-	return isWindows ? powershellQuote(path) : posixQuote(path);
+	const clean = stripControlChars(path);
+	return isWindows ? powershellQuote(clean) : posixQuote(clean);
 }
 
 /** Shell-quote multiple paths and join with spaces. */
