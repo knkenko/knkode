@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-PR #28 merged — workspace sidebar with tree-style navigation. Vertical sidebar replaces horizontal tab bar for workspace/pane management. Features: collapsible workspace sections, per-pane branch/PR badges, settings cog, hotkey reference, closed workspaces menu, Mod+B collapse toggle, Mod+/ hotkeys shortcut. Shared utilities extracted (shortenPath, useWindowDrag). Review-hardened: 28 findings + 2 user-reported issues addressed.
+PR #30 merged — sidebar theming system with per-preset visual personalities. Each of 10 theme presets now has a distinct sidebar variant (Classic: Default/Gruvbox/Nord/Solarized; Identity: Vaporwave/Ocean/Sunset/Forest; Minimal: Minimal/Zen). Type-safe dispatch via `ThemePresetName` union + `toPresetName()` coercion. Git info (branch/PR) persisted in `PaneConfig.lastBranch`/`lastPr` to eliminate sidebar layout shift on startup. `AgentStatusIndicator` extracted as shared component. `SidebarVariables` type extracted for type-safe CSS variable generation. Review-hardened: 14 agents, all findings addressed.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -36,8 +36,8 @@ PR #28 merged — workspace sidebar with tree-style navigation. Vertical sidebar
 - [x] Windows compat & cross-platform hardening (PR #27 merged)
 - [x] Release workflow — macOS universal + Windows NSIS on tag push
 - [x] Workspace sidebar — tree-style mission control (PR #28 merged)
-- [ ] Sidebar controls & context menus (rename, color, duplicate, close workspace from sidebar)
-- [ ] Per-workspace theme tinting in sidebar sections
+- [x] Sidebar controls & context menus (PR #29 merged)
+- [x] Per-workspace sidebar theming with per-preset personalities (PR #30 merged)
 - [ ] Agent activity state detection (animated indicator, cross-workspace notifications)
 - [ ] Phase 10: Integration testing & polish
 
@@ -50,5 +50,7 @@ None
 
 ## Known Issues
 - wezterm-term resolved: using `tattoy-wezterm-term` 0.1.0-fork.5 (fork published on crates.io)
-- wezterm-term selection module disabled (`// mod selection; FIXME: port to render layer`) — must implement selection on frontend
+- wezterm-term selection module disabled (`// mod selection; FIXME: port to render layer`) — selection implemented on frontend (PRs #22-24)
+- ThemeRegistry.tsx (1200+ lines) has genuinely different structural patterns per theme variant — future refactor tracked in knktx note
+- CSS sidebar variables pipeline (`generateSidebarVariables()`) largely dead code — variant components use hardcoded styles instead
 - TUI apps (claude, gemini) hide system cursor and draw their own via reverse-video text — cursor style setting has no effect inside TUI apps (fundamental limitation)
