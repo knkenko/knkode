@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-Phase 9 complete — all frontend code ported. App shell fully functional with drag-and-drop, terminal rendering, and all 17 pane chrome variants. PR #27 merged — Windows compatibility and cross-platform hardening (PowerShell shell selection, caption button spacing, secure shell quoting, cross-platform CWD detection, font fallback fixes). Release workflow ready — tag `v*` to trigger macOS universal + Windows NSIS builds.
+PR #28 merged — workspace sidebar with tree-style navigation. Vertical sidebar replaces horizontal tab bar for workspace/pane management. Features: collapsible workspace sections, per-pane branch/PR badges, settings cog, hotkey reference, closed workspaces menu, Mod+B collapse toggle, Mod+/ hotkeys shortcut. Shared utilities extracted (shortenPath, useWindowDrag). Review-hardened: 28 findings + 2 user-reported issues addressed.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -35,6 +35,10 @@ Phase 9 complete — all frontend code ported. App shell fully functional with d
 - [x] Inline terminal images (iTerm2/Kitty/Sixel) (PR #26 merged)
 - [x] Windows compat & cross-platform hardening (PR #27 merged)
 - [x] Release workflow — macOS universal + Windows NSIS on tag push
+- [x] Workspace sidebar — tree-style mission control (PR #28 merged)
+- [ ] Sidebar controls & context menus (rename, color, duplicate, close workspace from sidebar)
+- [ ] Per-workspace theme tinting in sidebar sections
+- [ ] Agent activity state detection (animated indicator, cross-workspace notifications)
 - [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
