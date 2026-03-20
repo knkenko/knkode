@@ -23,8 +23,8 @@ function isValidTimingFn(value: string): boolean {
 	return TIMING_FN_RE.test(value);
 }
 
-/** Allowlist for CSS box-shadow values — digits, units, hex/rgba colors, commas, spaces. */
-const BOX_SHADOW_RE = /^[\w\s,().#/%+-]+$/;
+/** Allowlist for CSS box-shadow values — numeric offsets, rgba/hsla colors, inset keyword. */
+const BOX_SHADOW_RE = /^[0-9a-z\s,#.%+-]+(rgba?\([\d\s,.]+\)|hsla?\([\d\s,.%]+\))?[0-9a-z\s,#.%+-]*$/i;
 function isValidBoxShadow(value: string): boolean {
 	return value === "none" || BOX_SHADOW_RE.test(value);
 }
@@ -128,6 +128,10 @@ export type ThemeVariables = {
 	"--theme-glow": string;
 	"--font-family-ui": string;
 	"--font-size-ui": string;
+} & SidebarVariables &
+	React.CSSProperties;
+
+type SidebarVariables = {
 	"--sidebar-bg": string;
 	"--sidebar-glass": string;
 	"--sidebar-border": string;
@@ -141,14 +145,21 @@ export type ThemeVariables = {
 	"--sidebar-text-transform": string;
 	"--sidebar-letter-spacing": string;
 	"--sidebar-header-weight": string;
-	"--sidebar-separator": string;
 	"--sidebar-card-bg": string;
 	"--sidebar-card-border": string;
 	"--sidebar-card-radius": string;
-} & React.CSSProperties;
+};
 
-/** Sidebar spacing density multiplier — hoisted to avoid per-call allocation. */
+/** Sidebar spacing density multipliers. */
 const SPACING_MAP = { compact: "0.75", default: "1", spacious: "1.25" } as const;
+
+/** Header font-weight lookup. */
+const HEADER_WEIGHT_MAP = { bold: "700", normal: "400", medium: "500" } as const;
+
+/** Return a validated hex color or the fallback. */
+function validHexOr(value: string | undefined, fallback: string): string {
+	return value && isValidHex(value) ? value : fallback;
+}
 
 const MIN_UI_FONT_SIZE = 11;
 const MAX_UI_FONT_SIZE = 15;
@@ -218,65 +229,13 @@ export function generateThemeVariables(opts: ThemeVarOptions): ThemeVariables {
 			? Math.max(MIN_UI_FONT_SIZE, Math.min(MAX_UI_FONT_SIZE, fontSize - 1))
 			: DEFAULT_UI_FONT_SIZE;
 
-	// Sidebar — derive from sidebar config or auto-generate from theme colors
-	const sidebarGlass = Math.max(0, Math.min(20, sidebar?.glass ?? 0));
-	const sidebarBgHex =
-		sidebar?.background && isValidHex(sidebar.background) ? sidebar.background : sunken;
-	// When glass blur is active, make sidebar semi-transparent so blur is visible
-	const sidebarBg = sidebarGlass > 0 ? hexToRgba(sidebarBgHex, 0.75) : sidebarBgHex;
-	const sidebarBorderColor =
-		sidebar?.borderColor && isValidHex(sidebar.borderColor) ? sidebar.borderColor : edge;
-	const sidebarBorderStyle = sidebar?.borderStyle ?? "solid";
-	const sidebarBorder =
-		sidebarBorderStyle === "none"
-			? "none"
-			: sidebarBorderStyle === "gradient"
-				? `1px solid ${accent}`
-				: `1px solid ${sidebarBorderColor}`;
-	const sidebarShadow =
-		sidebar?.shadow && isValidBoxShadow(sidebar.shadow)
-			? sidebar.shadow
-			: sidebarBorderStyle === "glow" && isValidHex(sidebarBorderColor)
-				? `1px 0 8px ${hexToRgba(sidebarBorderColor, 0.3)}`
-				: "none";
-	const sidebarItemHover =
-		sidebar?.itemHover && isValidHex(sidebar.itemHover) ? sidebar.itemHover : overlay;
-	const sidebarItemActive =
-		sidebar?.itemActive && isValidHex(sidebar.itemActive) ? sidebar.itemActive : overlayActive;
-	const sidebarItemRadius = Math.max(0, Math.min(8, sidebar?.itemRadius ?? 2));
-	const sidebarSpacing = SPACING_MAP[sidebar?.spacing ?? "default"];
-	const sidebarTransition =
-		sidebar?.transition && isValidTimingFn(sidebar.transition) ? sidebar.transition : "ease";
-	const sidebarAccentGlow =
-		sidebar?.accentGlow && isValidHex(accent) ? `0 0 6px ${hexToRgba(accent, 0.4)}` : "none";
-
-	// Section card styling
-	const sidebarTextTransform = sidebar?.textTransform ?? "none";
-	const sidebarLetterSpacing = `${Math.max(0, Math.min(0.3, sidebar?.letterSpacing ?? 0))}em`;
-	const sidebarHeaderWeight =
-		sidebar?.headerWeight === "bold" ? "700" : sidebar?.headerWeight === "normal" ? "400" : "500";
-	const sepColor =
-		sidebar?.separatorColor && isValidHex(sidebar.separatorColor)
-			? sidebar.separatorColor
-			: edge;
-	const sepStyle = sidebar?.separatorStyle ?? "solid";
-	const sidebarSeparator =
-		sepStyle === "none"
-			? "none"
-			: sepStyle === "dashed"
-				? `1px dashed ${sepColor}`
-				: sepStyle === "gradient"
-					? `1px solid ${accent}`
-					: sepStyle === "glow"
-						? `1px solid ${hexToRgba(sepColor, 0.5)}`
-						: `1px solid ${sepColor}`;
-	const sidebarCardBg =
-		sidebar?.cardBg && isValidHex(sidebar.cardBg) ? sidebar.cardBg : "transparent";
-	const sidebarCardBorder =
-		sidebar?.cardBorder && isValidHex(sidebar.cardBorder)
-			? `1px solid ${sidebar.cardBorder}`
-			: "none";
-	const sidebarCardRadius = `${Math.max(0, Math.min(12, sidebar?.cardRadius ?? 0))}px`;
+	const sidebarVars = generateSidebarVariables(sidebar, {
+		sunken,
+		edge,
+		accent,
+		overlay,
+		overlayActive,
+	});
 
 	return {
 		"--color-canvas": safeBg,
@@ -294,22 +253,67 @@ export function generateThemeVariables(opts: ThemeVarOptions): ThemeVariables {
 		"--theme-glow": glowValue,
 		"--font-family-ui": buildFontFamily(fontFamily),
 		"--font-size-ui": `${uiFontSize}px`,
-		"--sidebar-bg": sidebarBg,
-		"--sidebar-glass": `${sidebarGlass}px`,
-		"--sidebar-border": sidebarBorder,
-		"--sidebar-shadow": sidebarShadow,
-		"--sidebar-item-hover": sidebarItemHover,
-		"--sidebar-item-active": sidebarItemActive,
-		"--sidebar-item-radius": `${sidebarItemRadius}px`,
-		"--sidebar-spacing": sidebarSpacing,
-		"--sidebar-transition": sidebarTransition,
-		"--sidebar-accent-glow": sidebarAccentGlow,
-		"--sidebar-text-transform": sidebarTextTransform,
-		"--sidebar-letter-spacing": sidebarLetterSpacing,
-		"--sidebar-header-weight": sidebarHeaderWeight,
-		"--sidebar-separator": sidebarSeparator,
-		"--sidebar-card-bg": sidebarCardBg,
-		"--sidebar-card-border": sidebarCardBorder,
-		"--sidebar-card-radius": sidebarCardRadius,
+		...sidebarVars,
+	} satisfies ThemeVariables;
+}
+
+/** Derive sidebar CSS variables from SidebarTheme config and palette colors. */
+function generateSidebarVariables(
+	sidebar: SidebarTheme | undefined,
+	palette: { sunken: string; edge: string; accent: string; overlay: string; overlayActive: string },
+): SidebarVariables {
+	const { sunken, edge, accent, overlay, overlayActive } = palette;
+
+	const glass = Math.max(0, Math.min(20, sidebar?.glass ?? 0));
+	const bgHex = validHexOr(sidebar?.background, sunken);
+	const bg = glass > 0 ? hexToRgba(bgHex, 0.75) : bgHex;
+	const borderColor = validHexOr(sidebar?.borderColor, edge);
+
+	const borderStyle = sidebar?.borderStyle ?? "solid";
+	let border: string;
+	switch (borderStyle) {
+		case "none":
+			border = "none";
+			break;
+		case "gradient":
+			border = `1px solid ${accent}`;
+			break;
+		default:
+			border = `1px solid ${borderColor}`;
+	}
+
+	let shadow: string;
+	if (sidebar?.shadow && isValidBoxShadow(sidebar.shadow)) {
+		shadow = sidebar.shadow;
+	} else if (borderStyle === "glow" && isValidHex(borderColor)) {
+		shadow = `1px 0 8px ${hexToRgba(borderColor, 0.3)}`;
+	} else {
+		shadow = "none";
+	}
+
+	const transition =
+		sidebar?.transition && isValidTimingFn(sidebar.transition) ? sidebar.transition : "ease";
+	const textTransform = sidebar?.textTransform === "uppercase" ? "uppercase" : "none";
+
+	return {
+		"--sidebar-bg": bg,
+		"--sidebar-glass": `${glass}px`,
+		"--sidebar-border": border,
+		"--sidebar-shadow": shadow,
+		"--sidebar-item-hover": validHexOr(sidebar?.itemHover, overlay),
+		"--sidebar-item-active": validHexOr(sidebar?.itemActive, overlayActive),
+		"--sidebar-item-radius": `${Math.max(0, Math.min(8, sidebar?.itemRadius ?? 2))}px`,
+		"--sidebar-spacing": SPACING_MAP[sidebar?.spacing ?? "default"],
+		"--sidebar-transition": transition,
+		"--sidebar-accent-glow":
+			sidebar?.accentGlow && isValidHex(accent) ? `0 0 6px ${hexToRgba(accent, 0.4)}` : "none",
+		"--sidebar-text-transform": textTransform,
+		"--sidebar-letter-spacing": `${Math.max(0, Math.min(0.3, sidebar?.letterSpacing ?? 0))}em`,
+		"--sidebar-header-weight": HEADER_WEIGHT_MAP[sidebar?.headerWeight ?? "medium"],
+		"--sidebar-card-bg": validHexOr(sidebar?.cardBg, "transparent"),
+		"--sidebar-card-border": sidebar?.cardBorder && isValidHex(sidebar.cardBorder)
+			? `1px solid ${sidebar.cardBorder}`
+			: "none",
+		"--sidebar-card-radius": `${Math.max(0, Math.min(12, sidebar?.cardRadius ?? 0))}px`,
 	};
 }
