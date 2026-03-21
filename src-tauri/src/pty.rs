@@ -245,7 +245,16 @@ fn create_platform_pty(
     ),
     String,
 > {
-    let exe = std::env::var("SHELL").unwrap_or_else(|_| "powershell.exe".to_string());
+    // On Windows, SHELL may contain an MSYS2 path like "/usr/bin/bash" which
+    // CreateProcessW can't resolve. Only use SHELL if it looks like a valid
+    // Windows path (contains ':' or '\'). Otherwise fall back to PowerShell.
+    let exe = std::env::var("SHELL")
+        .ok()
+        .filter(|s| s.contains(':') || s.contains('\\'))
+        .or_else(|| std::env::var("COMSPEC").ok())
+        .unwrap_or_else(|| "powershell.exe".to_string());
+
+    eprintln!("[pty] Windows shell detection for {id}: exe={exe}");
 
     let env_vars = [("TERM", "xterm-256color")];
     let (session, pipes) = crate::win_pty::WinPtySession::spawn(
