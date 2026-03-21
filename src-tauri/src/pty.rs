@@ -335,6 +335,10 @@ impl PtyManager {
             // Wait for child outside the lock to avoid blocking other operations
             let exit_code: i64 = if let Some(mut session) = removed {
                 term_state.remove(&id_clone);
+                // Clean up output timestamp so poll_activity doesn't evaluate a dead pane
+                if let Ok(mut times) = output_times.lock() {
+                    times.remove(&id_clone);
+                }
                 session
                     .child
                     .wait()
