@@ -10,7 +10,7 @@ createAndRegisterVariant("Nord", {
 		}),
 		editInput: {
 			className: "border tracking-wide text-[11px] py-px px-1 w-20",
-			style: (theme) => ({ borderColor: theme.accent, color: theme.foreground }),
+			style: (theme, _isFocused) => ({ borderColor: theme.accent, color: theme.foreground }),
 		},
 		label: { className: "" },
 		cwd: { className: "opacity-40 text-[10px]" },
@@ -20,11 +20,11 @@ createAndRegisterVariant("Nord", {
 		},
 		pr: {
 			className: "text-[10px] px-0.5 leading-none opacity-30 hover:opacity-70",
-			style: (theme) => ({ color: theme.accent, backgroundColor: "transparent" }),
+			style: (theme, _isFocused) => ({ color: theme.accent, backgroundColor: "transparent" }),
 		},
 		action: {
 			className: "text-[11px] px-0.5 opacity-30 hover:opacity-70",
-			style: (theme) => ({ color: theme.foreground }),
+			style: (theme, _isFocused) => ({ color: theme.foreground }),
 		},
 		snippet: { label: ">_" },
 	},

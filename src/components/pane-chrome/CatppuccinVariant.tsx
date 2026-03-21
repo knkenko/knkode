@@ -9,10 +9,10 @@ createAndRegisterVariant("Catppuccin", {
 			borderBottom: `1px solid ${isFocused ? theme.accent : `${theme.accent}33`}`,
 		}),
 		separator: "·",
-		separatorOpacity: "opacity-25",
+		separatorClassName: "opacity-25",
 		editInput: {
 			className: "border rounded-md text-[11px] py-px px-1 w-20",
-			style: (theme) => ({ borderColor: theme.accent, color: theme.foreground }),
+			style: (theme, _isFocused) => ({ borderColor: theme.accent, color: theme.foreground }),
 		},
 		label: { className: "" },
 		cwd: {
@@ -27,11 +27,14 @@ createAndRegisterVariant("Catppuccin", {
 		},
 		pr: {
 			className: "text-[10px] px-2 py-px rounded-md opacity-40 hover:opacity-80",
-			style: (theme) => ({ backgroundColor: `${theme.accent}14`, color: theme.foreground }),
+			style: (theme, _isFocused) => ({
+				backgroundColor: `${theme.accent}14`,
+				color: theme.foreground,
+			}),
 		},
 		action: {
 			className: "text-[11px] px-0.5 opacity-40 hover:opacity-80 rounded-md",
-			style: (theme) => ({ color: theme.foreground }),
+			style: (theme, _isFocused) => ({ color: theme.foreground }),
 		},
 		snippet: { label: ">_" },
 	},

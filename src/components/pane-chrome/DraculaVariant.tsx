@@ -9,12 +9,12 @@ createAndRegisterVariant("Dracula", {
 			borderBottom: `1px solid ${isFocused ? theme.accent : `${theme.accent}33`}`,
 		}),
 		separator: "│",
-		separatorOpacity: "opacity-20",
+		separatorClassName: "opacity-20",
 		separatorStyle: (theme) => ({ color: theme.accent }),
 		showSeparatorAfterLabel: false,
 		editInput: {
 			className: "border rounded-sm text-[11px] py-px px-1 w-20",
-			style: (theme) => ({ borderColor: theme.accent, color: theme.foreground }),
+			style: (theme, _isFocused) => ({ borderColor: theme.accent, color: theme.foreground }),
 		},
 		label: { className: "font-semibold" },
 		cwd: {
@@ -28,11 +28,14 @@ createAndRegisterVariant("Dracula", {
 		},
 		pr: {
 			className: "text-[10px] font-medium px-2 py-px rounded-md hover:brightness-110",
-			style: (theme) => ({ backgroundColor: `${theme.accent}18`, color: theme.foreground }),
+			style: (theme, _isFocused) => ({
+				backgroundColor: `${theme.accent}18`,
+				color: theme.foreground,
+			}),
 		},
 		action: {
 			className: "text-[11px] px-0.5 opacity-50 hover:opacity-100",
-			style: (theme) => ({ color: theme.accent }),
+			style: (theme, _isFocused) => ({ color: theme.accent }),
 		},
 		snippet: { label: ">_" },
 	},

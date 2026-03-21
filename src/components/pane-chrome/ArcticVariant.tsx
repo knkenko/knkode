@@ -10,11 +10,11 @@ createAndRegisterVariant("Arctic", {
 			borderBottom: `1px solid ${isFocused ? `${theme.accent}44` : `${theme.accent}22`}`,
 		}),
 		separator: "│",
-		separatorOpacity: "opacity-20",
+		separatorClassName: "opacity-20",
 		separatorStyle: (theme) => ({ color: theme.accent }),
 		editInput: {
 			className: "border tracking-wider font-light text-[10px] py-px px-1 w-20",
-			style: (theme) => ({ borderColor: theme.accent, color: theme.foreground }),
+			style: (theme, _isFocused) => ({ borderColor: theme.accent, color: theme.foreground }),
 		},
 		cwd: {
 			className: "opacity-50",
@@ -31,7 +31,7 @@ createAndRegisterVariant("Arctic", {
 		},
 		pr: {
 			className: "text-[10px] tracking-wider font-light px-2 py-px opacity-40 hover:opacity-100",
-			style: (theme) => ({
+			style: (theme, _isFocused) => ({
 				border: `1px solid ${theme.accent}44`,
 				color: theme.foreground,
 				borderRadius: 0,
@@ -40,7 +40,7 @@ createAndRegisterVariant("Arctic", {
 		},
 		action: {
 			className: "px-0.5 opacity-40 hover:opacity-100",
-			style: (theme) => ({ color: theme.accent }),
+			style: (theme, _isFocused) => ({ color: theme.accent }),
 		},
 		snippet: { label: ">_" },
 	},
