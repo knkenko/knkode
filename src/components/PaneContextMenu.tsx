@@ -175,6 +175,8 @@ export function PaneContextMenu({
 						const cwd = cwdInput.trim();
 						if (cwd && isValidCwd(cwd)) {
 							onUpdateConfig({ cwd });
+						} else if (cwd) {
+							console.warn(`[PaneContextMenu] Invalid cwd path: ${cwd}`);
 						}
 						closeContext();
 					}}
