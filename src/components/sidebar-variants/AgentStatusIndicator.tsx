@@ -1,5 +1,26 @@
 import type { AgentStatus } from "../../shared/types";
 
+/** Pulsing red dot indicating a pane/workspace needs attention.
+ *  Accepts size class (default "h-2.5 w-2.5") and optional extra className for positioning. */
+export function AttentionDot({
+	size = "h-2.5 w-2.5",
+	className,
+}: {
+	size?: string;
+	className?: string;
+}) {
+	return (
+		<span
+			role="status"
+			aria-label="Needs attention"
+			className={`relative flex ${size} shrink-0 ${className ?? ""}`}
+		>
+			<span className="animate-ping motion-reduce:animate-none absolute inline-flex h-full w-full rounded-full bg-danger opacity-75" />
+			<span className={`relative inline-flex rounded-full ${size} bg-danger`} />
+		</span>
+	);
+}
+
 /** Shared agent status indicator for sidebar pane entries.
  *  Returns null for "idle" — only renders a visual for active states.
  *  Gruvbox gets a block cursor; all others get a spinner or ping dot. */
@@ -13,10 +34,10 @@ export function AgentStatusIndicator({
 	if (status === "idle") return null;
 
 	if (status === "active") {
-		if (gruvbox) return <span className="w-2 h-3 bg-[#fe8019] animate-pulse shrink-0" />;
+		if (gruvbox) return <span className="w-2 h-3 bg-[#fe8019] animate-pulse motion-reduce:animate-none shrink-0" />;
 		return (
 			<svg
-				className="animate-spin h-3 w-3 text-[#6c63ff] shrink-0"
+				className="animate-spin motion-reduce:animate-none h-3 w-3 text-accent shrink-0"
 				xmlns="http://www.w3.org/2000/svg"
 				fill="none"
 				viewBox="0 0 24 24"
@@ -38,11 +59,8 @@ export function AgentStatusIndicator({
 		);
 	}
 
-	// attention
-	return (
-		<span className="relative flex h-2.5 w-2.5 shrink-0">
-			<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e74c3c] opacity-75" />
-			<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#e74c3c]" />
-		</span>
-	);
+	// attention — exhaustive: only "attention" reaches here
+	const _exhaustive: "attention" = status;
+	void _exhaustive;
+	return <AttentionDot />;
 }

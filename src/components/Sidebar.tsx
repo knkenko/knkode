@@ -8,6 +8,7 @@ import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
 
+import { AttentionDot } from "./sidebar-variants/AgentStatusIndicator";
 import {
 	CollapsedWorkspaceVariant,
 	WorkspaceSectionWrapper,
@@ -170,10 +171,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 												onClose={() => closeWorkspaceTab(ws.id)}
 											/>
 											{isSectionCollapsed && attentionWorkspaceIds.has(ws.id) && (
-												<span className="absolute top-1/2 -translate-y-1/2 right-2 flex h-2 w-2 pointer-events-none">
-													<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e74c3c] opacity-75" />
-													<span className="relative inline-flex rounded-full h-2 w-2 bg-[#e74c3c]" />
-												</span>
+												<AttentionDot size="h-2 w-2" className="absolute top-1/2 -translate-y-1/2 right-2 pointer-events-none" />
 											)}
 										</div>
 										{!isSectionCollapsed && (
@@ -396,10 +394,7 @@ function CollapsedView({
 							/>
 						</WorkspaceSectionWrapper>
 						{attentionWorkspaceIds.has(ws.id) && !isActive && (
-							<span className="absolute top-1 right-1 flex h-2 w-2">
-								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e74c3c] opacity-75" />
-								<span className="relative inline-flex rounded-full h-2 w-2 bg-[#e74c3c]" />
-							</span>
+							<AttentionDot size="h-2 w-2" className="absolute top-1 right-1" />
 						)}
 					</div>
 				);
