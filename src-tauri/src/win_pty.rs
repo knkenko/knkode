@@ -190,14 +190,15 @@ impl WinPtySession {
             Y: rows as i16,
         };
 
-        // Create pseudoconsole — ONLY inherit cursor, no WIN32_INPUT_MODE
+        // Create pseudoconsole with no flags (matches node-pty behavior).
+        // PSEUDOCONSOLE_INHERIT_CURSOR (0x1) can hang when no parent console exists.
         let mut hpc: HANDLE = INVALID_HANDLE_VALUE;
         let result = unsafe {
             (CONPTY.create)(
                 size,
                 pty_in_read.as_raw_handle() as _,
                 pty_out_write.as_raw_handle() as _,
-                0x1, // PSEUDOCONSOLE_INHERIT_CURSOR only
+                0, // no flags
                 &mut hpc,
             )
         };
@@ -247,6 +248,11 @@ impl WinPtySession {
             }
         }
 
+        // Close the ConPTY-side pipe ends now — they are duplicated inside the
+        // pseudoconsole. Must happen before CreateProcessW (matches MS sample).
+        drop(pty_in_read);
+        drop(pty_out_write);
+
         // Build environment block (null-separated, double-null terminated)
         let env_block = build_env_block(env_vars);
 
@@ -293,10 +299,6 @@ impl WinPtySession {
         let _thread = unsafe { OwnedHandle::from_raw_handle(pi.hThread as _) };
         let process = unsafe { OwnedHandle::from_raw_handle(pi.hProcess as _) };
         let pid = unsafe { GetProcessId(process.as_raw_handle() as _) };
-
-        // Drop the pipe ends that belong to the pseudoconsole — we keep the other ends
-        drop(pty_in_read);
-        drop(pty_out_write);
 
         Ok((
             WinPtySession { hpc, process, pid },

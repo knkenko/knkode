@@ -247,11 +247,11 @@ fn create_platform_pty(
 > {
     // On Windows, SHELL may contain an MSYS2 path like "/usr/bin/bash" which
     // CreateProcessW can't resolve. Only use SHELL if it looks like a valid
-    // Windows path (contains ':' or '\'). Otherwise fall back to PowerShell.
+    // Windows path (contains ':' or '\'). Default to PowerShell (not COMSPEC/cmd.exe)
+    // since PowerShell handles ConPTY output better.
     let exe = std::env::var("SHELL")
         .ok()
         .filter(|s| s.contains(':') || s.contains('\\'))
-        .or_else(|| std::env::var("COMSPEC").ok())
         .unwrap_or_else(|| "powershell.exe".to_string());
 
     eprintln!("[pty] Windows shell detection for {id}: exe={exe}");
@@ -422,8 +422,16 @@ impl PtyManager {
                     }
                     Ok(n) => {
                         total_bytes += n;
-                        if total_bytes == n {
-                            eprintln!("[pty] First read for {id_clone}: {n} bytes");
+                        if total_bytes <= 64 {
+                            let hex: String = buf[..n]
+                                .iter()
+                                .map(|b| format!("{b:02x}"))
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            eprintln!(
+                                "[pty] Read #{} for {id_clone}: {n} bytes [{hex}]",
+                                total_bytes / n.max(1)
+                            );
                         }
                         term_state.advance_only(&id_clone, &buf[..n]);
 
