@@ -1,7 +1,7 @@
 # HANDOFF — knkode-v2
 
 ## Current State
-PR #35 merged — Scroll race fix, unified context menus, sidebar branch layout, dev port change. Review-hardened: 9 agents, 15 findings (4 must-fix, 6 suggestions, 5 nitpicks), 12 fixed, 2 skipped (out of scope). Key fixes: deduplicated drag utilities (getDropZone, DRAG_THRESHOLD, suppressNextClick), extracted pane event constants, replaced comma operator anti-pattern, added CWD validation warning.
+PR #36 merged — Agent activity state detection. Rust PTY backend tracks output activity, emits per-pane active/idle/attention status via events. Frontend store consumes status, pane chrome animates the existing border separator (CSS ::after overlay with custom properties). 5 animation styles mapped to theme identity (scan, dual-scan, wave, ember, shimmer). Sidebar pane entries show right-side animated indicators. Multiple iterations to get the animation right: replaced separate DOM element with ::after pseudo-element, fixed border offset positioning, fixed transition-all causing white flash on Cyberpunk.
 
 ## What's Done
 - [x] Tauri 2 project scaffolded (React 19 + TypeScript 5.9 + Vite 6 + Tailwind CSS 4.2)
@@ -42,7 +42,7 @@ PR #35 merged — Scroll race fix, unified context menus, sidebar branch layout,
 - [x] Tech debt: ThemeRegistry strategy pattern, collapsed variant dedup, tracker repo-root caching, stale PR fix (PR #32 merged)
 - [x] Tech debt: Pane chrome factory extension — migrate Amber, Ocean, TokyoNight to createVariant (PR #34 merged)
 - [x] Fix: scroll race, unified context menus, sidebar branch layout, dev port (PR #35 merged)
-- [ ] Agent activity state detection (animated indicator, cross-workspace notifications)
+- [x] Agent activity state detection — animated separator, sidebar indicators, 5 animation styles (PR #36 merged)
 - [ ] Phase 10: Integration testing & polish
 
 ## Key Reference
