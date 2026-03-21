@@ -243,13 +243,16 @@ export interface PrInfo {
 	readonly title: string;
 }
 
+export const PANE_SCROLL_EVENT = "pane:scroll" as const;
+export const PANE_RENAME_EVENT = "pane:rename" as const;
+
 /** Detail payload for the `pane:scroll` CustomEvent dispatched by global shortcuts. */
 export interface PaneScrollDetail {
 	readonly paneId: string;
 	readonly to: "top" | "bottom";
 }
 
-/** Detail payload for the `pane:rename` CustomEvent dispatched by sidebar context menu. */
+/** Detail payload for the `pane:rename` CustomEvent dispatched by the sidebar to trigger rename in the corresponding Pane component. */
 export interface PaneRenameDetail {
 	readonly paneId: string;
 }

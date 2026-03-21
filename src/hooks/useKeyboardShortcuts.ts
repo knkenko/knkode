@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { PaneScrollDetail } from "../shared/types";
+import { PANE_SCROLL_EVENT, type PaneScrollDetail } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac } from "../utils/platform";
 
@@ -161,7 +161,7 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 				if (!resolvedFocusId) return;
 				e.preventDefault();
 				window.dispatchEvent(
-					new CustomEvent<PaneScrollDetail>("pane:scroll", {
+					new CustomEvent<PaneScrollDetail>(PANE_SCROLL_EVENT, {
 						detail: {
 							paneId: resolvedFocusId,
 							to: e.key === "ArrowDown" ? "bottom" : "top",

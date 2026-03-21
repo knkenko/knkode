@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { type ThemePresetName, toPresetName } from "../data/theme-presets";
 import { useContextMenu } from "../hooks/useContextMenu";
-import type { PaneConfig } from "../shared/types";
+import { PANE_RENAME_EVENT, type PaneConfig } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
 import { PaneContextMenu } from "./PaneContextMenu";
@@ -41,9 +41,7 @@ export function SidebarPaneEntry({
 	const ctx = useContextMenu();
 
 	const handleRename = useCallback(() => {
-		window.dispatchEvent(
-			new CustomEvent("pane:rename", { detail: { paneId } }),
-		);
+		window.dispatchEvent(new CustomEvent(PANE_RENAME_EVENT, { detail: { paneId } }));
 	}, [paneId]);
 
 	return (
@@ -69,6 +67,7 @@ export function SidebarPaneEntry({
 					canClose={canClose}
 					anchorPos={ctx.position}
 					onUpdateConfig={(updates) => updatePaneConfig(workspaceId, paneId, updates)}
+					// iTerm2 convention: "Split Vertical" = vertical divider = horizontal (side-by-side) layout
 					onSplitVertical={() => splitPane(workspaceId, paneId, "horizontal")}
 					onSplitHorizontal={() => splitPane(workspaceId, paneId, "vertical")}
 					onClose={() => onClose?.()}

@@ -9,6 +9,8 @@ import {
 	effectMul,
 	type GridSnapshot,
 	MAX_UNFOCUSED_DIM,
+	PANE_RENAME_EVENT,
+	PANE_SCROLL_EVENT,
 	type PaneConfig,
 	type PaneRenameDetail,
 	type PaneScrollDetail,
@@ -127,7 +129,7 @@ export const Pane = memo(function Pane({
 			if (rafIdRef.current === 0) {
 				rafIdRef.current = requestAnimationFrame(() => {
 					rafIdRef.current = 0;
-					// Re-check: user may have scrolled between event and RAF execution
+					// Re-check: user may have scrolled up between event and RAF execution
 					if (isScrolledRef.current) return;
 					const latest = pendingGridRef.current;
 					if (latest) {
@@ -200,7 +202,8 @@ export const Pane = memo(function Pane({
 			scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), 2000);
 
 			pendingScrollDelta.current += deltaLines;
-			// Mark scrolled immediately to prevent render-RAF from pushing to bottom
+			// Mark scrolled-up immediately so the render RAF (above) won't push new output to bottom.
+			// Only deltaLines > 0 (scrolling up into history) sets the flag; scrolling down clears it at bottom.
 			if (deltaLines > 0) isScrolledRef.current = true;
 			if (scrollRafId.current !== 0) return;
 
@@ -245,8 +248,8 @@ export const Pane = memo(function Pane({
 			if (to === "bottom") scrollToBottom();
 			else scrollToTop();
 		};
-		window.addEventListener("pane:scroll", handler);
-		return () => window.removeEventListener("pane:scroll", handler);
+		window.addEventListener(PANE_SCROLL_EVENT, handler);
+		return () => window.removeEventListener(PANE_SCROLL_EVENT, handler);
 	}, [paneId, scrollToBottom, scrollToTop]);
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(config.label, (label) =>
@@ -256,12 +259,12 @@ export const Pane = memo(function Pane({
 	// Listen for pane:rename events dispatched by sidebar context menu
 	useEffect(() => {
 		const handler = (e: Event) => {
-			const { paneId: targetId } = (e as CustomEvent<PaneRenameDetail>).detail;
-			if (targetId !== paneId) return;
+			const detail = (e as CustomEvent<PaneRenameDetail>).detail;
+			if (!detail?.paneId || detail.paneId !== paneId) return;
 			startEditing();
 		};
-		window.addEventListener("pane:rename", handler);
-		return () => window.removeEventListener("pane:rename", handler);
+		window.addEventListener(PANE_RENAME_EVENT, handler);
+		return () => window.removeEventListener(PANE_RENAME_EVENT, handler);
 	}, [paneId, startEditing]);
 
 	const handleContextMenu = useCallback((e: React.MouseEvent) => {
