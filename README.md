@@ -19,6 +19,16 @@ A terminal workspace manager that saves your multi-pane layouts so you stop rebu
 
 Each theme has its own visual effects — scanlines, phosphor glow, noise textures, gradient overlays — applied to terminal backgrounds and pane chrome. These aren't color swaps.
 
+## Download
+
+**[Latest release (v2.0.0)](https://github.com/StanK23/knkode/releases/latest)**
+
+| Platform | File |
+|---|---|
+| macOS (Apple Silicon + Intel) | [knkode_2.0.0_universal.dmg](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_universal.dmg) |
+| Windows (installer) | [knkode_2.0.0_x64-setup.exe](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_x64-setup.exe) |
+| Windows (MSI) | [knkode_2.0.0_x64_en-US.msi](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_x64_en-US.msi) |
+
 ## Why
 
 Every project needs a different terminal setup — build watcher, dev server, logs, a shell for git. You arrange them, close the window, and rebuild the whole thing next time. knkode saves each arrangement as a named workspace you can switch between instantly.
