@@ -1,6 +1,8 @@
 use base64::prelude::*;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorPalette, RgbColor};
@@ -95,6 +97,9 @@ pub struct CellSnapshot {
     /// Image slices attached to this cell (omitted when empty).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<ImageCellSnapshot>>,
+    /// URL if this cell is part of a clickable hyperlink (omitted when None).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -296,6 +301,69 @@ fn encode_rgba_as_png(rgba: &[u8], width: u32, height: u32) -> Option<String> {
         return None;
     }
     Some(BASE64_STANDARD.encode(&buf))
+}
+
+/// Compiled URL regex — matches http(s) URLs and localhost/127.0.0.1 with ports.
+static URL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r#"(?:https?://[^\s<>"{}|\\^`\[\]]+|(?:localhost|127\.0\.0\.1):\d+[^\s<>"{}|\\^`\[\]]*)"#,
+    )
+    .expect("URL regex must compile")
+});
+
+/// Characters that are valid URL chars but likely sentence punctuation when trailing.
+/// Strip them from the end of a match unless they have a matching opener in the URL.
+fn clean_url_tail(url: &str) -> &str {
+    let mut end = url.len();
+    let bytes = url.as_bytes();
+    while end > 0 {
+        match bytes[end - 1] {
+            b')' if !url[..end].contains('(') => end -= 1,
+            b']' if !url[..end].contains('[') => end -= 1,
+            b'.' | b',' | b';' | b':' | b'!' | b'?' => end -= 1,
+            _ => break,
+        }
+    }
+    &url[..end]
+}
+
+/// Detect URLs in a row's concatenated text and annotate matching cells.
+/// Each cell in a URL range gets `link` set to the full URL string.
+/// `cell_byte_starts[i]` is the byte offset in `row_text` where cell `i` starts.
+fn annotate_row_links(cells: &mut [CellSnapshot]) {
+    // Build the row text and track byte offset → cell index mapping.
+    let mut row_text = String::with_capacity(cells.len());
+    let mut cell_byte_starts: Vec<usize> = Vec::with_capacity(cells.len());
+    for cell in cells.iter() {
+        cell_byte_starts.push(row_text.len());
+        row_text.push_str(&cell.text);
+    }
+
+    for m in URL_REGEX.find_iter(&row_text) {
+        let url = clean_url_tail(m.as_str());
+        if url.is_empty() {
+            continue;
+        }
+        let match_start = m.start();
+        let match_end = match_start + url.len();
+        // Prepend http:// to scheme-less matches (localhost:PORT, 127.0.0.1:PORT)
+        // so the frontend's isAllowedUrl check doesn't silently reject them.
+        let url_string = if url.starts_with("http://") || url.starts_with("https://") {
+            url.to_string()
+        } else {
+            format!("http://{url}")
+        };
+
+        // Find which cells fall within this URL byte range
+        for (i, &byte_start) in cell_byte_starts.iter().enumerate() {
+            let cell_end = byte_start + cells[i].text.len();
+            // Cell overlaps the URL range if it starts before match_end and ends after match_start.
+            // Skip cells that already have an OSC 8 hyperlink — explicit links take priority.
+            if byte_start < match_end && cell_end > match_start && cells[i].link.is_none() {
+                cells[i].link = Some(url_string.clone());
+            }
+        }
+    }
 }
 
 impl TerminalState {
@@ -667,6 +735,16 @@ impl TerminalState {
                 // produce an empty vec if all images failed to encode.
                 let images = cell_images.and_then(|v| if v.is_empty() { None } else { Some(v) });
 
+                // OSC 8 explicit hyperlinks — filter to http(s) for defense-in-depth.
+                let link = attrs.hyperlink().and_then(|h| {
+                    let uri = h.uri();
+                    if uri.starts_with("https://") || uri.starts_with("http://") {
+                        Some(uri.to_string())
+                    } else {
+                        None
+                    }
+                });
+
                 cells.push(CellSnapshot {
                     text: cell_ref.str().to_string(),
                     fg,
@@ -676,8 +754,11 @@ impl TerminalState {
                     underline: !matches!(attrs.underline(), Underline::None),
                     strikethrough: attrs.strikethrough(),
                     images,
+                    link,
                 });
             }
+            // Regex-detect bare URLs in cells that don't already have an OSC 8 link.
+            annotate_row_links(&mut cells);
             rows.push(cells);
         }
 

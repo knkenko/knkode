@@ -304,6 +304,8 @@ export interface CellSnapshot {
 	readonly underline: boolean;
 	readonly strikethrough: boolean;
 	readonly images?: readonly ImageCellSnapshot[];
+	/** URL if this cell is part of a clickable hyperlink (OSC 8 or regex-detected). */
+	readonly link?: string;
 }
 
 /** Full terminal grid state, designed to be emitted by Rust via `terminal:render` event.
