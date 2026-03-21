@@ -4,6 +4,8 @@ mod menu;
 mod pty;
 mod terminal;
 mod tracker;
+#[cfg(target_os = "windows")]
+mod win_pty;
 mod window;
 
 use config::ConfigStore;

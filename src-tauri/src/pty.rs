@@ -1,6 +1,7 @@
 use crate::terminal::{
     TerminalState, DEFAULT_CELL_PIXEL_HEIGHT, DEFAULT_CELL_PIXEL_WIDTH, DEFAULT_COLS, DEFAULT_ROWS,
 };
+#[cfg(not(target_os = "windows"))]
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -84,6 +85,7 @@ fn emit_snapshot(app: &tauri::AppHandle, term_state: &TerminalState, id: &str) -
     }
 }
 
+#[cfg(not(target_os = "windows"))]
 fn pty_size(cols: u16, rows: u16, pixel_width: u16, pixel_height: u16) -> PtySize {
     PtySize {
         rows,
@@ -98,12 +100,171 @@ fn pty_size(cols: u16, rows: u16, pixel_width: u16, pixel_height: u16) -> PtySiz
 /// newly-created session.
 struct PtySession {
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
-    /// Retained after `take_writer()`/`try_clone_reader()` solely for `resize()`.
-    master: Box<dyn MasterPty + Send>,
-    child: Box<dyn portable_pty::Child + Send + Sync>,
     generation: u64,
     /// CWD at spawn time — fallback when OS-level CWD detection fails.
     initial_cwd: String,
+    platform: PlatformPty,
+}
+
+#[cfg(not(target_os = "windows"))]
+struct PlatformPty {
+    /// Retained after `take_writer()`/`try_clone_reader()` solely for `resize()`.
+    master: Box<dyn MasterPty + Send>,
+    child: Box<dyn portable_pty::Child + Send + Sync>,
+}
+
+#[cfg(target_os = "windows")]
+struct PlatformPty {
+    session: crate::win_pty::WinPtySession,
+}
+
+#[cfg(not(target_os = "windows"))]
+impl PlatformPty {
+    fn resize(
+        &self,
+        cols: u16,
+        rows: u16,
+        pixel_width: u16,
+        pixel_height: u16,
+    ) -> Result<(), String> {
+        self.master
+            .resize(pty_size(cols, rows, pixel_width, pixel_height))
+            .map_err(|e| format!("PTY resize failed: {e}"))
+    }
+
+    fn kill(&mut self) {
+        let _ = self.child.kill();
+    }
+
+    fn wait(&mut self) -> i64 {
+        self.child
+            .wait()
+            .map(|s| s.exit_code() as i64)
+            .unwrap_or(-1)
+    }
+
+    fn pid(&self) -> Option<u32> {
+        self.child.process_id()
+    }
+}
+
+#[cfg(target_os = "windows")]
+impl PlatformPty {
+    fn resize(
+        &self,
+        cols: u16,
+        rows: u16,
+        _pixel_width: u16,
+        _pixel_height: u16,
+    ) -> Result<(), String> {
+        self.session.resize(cols, rows)
+    }
+
+    fn kill(&mut self) {
+        self.session.kill();
+    }
+
+    fn wait(&mut self) -> i64 {
+        self.session.wait()
+    }
+
+    fn pid(&self) -> Option<u32> {
+        Some(self.session.pid())
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_platform_pty(
+    id: &str,
+    cwd: &str,
+) -> Result<
+    (
+        Box<dyn Write + Send>,
+        Box<dyn std::io::Read + Send>,
+        PlatformPty,
+    ),
+    String,
+> {
+    let default_pw = (DEFAULT_COLS * DEFAULT_CELL_PIXEL_WIDTH) as u16;
+    let default_ph = (DEFAULT_ROWS * DEFAULT_CELL_PIXEL_HEIGHT) as u16;
+
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(pty_size(
+            DEFAULT_COLS as u16,
+            DEFAULT_ROWS as u16,
+            default_pw,
+            default_ph,
+        ))
+        .map_err(|e| format!("Failed to open PTY: {e}"))?;
+
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+    let mut cmd = CommandBuilder::new(&shell);
+    cmd.arg("-l");
+    cmd.cwd(cwd);
+    cmd.env("TERM", "xterm-256color");
+
+    let child = pair
+        .slave
+        .spawn_command(cmd)
+        .map_err(|e| format!("Failed to spawn shell: {e}"))?;
+
+    let writer = pair
+        .master
+        .take_writer()
+        .map_err(|e| format!("Failed to take PTY writer: {e}"))?;
+    let reader = pair
+        .master
+        .try_clone_reader()
+        .map_err(|e| format!("Failed to clone PTY reader: {e}"))?;
+
+    eprintln!(
+        "[pty] Created Unix PTY for {id}, shell={shell}, pid={:?}",
+        child.process_id()
+    );
+
+    Ok((
+        writer,
+        reader,
+        PlatformPty {
+            master: pair.master,
+            child,
+        },
+    ))
+}
+
+#[cfg(target_os = "windows")]
+fn create_platform_pty(
+    id: &str,
+    cwd: &str,
+) -> Result<
+    (
+        Box<dyn Write + Send>,
+        Box<dyn std::io::Read + Send>,
+        PlatformPty,
+    ),
+    String,
+> {
+    let exe = std::env::var("SHELL").unwrap_or_else(|_| "powershell.exe".to_string());
+
+    let env_vars = [("TERM", "xterm-256color")];
+    let (session, pipes) = crate::win_pty::WinPtySession::spawn(
+        DEFAULT_COLS as u16,
+        DEFAULT_ROWS as u16,
+        &exe,
+        cwd,
+        &env_vars,
+    )?;
+
+    eprintln!(
+        "[pty] Created Windows PTY for {id}, shell={exe}, pid={}",
+        session.pid()
+    );
+
+    let writer: Box<dyn Write + Send> = Box::new(pipes.writer);
+    let reader: Box<dyn std::io::Read + Send> = Box::new(pipes.reader);
+
+    Ok((writer, reader, PlatformPty { session }))
 }
 
 /// Thread-safe manager for PTY sessions. Each session is identified by a
@@ -147,56 +308,11 @@ impl PtyManager {
         }
 
         let generation = self.next_generation.fetch_add(1, Ordering::Relaxed);
-
-        let pty_system = native_pty_system();
         let default_pw = (DEFAULT_COLS * DEFAULT_CELL_PIXEL_WIDTH) as u16;
         let default_ph = (DEFAULT_ROWS * DEFAULT_CELL_PIXEL_HEIGHT) as u16;
-        let pair = pty_system
-            .openpty(pty_size(
-                DEFAULT_COLS as u16,
-                DEFAULT_ROWS as u16,
-                default_pw,
-                default_ph,
-            ))
-            .map_err(|e| format!("Failed to open PTY: {e}"))?;
 
-        let shell = if cfg!(windows) {
-            // Always use PowerShell on Windows. COMSPEC points to cmd.exe which
-            // has incompatible quoting rules — the frontend quotes for PowerShell.
-            "powershell.exe".to_string()
-        } else {
-            std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
-        };
-        eprintln!("[pty] Creating session {id} with shell: {shell}, cwd: {cwd}");
-
-        let mut cmd = CommandBuilder::new(&shell);
-        if !cfg!(windows) {
-            // Login shell flag — POSIX only. Windows shells (PowerShell/cmd)
-            // have no equivalent concept.
-            cmd.arg("-l");
-        }
-        cmd.cwd(&cwd);
-        cmd.env("TERM", "xterm-256color");
-        cmd.env("COLORTERM", "truecolor");
-
-        let child = pair
-            .slave
-            .spawn_command(cmd)
-            .map_err(|e| format!("Failed to spawn shell: {e}"))?;
-        eprintln!(
-            "[pty] Shell spawned for {id}, pid: {:?}",
-            child.process_id()
-        );
-
-        let writer = pair
-            .master
-            .take_writer()
-            .map_err(|e| format!("Failed to get PTY writer: {e}"))?;
-        let mut reader = pair
-            .master
-            .try_clone_reader()
-            .map_err(|e| format!("Failed to get PTY reader: {e}"))?;
-
+        // Platform-specific PTY creation
+        let (writer, mut reader, platform) = create_platform_pty(&id, &cwd)?;
         let writer = Arc::new(Mutex::new(writer));
 
         // Delay startup command to let the shell initialize (login profile, prompt)
@@ -233,10 +349,9 @@ impl PtyManager {
         // to completion
         let session = PtySession {
             writer,
-            master: pair.master,
-            child,
             generation,
             initial_cwd: cwd.clone(),
+            platform,
         };
         self.lock_sessions()?.insert(id.clone(), session);
         eprintln!("[pty] Session stored for {id}");
@@ -362,11 +477,7 @@ impl PtyManager {
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .remove(&id_clone);
-                session
-                    .child
-                    .wait()
-                    .map(|s| s.exit_code() as i64)
-                    .unwrap_or(-1)
+                session.platform.wait()
             } else {
                 // Session was replaced by a new generation — skip exit event
                 return;
@@ -413,9 +524,8 @@ impl PtyManager {
             let sessions = self.lock_sessions()?;
             if let Some(session) = sessions.get(id) {
                 session
-                    .master
-                    .resize(pty_size(cols, rows, pixel_width, pixel_height))
-                    .map_err(|e| format!("PTY resize failed: {e}"))?;
+                    .platform
+                    .resize(cols, rows, pixel_width, pixel_height)?;
             }
         } // Drop sessions lock before acquiring terminals lock to prevent deadlock
         self.terminal_state.resize(
@@ -432,7 +542,7 @@ impl PtyManager {
         // Kill is idempotent — silently ignore missing sessions
         let mut sessions = self.lock_sessions()?;
         if let Some(mut session) = sessions.remove(id) {
-            let _ = session.child.kill();
+            session.platform.kill();
         }
         self.terminal_state.remove(id);
         self.last_output_at
@@ -446,7 +556,7 @@ impl PtyManager {
     pub fn kill_all(&self) {
         let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
         for (_id, mut session) in sessions.drain() {
-            let _ = session.child.kill();
+            session.platform.kill();
         }
         self.terminal_state.remove_all();
         self.last_output_at
@@ -461,7 +571,7 @@ impl PtyManager {
     pub fn get_cwd(&self, id: &str) -> Option<String> {
         let sessions = self.lock_sessions().ok()?;
         let session = sessions.get(id)?;
-        let pid = session.child.process_id();
+        let pid = session.platform.pid();
         let fallback = session.initial_cwd.clone();
         drop(sessions);
 
