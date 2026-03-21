@@ -52,7 +52,11 @@ PR #36 merged — Agent activity state detection. Rust PTY backend tracks output
 
 ## Active Reviews
 
-None
+### PR #37 — feat: clickable URLs in terminal
+- State: `docs/reviews/PR-37/_state.json`
+- Agents: 10/10 completed
+- Phase: done — compiled report ready, fixes pending
+- Findings: 4 must-fix, 8 suggestions, 5 nitpicks
 
 ## Known Issues
 - wezterm-term resolved: using `tattoy-wezterm-term` 0.1.0-fork.5 (fork published on crates.io)
