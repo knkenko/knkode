@@ -11,6 +11,8 @@ use tauri::Emitter;
 /// Polling interval for CWD/branch/PR detection. Effective cycle time accounts
 /// for processing duration so the interval stays consistent.
 const POLL_INTERVAL: Duration = Duration::from_secs(3);
+/// If no PTY output for this long, consider the pane idle.
+const ACTIVITY_IDLE_THRESHOLD_MS: u64 = 2000;
 const PR_REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 const TOOL_RETRY_INTERVAL: Duration = Duration::from_secs(300);
 const MAX_PR_TITLE_LEN: usize = 256;
@@ -40,6 +42,8 @@ struct PaneState {
     branch: Option<String>,
     pr: Option<PrInfo>,
     pr_last_checked: Instant,
+    /// Whether this pane currently has active PTY output.
+    active: bool,
 }
 
 /// Per-pane CWD, git branch, and PR status tracker.
@@ -92,6 +96,7 @@ impl CwdTracker {
                         branch: None,
                         pr: None,
                         pr_last_checked: Instant::now() - PR_REFRESH_INTERVAL,
+                        active: false,
                     },
                 );
             }
@@ -142,12 +147,12 @@ impl CwdTracker {
                     // Prevents duplicate git/gh calls when multiple panes share a repo.
                     let mut repo_cache: HashMap<String, RepoCacheEntry> = HashMap::new();
 
-                    for pane_id in pane_ids {
+                    for pane_id in &pane_ids {
                         if !running.load(Ordering::SeqCst) {
                             break;
                         }
                         poll_pane(
-                            &pane_id,
+                            pane_id,
                             &panes,
                             &pty_manager,
                             &app,
@@ -155,6 +160,9 @@ impl CwdTracker {
                             &mut repo_cache,
                         );
                     }
+
+                    // Activity detection — check output ages for all panes in one pass
+                    poll_activity(&pane_ids, &panes, &pty_manager, &app);
 
                     let elapsed = cycle_start.elapsed();
                     if elapsed < POLL_INTERVAL {
@@ -379,6 +387,35 @@ fn poll_pane(
         }
     } else if current_branch.is_none() {
         clear_pr_if_present(panes, pane_id, app);
+    }
+}
+
+/// Check PTY output ages and emit activity-changed events on state transitions.
+/// Called once per polling cycle with the bulk output-age map.
+fn poll_activity(
+    pane_ids: &[String],
+    panes: &Mutex<HashMap<String, PaneState>>,
+    pty_manager: &PtyManager,
+    app: &tauri::AppHandle,
+) {
+    let ages = pty_manager.get_output_ages_ms();
+
+    for pane_id in pane_ids {
+        let now_active = ages
+            .get(pane_id)
+            .is_some_and(|&age| age < ACTIVITY_IDLE_THRESHOLD_MS);
+
+        let was_active = with_pane_mut(panes, pane_id, |s| s.active).unwrap_or(false);
+
+        if now_active != was_active {
+            with_pane_mut(panes, pane_id, |s| {
+                s.active = now_active;
+            });
+            let _ = app.emit(
+                "pty:activity-changed",
+                json!({ "paneId": pane_id, "active": now_active }),
+            );
+        }
     }
 }
 
