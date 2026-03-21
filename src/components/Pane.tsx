@@ -405,7 +405,7 @@ export const Pane = memo(function Pane({
 					}}
 					contextMenu={null}
 				>
-					<div className="flex-1 flex flex-col overflow-hidden p-2 relative h-full">
+					<div className="flex-1 overflow-hidden relative">
 						<CanvasTerminal
 							grid={grid}
 							onWrite={handleWrite}
