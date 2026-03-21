@@ -63,10 +63,10 @@ export function MatrixEntry({
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full uppercase">
 				<span className="text-[11px] font-bold truncate flex-1">{label}</span>
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="w-2 h-3 bg-[#00ff41] animate-pulse shrink-0" />
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="w-2 h-3 bg-red-500 animate-pulse shrink-0" />
 				)}
 			</div>
@@ -162,10 +162,10 @@ export function CyberpunkEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full uppercase">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="text-[10px] text-[#ff2a6d] animate-pulse">⚙</span>
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="text-[10px] text-[#fef08a] animate-pulse">⚠</span>
 				)}
 				<span className="text-[11px] font-bold truncate flex-1">{label}</span>
@@ -269,10 +269,10 @@ export function SolanaEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full relative">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="w-1.5 h-1.5 rounded-full bg-[#14f195] animate-ping absolute -ml-4" />
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="w-1.5 h-1.5 rounded-full bg-[#ff6b6b] animate-ping absolute -ml-4" />
 				)}
 				<span className="text-[11px] font-medium truncate flex-1">{label}</span>
@@ -364,8 +364,8 @@ export function AmberEntry({
 			<div className="flex items-center gap-2 min-w-0 w-full">
 				<span className="shrink-0">{isFocused ? "▶" : " "}</span>
 				<span className="text-[11px] font-bold truncate flex-1">{label}</span>
-				{agentStatus === "in_progress" && <span className="text-[9px] animate-pulse">WAIT...</span>}
-				{agentStatus === "input_required" && (
+				{agentStatus === "active" && <span className="text-[9px] animate-pulse">WAIT...</span>}
+				{agentStatus === "attention" && (
 					<span className="text-[9px] animate-pulse bg-[#ffb000] text-black px-1">INPUT</span>
 				)}
 			</div>
@@ -454,10 +454,10 @@ export function VaporwaveEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="text-[12px] text-[#01cdfe] animate-spin shrink-0">★</span>
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="text-[12px] text-[#ff2d95] animate-pulse shrink-0">!</span>
 				)}
 				<span className="text-[11px] font-semibold truncate flex-1 uppercase">{label}</span>
@@ -563,10 +563,10 @@ export function OceanEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full relative">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="w-1.5 h-1.5 rounded-full bg-[#00c8ff] animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] absolute -ml-4" />
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="w-1.5 h-1.5 rounded-full bg-[#ff6b6b] animate-pulse absolute -ml-4" />
 				)}
 				<span className="text-[11px] truncate flex-1">{label}</span>
@@ -666,10 +666,10 @@ export function SunsetEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="w-6 h-0.5 bg-[#e8a040] animate-pulse shrink-0 rounded-full" />
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="w-6 h-0.5 bg-[#e04028] animate-pulse shrink-0 rounded-full" />
 				)}
 				<span className="text-[11px] font-medium truncate flex-1">{label}</span>
@@ -773,10 +773,10 @@ export function ArcticEntry({
 			}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 w-full">
-				{agentStatus === "in_progress" && (
+				{agentStatus === "active" && (
 					<span className="w-1.5 h-1.5 bg-[#70e8cc] rotate-45 animate-pulse shrink-0" />
 				)}
-				{agentStatus === "input_required" && (
+				{agentStatus === "attention" && (
 					<span className="w-1.5 h-1.5 bg-[#ff6e6e] rotate-45 animate-pulse shrink-0" />
 				)}
 				<span className="text-[11px] truncate tracking-wide flex-1">{label}</span>

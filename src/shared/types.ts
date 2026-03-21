@@ -9,7 +9,7 @@ export const DEFAULT_PANE_OPACITY = 1;
 export const MIN_PANE_OPACITY = 0.05;
 
 /** Agent activity status for a terminal pane. */
-export type AgentStatus = "idle" | "in_progress" | "input_required";
+export type AgentStatus = "idle" | "active" | "attention";
 
 export const CURSOR_STYLES = ["block", "underline", "bar"] as const;
 export type CursorStyle = (typeof CURSOR_STYLES)[number];
