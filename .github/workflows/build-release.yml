@@ -44,6 +44,7 @@ jobs:
         run: bun run build
 
       - name: Build Tauri app
+        id: tauri-build
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,31 +57,11 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
-      - name: Upload macOS artifacts
-        if: matrix.platform == 'mac'
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-mac
-          path: |
-            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
-          if-no-files-found: error
-
-      - name: Stage Windows artifacts
-        if: matrix.platform == 'win'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist-staging
-          Copy-Item src-tauri/target/release/bundle/nsis/*.exe dist-staging/
-          Copy-Item src-tauri/target/release/bundle/msi/*.msi dist-staging/
-          Get-ChildItem dist-staging/
-
-      - name: Upload Windows artifacts
-        if: matrix.platform == 'win'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-win
-          path: dist-staging/
+          name: dist-${{ matrix.platform }}
+          path: "${{ join(fromJSON(steps.tauri-build.outputs.artifactPaths), '\n') }}"
           if-no-files-found: error
 
   release:
@@ -103,7 +84,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          # Flatten nested directories — find all release files
           mkdir -p release-files
           find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.exe" -o -name "*.msi" \) -exec cp {} release-files/ \;
           if gh release view "$TAG" &>/dev/null; then
