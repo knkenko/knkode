@@ -1,7 +1,7 @@
+import type { PrInfo } from "../../shared/types";
 import { registerVariant } from ".";
 import { FOCUS_VIS, FolderIcon, LabelButton, LeafIcon, PrBadge } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps, VariantTheme } from "./types";
-import type { PrInfo } from "../../shared/types";
 
 export type StyleFn = (theme: VariantTheme, isFocused: boolean) => React.CSSProperties;
 export type ThemeFn = (theme: VariantTheme) => React.CSSProperties;
@@ -211,7 +211,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 							<span style={sb.cwd.iconStyle?.(theme)}>{sb.cwd.icon}</span>{" "}
 						</>
 					) : sb.cwd.prefix ? (
-						<>{sb.cwd.prefix}</>
+						sb.cwd.prefix
 					) : null}
 					{displayCwd}
 				</span>
@@ -252,11 +252,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 		return (
 			<>
 				{!isBottom && header}
-				{config.content ? (
-					<div className={config.content.className}>{children}</div>
-				) : (
-					children
-				)}
+				{config.content ? <div className={config.content.className}>{children}</div> : children}
 				{isBottom && header}
 			</>
 		);
