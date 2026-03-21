@@ -71,7 +71,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-win
-          path: src-tauri/target/release/bundle/nsis/*.exe
+          path: |
+            src-tauri\target\release\bundle\nsis\*.exe
+            src-tauri\target\release\bundle\msi\*.msi
           if-no-files-found: error
 
   release:
@@ -96,7 +98,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           # Flatten nested directories — find all release files
           mkdir -p release-files
-          find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.exe" \) -exec cp {} release-files/ \;
+          find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.exe" -o -name "*.msi" \) -exec cp {} release-files/ \;
           if gh release view "$TAG" &>/dev/null; then
             gh release upload "$TAG" release-files/* --clobber
           else
