@@ -1361,7 +1361,7 @@ export function CanvasTerminal({
 		// biome-ignore lint/a11y/useSemanticElements: canvas terminal cannot be a native textarea
 		<div
 			ref={containerRef}
-			className="absolute inset-2 overflow-hidden outline-none select-none"
+			className="overflow-hidden outline-none select-none min-h-0 min-w-0"
 			tabIndex={0}
 			role="textbox"
 			aria-label="Terminal"
