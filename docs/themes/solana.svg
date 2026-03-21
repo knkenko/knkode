@@ -1,0 +1,49 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="s-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9945ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#14f195" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="s-border" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9945ff"/>
+      <stop offset="100%" stop-color="#14f195"/>
+    </linearGradient>
+    <linearGradient id="s-badge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9945ff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#14f195" stop-opacity="0.2"/>
+    </linearGradient>
+    <clipPath id="s-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#s-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#0c0c1d"/>
+    <!-- Gradient overlay -->
+    <rect width="220" height="148" fill="url(#s-grad)"/>
+    <!-- Accent orb -->
+    <circle cx="180" cy="40" r="60" fill="#9945ff" opacity="0.04"/>
+    <circle cx="40" cy="120" r="50" fill="#14f195" opacity="0.03"/>
+    <!-- Terminal content -->
+    <text font-family="monospace" font-size="10" font-weight="500">
+      <tspan x="16" y="34" fill="#e0e0f0" opacity="0.9">workspace</tspan>
+      <tspan x="16" y="50" fill="#e0e0f0" opacity="0.4">~/projects/sol</tspan>
+      <tspan x="16" y="66" fill="#14f195" opacity="0.7">4 panes active</tspan>
+    </text>
+    <!-- Gradient pill badges -->
+    <rect x="16" y="78" width="60" height="17" rx="9" fill="url(#s-badge)" stroke="#9945ff" stroke-opacity="0.3" stroke-width="0.5"/>
+    <text x="46" y="90" font-family="monospace" font-size="8" fill="#e0e0f0" text-anchor="middle" font-weight="500">main</text>
+    <rect x="82" y="78" width="44" height="17" rx="9" fill="url(#s-badge)" stroke="#14f195" stroke-opacity="0.3" stroke-width="0.5"/>
+    <text x="104" y="90" font-family="monospace" font-size="8" fill="#e0e0f0" text-anchor="middle" font-weight="500">#86</text>
+    <!-- Status bar -->
+    <rect x="0" y="120" width="220" height="28" fill="#0c0c1d"/>
+    <!-- Gradient border -->
+    <rect x="0" y="118" width="220" height="2" fill="url(#s-border)" opacity="0.5"/>
+    <text font-family="monospace" font-size="9" font-weight="600">
+      <tspan x="12" y="138" fill="#e0e0f0" opacity="0.8">SOLANA</tspan>
+      <tspan x="65" y="138" fill="#e0e0f0" opacity="0.2">.</tspan>
+      <tspan x="74" y="138" fill="#e0e0f0" opacity="0.4">~/sol</tspan>
+      <tspan x="140" y="138" fill="#9945ff" opacity="0.5">>_</tspan>
+    </text>
+    <!-- Border -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#9945ff" stroke-opacity="0.12" stroke-width="1"/>
+  </g>
+</svg>

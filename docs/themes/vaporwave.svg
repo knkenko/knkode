@@ -1,0 +1,62 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="v-border" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff2d95"/>
+      <stop offset="50%" stop-color="#01cdfe"/>
+      <stop offset="100%" stop-color="#7b2fff"/>
+    </linearGradient>
+    <linearGradient id="v-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff2d95" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#01cdfe" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#7b2fff" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="v-pill" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff2d95"/>
+      <stop offset="100%" stop-color="#ff71ce"/>
+    </linearGradient>
+    <linearGradient id="v-text" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff2d95"/>
+      <stop offset="100%" stop-color="#01cdfe"/>
+    </linearGradient>
+    <clipPath id="v-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#v-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#0a0015"/>
+    <!-- Gradient overlay -->
+    <rect width="220" height="148" fill="url(#v-grad)"/>
+    <!-- Retro grid lines (perspective) -->
+    <g opacity="0.06" stroke="#ff71ce" stroke-width="1">
+      <line x1="0" y1="100" x2="220" y2="100"/>
+      <line x1="0" y1="114" x2="220" y2="114"/>
+      <line x1="0" y1="130" x2="220" y2="130"/>
+      <line x1="60" y1="90" x2="30" y2="148"/>
+      <line x1="110" y1="90" x2="110" y2="148"/>
+      <line x1="160" y1="90" x2="190" y2="148"/>
+    </g>
+    <!-- Terminal content -->
+    <text font-family="monospace" font-size="10" letter-spacing="1">
+      <tspan x="16" y="34" fill="#ff2d95" opacity="0.9" font-weight="500">workspace</tspan>
+      <tspan x="16" y="50" fill="#f0d0ff" opacity="0.5">~/aesthetic/dev</tspan>
+      <tspan x="16" y="66" fill="#01cdfe" opacity="0.7">4 panes active</tspan>
+    </text>
+    <!-- Gradient pill badge -->
+    <rect x="16" y="76" width="68" height="18" rx="9" fill="url(#v-pill)"/>
+    <text x="50" y="88.5" font-family="monospace" font-size="8" fill="#0a0015" text-anchor="middle" font-weight="600" letter-spacing="0.5">main</text>
+    <!-- Status bar — row 1 -->
+    <rect x="0" y="102" width="220" height="46" fill="#0a0015" opacity="0.6"/>
+    <text font-family="monospace" font-size="9" letter-spacing="1">
+      <tspan x="12" y="117" fill="#ff2d95" font-weight="500">VAPORWAVE</tspan>
+      <tspan x="100" y="117" fill="#f0d0ff" opacity="0.4">~/dev</tspan>
+    </text>
+    <!-- Row 2 action pills -->
+    <rect x="12" y="124" width="40" height="14" rx="7" fill="#ff2d95" fill-opacity="0.2"/>
+    <text x="32" y="134" font-family="monospace" font-size="7" fill="#f0d0ff" text-anchor="middle" letter-spacing="1">SPLIT</text>
+    <rect x="58" y="124" width="42" height="14" rx="7" fill="#01cdfe" fill-opacity="0.2"/>
+    <text x="79" y="134" font-family="monospace" font-size="7" fill="#f0d0ff" text-anchor="middle" letter-spacing="1">CLOSE</text>
+    <!-- Gradient bottom border -->
+    <rect x="0" y="145" width="220" height="3" fill="url(#v-border)"/>
+    <!-- Outer glow -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#ff71ce" stroke-opacity="0.15" stroke-width="1"/>
+  </g>
+</svg>

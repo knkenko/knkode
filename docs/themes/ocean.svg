@@ -1,0 +1,47 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="o-depth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.12"/>
+      <stop offset="30%" stop-color="#00e5b0" stop-opacity="0.06"/>
+      <stop offset="60%" stop-color="#020b14" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="o-glow" cx="0.3" cy="0.4" r="0.5">
+      <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#00c8ff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="o-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#o-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#020b14"/>
+    <!-- Depth gradient -->
+    <rect width="220" height="148" fill="url(#o-depth)"/>
+    <!-- Bioluminescent glow -->
+    <rect width="220" height="148" fill="url(#o-glow)"/>
+    <!-- Bioluminescent dots -->
+    <circle cx="30" cy="25" r="1.5" fill="#00e5b0" opacity="0.15"/>
+    <circle cx="85" cy="18" r="1" fill="#00c8ff" opacity="0.12"/>
+    <circle cx="160" cy="30" r="1.2" fill="#00e5b0" opacity="0.1"/>
+    <circle cx="195" cy="55" r="0.8" fill="#00c8ff" opacity="0.14"/>
+    <circle cx="50" cy="70" r="1" fill="#00e5b0" opacity="0.08"/>
+    <!-- Terminal content -->
+    <text font-family="monospace" font-size="10">
+      <tspan x="16" y="40" fill="#a0d8e8" opacity="0.8" font-weight="500">workspace</tspan>
+      <tspan x="16" y="56" fill="#a0d8e8" opacity="0.4">~ ~/projects/deep</tspan>
+      <tspan x="16" y="72" fill="#00e5b0" opacity="0.6">3 panes active</tspan>
+    </text>
+    <!-- Branch badge -->
+    <rect x="16" y="82" width="60" height="17" rx="9" fill="#00c8ff" fill-opacity="0.12"/>
+    <text x="46" y="94" font-family="monospace" font-size="8" fill="#a0d8e8" text-anchor="middle" font-weight="500">main</text>
+    <!-- Status bar -->
+    <rect x="0" y="120" width="220" height="28" fill="#020b14"/>
+    <line x1="0" y1="120" x2="220" y2="120" stroke="#00c8ff" stroke-opacity="0.15"/>
+    <text font-family="monospace" font-size="9">
+      <tspan x="12" y="138" fill="#a0d8e8" opacity="0.8" font-weight="500">OCEAN</tspan>
+      <tspan x="60" y="138" fill="#a0d8e8" opacity="0.4">~ ~/deep</tspan>
+      <tspan x="150" y="138" fill="#00c8ff" opacity="0.5">>_</tspan>
+    </text>
+    <!-- Border -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#00c8ff" stroke-opacity="0.1" stroke-width="1"/>
+  </g>
+</svg>

@@ -1,0 +1,48 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="c-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff2a6d" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#05d9e8" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="c-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff2a6d" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#05d9e8" stop-opacity="0.08"/>
+    </linearGradient>
+    <clipPath id="c-clip"><rect width="220" height="148" rx="10"/></clipPath>
+    <clipPath id="c-badge"><polygon points="8,0 82,0 74,18 0,18"/></clipPath>
+  </defs>
+  <g clip-path="url(#c-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#0d0221"/>
+    <!-- Gradient overlay -->
+    <rect width="220" height="148" fill="url(#c-grad)"/>
+    <!-- Diagonal accent lines -->
+    <line x1="170" y1="0" x2="220" y2="50" stroke="#ff2a6d" stroke-opacity="0.08" stroke-width="20"/>
+    <line x1="0" y1="110" x2="60" y2="148" stroke="#05d9e8" stroke-opacity="0.06" stroke-width="16"/>
+    <!-- Terminal content -->
+    <text font-family="monospace" font-size="9" font-weight="bold" letter-spacing="2" text-transform="uppercase">
+      <tspan x="16" y="36" fill="#ff2a6d" opacity="0.9">// SYSTEM ONLINE</tspan>
+      <tspan x="16" y="52" fill="#f0e6ff" opacity="0.5">LOADING NEURAL.NET</tspan>
+      <tspan x="16" y="68" fill="#05d9e8" opacity="0.7">LINK: 00:FF:2A:6D</tspan>
+      <tspan x="16" y="84" fill="#f0e6ff" opacity="0.6">STATUS:</tspan>
+      <tspan fill="#ff2a6d"> READY</tspan>
+    </text>
+    <!-- Parallelogram branch badge -->
+    <g transform="translate(130, 86)">
+      <polygon points="8,0 82,0 74,16 0,16" fill="#ff2a6d"/>
+      <text x="38" y="11.5" font-family="monospace" font-size="8" font-weight="bold" fill="#0d0221" text-anchor="middle" letter-spacing="1">MAIN</text>
+    </g>
+    <!-- Status bar -->
+    <rect x="0" y="116" width="220" height="32" fill="#0d0221"/>
+    <rect x="0" y="116" width="220" height="32" fill="url(#c-bar)"/>
+    <line x1="0" y1="116" x2="220" y2="116" stroke="#ff2a6d" stroke-opacity="0.5"/>
+    <text font-family="monospace" font-size="8" font-weight="bold" letter-spacing="2">
+      <tspan x="10" y="132" fill="#ff2a6d">CYBERPUNK</tspan>
+      <tspan x="95" y="132" fill="#f0e6ff" opacity="0.3">/</tspan>
+      <tspan x="105" y="132" fill="#f0e6ff" opacity="0.4">// ~/dev</tspan>
+      <tspan x="175" y="132" fill="#05d9e8" opacity="0.5">>_</tspan>
+    </text>
+    <!-- Neon border -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#ff2a6d" stroke-opacity="0.2" stroke-width="1"/>
+  </g>
+</svg>

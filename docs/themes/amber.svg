@@ -1,0 +1,48 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="a-glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffb000" stop-opacity="0.14"/>
+      <stop offset="40%" stop-color="#ffb000" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="a-phosphor" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#ffb000" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ffb000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="a-scan" width="220" height="3" patternUnits="userSpaceOnUse">
+      <rect width="220" height="1" fill="#ffb000" opacity="0.035"/>
+    </pattern>
+    <clipPath id="a-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#a-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#0c0800"/>
+    <!-- Phosphor glow -->
+    <rect width="220" height="148" fill="url(#a-phosphor)"/>
+    <!-- Gradient overlay -->
+    <rect width="220" height="148" fill="url(#a-glow)"/>
+    <!-- Scanlines -->
+    <rect width="220" height="148" fill="url(#a-scan)"/>
+    <!-- Terminal content — monospace uppercase -->
+    <text font-family="monospace" font-size="9" fill="#ffb000" letter-spacing="1">
+      <tspan x="14" y="30" opacity="0.9">*** SYSTEM READY ***</tspan>
+      <tspan x="14" y="46" opacity="0.7">CWD: /HOME/DEV</tspan>
+      <tspan x="14" y="62" opacity="0.6">BR: MAIN</tspan>
+      <tspan x="14" y="78" opacity="0.8">>>> AWAITING INPUT</tspan>
+      <tspan x="14" y="94" opacity="0.9">_</tspan>
+    </text>
+    <!-- Blinking cursor -->
+    <rect x="20" y="85" width="7" height="11" fill="#ffb000" opacity="0.7"/>
+    <!-- Status bar -->
+    <rect x="0" y="124" width="220" height="24" fill="#0c0800"/>
+    <line x1="0" y1="124" x2="220" y2="124" stroke="#ffb000" stroke-opacity="0.3" stroke-dasharray="3,3"/>
+    <text font-family="monospace" font-size="8" fill="#ffb000" letter-spacing="1.5">
+      <tspan x="10" y="139" opacity="0.9">AMBER</tspan>
+      <tspan x="52" y="139" opacity="0.3">|</tspan>
+      <tspan x="60" y="139" opacity="0.6">CWD: ~/DEV</tspan>
+      <tspan x="148" y="139" opacity="0.3">|</tspan>
+      <tspan x="158" y="139" opacity="0.5">[CMD]</tspan>
+    </text>
+    <!-- CRT border -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#ffb000" stroke-opacity="0.1" stroke-width="1"/>
+  </g>
+</svg>

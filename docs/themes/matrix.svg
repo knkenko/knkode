@@ -1,0 +1,50 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="m-glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00ff41" stop-opacity="0.18"/>
+      <stop offset="40%" stop-color="#00ff41" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="m-scan" width="220" height="3" patternUnits="userSpaceOnUse">
+      <rect width="220" height="1" fill="#00ff41" opacity="0.04"/>
+    </pattern>
+    <clipPath id="m-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#m-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#0a0a0a"/>
+    <!-- Gradient overlay -->
+    <rect width="220" height="148" fill="url(#m-glow)"/>
+    <!-- Scanlines -->
+    <rect width="220" height="148" fill="url(#m-scan)"/>
+    <!-- Digital rain columns -->
+    <text font-family="monospace" font-size="9" fill="#00ff41" opacity="0.12">
+      <tspan x="14" y="16">7</tspan><tspan x="14" y="26">0</tspan><tspan x="14" y="36">ア</tspan><tspan x="14" y="46">1</tspan><tspan x="14" y="56">カ</tspan><tspan x="14" y="66">3</tspan>
+      <tspan x="44" y="12">ネ</tspan><tspan x="44" y="22">9</tspan><tspan x="44" y="32">2</tspan><tspan x="44" y="42">ス</tspan><tspan x="44" y="52">8</tspan>
+      <tspan x="80" y="20">6</tspan><tspan x="80" y="30">テ</tspan><tspan x="80" y="40">4</tspan><tspan x="80" y="50">ム</tspan>
+      <tspan x="120" y="10">ワ</tspan><tspan x="120" y="20">5</tspan><tspan x="120" y="30">0</tspan><tspan x="120" y="40">マ</tspan><tspan x="120" y="50">2</tspan><tspan x="120" y="60">ク</tspan>
+      <tspan x="155" y="16">3</tspan><tspan x="155" y="26">ラ</tspan><tspan x="155" y="36">7</tspan><tspan x="155" y="46">コ</tspan>
+      <tspan x="190" y="22">1</tspan><tspan x="190" y="32">ド</tspan><tspan x="190" y="42">8</tspan><tspan x="190" y="52">9</tspan>
+    </text>
+    <!-- Terminal content -->
+    <text font-family="monospace" font-size="10" fill="#00ff41">
+      <tspan x="16" y="56" opacity="0.9">> WAKE_UP</tspan>
+      <tspan x="16" y="70" opacity="0.7">SYS.LINK: ACTIVE</tspan>
+      <tspan x="16" y="84" opacity="0.5">NODE_COUNT: 16</tspan>
+      <tspan x="16" y="98" opacity="0.8">|</tspan>
+    </text>
+    <!-- Cursor blink block -->
+    <rect x="22" y="90" width="7" height="11" fill="#00ff41" opacity="0.8"/>
+    <!-- Status bar area -->
+    <rect x="0" y="124" width="220" height="24" fill="#0a0a0a"/>
+    <line x1="0" y1="124" x2="220" y2="124" stroke="#00ff41" stroke-opacity="0.4"/>
+    <text font-family="monospace" font-size="9" fill="#00ff41" opacity="0.7" text-transform="uppercase">
+      <tspan x="10" y="139" font-weight="bold">MATRIX</tspan>
+      <tspan x="60" y="139" opacity="0.4">|</tspan>
+      <tspan x="70" y="139" opacity="0.5">> ~/dev</tspan>
+      <tspan x="140" y="139" opacity="0.4">|</tspan>
+      <tspan x="150" y="139" opacity="0.5">[main]</tspan>
+    </text>
+    <!-- Border glow -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#00ff41" stroke-opacity="0.15" stroke-width="1"/>
+  </g>
+</svg>

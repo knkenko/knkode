@@ -1,0 +1,42 @@
+<svg width="220" height="148" viewBox="0 0 220 148" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ar-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#70e8cc" stop-opacity="0.08"/>
+      <stop offset="30%" stop-color="#48c8e0" stop-opacity="0.04"/>
+      <stop offset="50%" stop-color="#050d18" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="ar-clip"><rect width="220" height="148" rx="10"/></clipPath>
+  </defs>
+  <g clip-path="url(#ar-clip)">
+    <!-- Background -->
+    <rect width="220" height="148" fill="#050d18"/>
+    <!-- Frost gradient -->
+    <rect width="220" height="148" fill="url(#ar-grad)"/>
+    <!-- Crystalline geometric lines -->
+    <line x1="180" y1="10" x2="210" y2="45" stroke="#48c8e0" stroke-opacity="0.04" stroke-width="1"/>
+    <line x1="185" y1="8" x2="220" y2="30" stroke="#70e8cc" stroke-opacity="0.03" stroke-width="1"/>
+    <line x1="10" y1="100" x2="50" y2="130" stroke="#48c8e0" stroke-opacity="0.03" stroke-width="1"/>
+    <!-- Terminal content — tracking-wider, lighter weight -->
+    <text font-family="monospace" font-size="9" letter-spacing="1.5" font-weight="300">
+      <tspan x="16" y="32" fill="#c8e4f0" opacity="0.8">WORKSPACE</tspan>
+      <tspan x="16" y="48" fill="#c8e4f0" opacity="0.35">~/PROJECTS/FROST</tspan>
+      <tspan x="16" y="64" fill="#48c8e0" opacity="0.6">3 PANES ACTIVE</tspan>
+    </text>
+    <!-- Branch badge — sharp edges (borderRadius: 0) -->
+    <rect x="16" y="76" width="62" height="16" fill="transparent" stroke="#48c8e0" stroke-opacity="0.25" stroke-width="0.5"/>
+    <text x="47" y="87.5" font-family="monospace" font-size="7.5" fill="#c8e4f0" text-anchor="middle" letter-spacing="1.5" font-weight="300">MAIN</text>
+    <!-- Diamond icon -->
+    <text x="16" y="110" font-family="monospace" font-size="9" fill="#48c8e0" opacity="0.4" letter-spacing="1.5">&#9670; READY</text>
+    <!-- Status bar -->
+    <rect x="0" y="124" width="220" height="24" fill="#050d18"/>
+    <line x1="0" y1="124" x2="220" y2="124" stroke="#48c8e0" stroke-opacity="0.25"/>
+    <text font-family="monospace" font-size="8" letter-spacing="2" font-weight="300">
+      <tspan x="10" y="139" fill="#c8e4f0" opacity="0.8">ARCTIC</tspan>
+      <tspan x="60" y="139" fill="#48c8e0" opacity="0.15">|</tspan>
+      <tspan x="70" y="139" fill="#c8e4f0" opacity="0.35">~/FROST</tspan>
+      <tspan x="150" y="139" fill="#48c8e0" opacity="0.4">>_</tspan>
+    </text>
+    <!-- Ice border -->
+    <rect width="220" height="148" rx="10" fill="none" stroke="#48c8e0" stroke-opacity="0.1" stroke-width="1"/>
+  </g>
+</svg>
