@@ -1,6 +1,7 @@
 import { registerVariant } from ".";
 import { FOCUS_VIS, FolderIcon, LabelButton, LeafIcon, PrBadge } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps, VariantTheme } from "./types";
+import type { PrInfo } from "../../shared/types";
 
 export type StyleFn = (theme: VariantTheme, isFocused: boolean) => React.CSSProperties;
 export type ThemeFn = (theme: VariantTheme) => React.CSSProperties;
@@ -20,6 +21,8 @@ export interface VariantConfig {
 		separatorStyle?: ThemeFn;
 		/** Show separator after label (before CWD). Default true. Set false to only show before actions. */
 		showSeparatorAfterLabel?: boolean;
+		/** Gradient border-image styles merged into the status bar (e.g. multi-color gradient borders). */
+		borderImage?: StyleFn;
 		editInput: { className: string; style: ThemeFn };
 		label?: { className?: string; style?: StyleFn };
 		cwd: {
@@ -33,6 +36,12 @@ export interface VariantConfig {
 			/** Inline style wrapper around the icon. */
 			iconStyle?: ThemeFn;
 			style?: ThemeFn;
+			/** Transform the displayed CWD text (e.g. `s => s.toUpperCase()`). */
+			transform?: (s: string) => string;
+			/** CSS mask-image value for fade effects (e.g. `"linear-gradient(90deg, black 80%, transparent)"`). */
+			maskImage?: string;
+			/** Gradient text via WebkitBackgroundClip. Returns background + clip styles. */
+			gradientText?: StyleFn;
 		};
 		branch: {
 			className: string;
@@ -40,10 +49,24 @@ export interface VariantConfig {
 			/** Wrap/format the branch name (e.g. s => `[${s}]`). */
 			format?: (branch: string) => string;
 		};
-		pr: { className: string; style: ThemeFn };
-		action: { className: string; style: ThemeFn };
+		pr: {
+			className: string;
+			style: StyleFn;
+			/** Custom PR content (e.g. `[PR#123]`). Omit for default `#N`. */
+			format?: (pr: PrInfo) => React.ReactNode;
+		};
+		action: {
+			className: string;
+			style: StyleFn;
+			/** Custom action button labels. Defaults: splitV ┃, splitH ━, close ✕ */
+			labels?: { splitV?: string; splitH?: string; close?: string };
+		};
 		snippet: { label: string };
+		/** Wrap action buttons in a hover-reveal container (e.g. opacity-0 → visible on hover). */
+		hoverRevealActions?: { className: string };
 	};
+	/** Optional wrapper around terminal content for padding/spacing. */
+	content?: { className?: string };
 	scrollButton: {
 		className: string;
 		style: ThemeFn;
@@ -91,14 +114,67 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 		contextMenu,
 	}: FrameProps) {
 		const actionCls = `bg-transparent border-none cursor-pointer leading-none transition-opacity ${FOCUS_VIS} ${sb.action.className}`;
-		const actionStyle = sb.action.style(theme);
+		const actionStyle = sb.action.style(theme, isFocused);
 		const isBottom = theme.statusBarPosition === "bottom";
+		const displayCwd = sb.cwd.transform ? sb.cwd.transform(cwd) : cwd;
+		const cwdStyle: React.CSSProperties = {
+			...sb.cwd.style?.(theme),
+			...(sb.cwd.maskImage
+				? { maskImage: sb.cwd.maskImage, WebkitMaskImage: sb.cwd.maskImage }
+				: {}),
+			...sb.cwd.gradientText?.(theme, isFocused),
+		};
+
+		const actions = (
+			<>
+				<SnippetTrigger className={actionCls} style={actionStyle}>
+					{sb.snippet.label}
+				</SnippetTrigger>
+				<button
+					type="button"
+					onClick={onSplitVertical}
+					title={`Split vertical (${shortcuts.splitV})`}
+					aria-label="Split pane vertically"
+					className={actionCls}
+					style={actionStyle}
+				>
+					{sb.action.labels?.splitV ?? "┃"}
+				</button>
+				<button
+					type="button"
+					onClick={onSplitHorizontal}
+					title={`Split horizontal (${shortcuts.splitH})`}
+					aria-label="Split pane horizontally"
+					className={actionCls}
+					style={actionStyle}
+				>
+					{sb.action.labels?.splitH ?? "━"}
+				</button>
+				{canClose && (
+					<button
+						type="button"
+						onClick={onClose}
+						title={`Close pane (${shortcuts.close})`}
+						aria-label="Close pane"
+						className={actionCls}
+						style={actionStyle}
+					>
+						{sb.action.labels?.close ?? "✕"}
+					</button>
+				)}
+			</>
+		);
 
 		const header = (
 			<div
 				{...headerProps}
 				className={`${headerProps.className || ""} flex items-center shrink-0 select-none transition-colors duration-200 ${sb.className}`}
-				style={{ ...headerProps.style, height: sb.height, ...sb.style(theme, isFocused) }}
+				style={{
+					...headerProps.style,
+					height: sb.height,
+					...sb.style(theme, isFocused),
+					...sb.borderImage?.(theme, isFocused),
+				}}
 			>
 				{isEditing ? (
 					<input
@@ -120,7 +196,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 
 				<span
 					className={`flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${sb.cwd.className}`}
-					style={sb.cwd.style?.(theme)}
+					style={cwdStyle}
 				>
 					{sb.cwd.icon === "folder" || sb.cwd.icon === "leaf" ? (
 						<span className="inline-flex items-center mr-1" style={sb.cwd.iconStyle?.(theme)}>
@@ -137,7 +213,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 					) : sb.cwd.prefix ? (
 						<>{sb.cwd.prefix}</>
 					) : null}
-					{cwd}
+					{displayCwd}
 				</span>
 
 				{branch && (
@@ -156,47 +232,18 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 						pr={pr}
 						onOpenExternal={onOpenExternal}
 						className={`transition-all ${sb.pr.className}`}
-						style={sb.pr.style(theme)}
-					/>
+						style={sb.pr.style(theme, isFocused)}
+					>
+						{sb.pr.format?.(pr)}
+					</PrBadge>
 				)}
 
 				<Sep theme={theme} />
 
-				<SnippetTrigger className={actionCls} style={actionStyle}>
-					{sb.snippet.label}
-				</SnippetTrigger>
-
-				<button
-					type="button"
-					onClick={onSplitVertical}
-					title={`Split vertical (${shortcuts.splitV})`}
-					aria-label="Split pane vertically"
-					className={actionCls}
-					style={actionStyle}
-				>
-					┃
-				</button>
-				<button
-					type="button"
-					onClick={onSplitHorizontal}
-					title={`Split horizontal (${shortcuts.splitH})`}
-					aria-label="Split pane horizontally"
-					className={actionCls}
-					style={actionStyle}
-				>
-					━
-				</button>
-				{canClose && (
-					<button
-						type="button"
-						onClick={onClose}
-						title={`Close pane (${shortcuts.close})`}
-						aria-label="Close pane"
-						className={actionCls}
-						style={actionStyle}
-					>
-						✕
-					</button>
+				{sb.hoverRevealActions ? (
+					<div className={sb.hoverRevealActions.className}>{actions}</div>
+				) : (
+					actions
 				)}
 				{contextMenu}
 			</div>
@@ -205,7 +252,11 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 		return (
 			<>
 				{!isBottom && header}
-				{children}
+				{config.content ? (
+					<div className={config.content.className}>{children}</div>
+				) : (
+					children
+				)}
 				{isBottom && header}
 			</>
 		);
