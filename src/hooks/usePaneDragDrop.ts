@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DropZone } from "../lib/pane-drag-utils";
+import { type DropZone, getDropZone } from "../lib/pane-drag-utils";
+import { DRAG_THRESHOLD, suppressNextClick } from "../lib/ui-constants";
 import { useStore } from "../store";
 
-const DRAG_THRESHOLD = 5;
 const MOUSE_BUTTON_RIGHT = 2;
 
 /** Custom event name for pane drag hover coordination between source and targets. */
@@ -12,17 +12,6 @@ const PANE_DRAG_END = "knkode:pane-drag-end";
 interface PaneDragHoverDetail {
 	targetPaneId: string;
 	zone: DropZone;
-}
-
-function getDropZoneFromPoint(clientX: number, clientY: number, el: HTMLElement): DropZone {
-	const rect = el.getBoundingClientRect();
-	const x = (clientX - rect.left) / rect.width;
-	const y = (clientY - rect.top) / rect.height;
-	if (x < 0.25) return "left";
-	if (x > 0.75) return "right";
-	if (y < 0.25) return "top";
-	if (y > 0.75) return "bottom";
-	return "center";
 }
 
 interface UsePaneDragDropOptions {
@@ -94,7 +83,7 @@ export function usePaneDragDrop({ paneId, workspaceId, onFocus }: UsePaneDragDro
 
 				if (paneEl) {
 					const tid = paneEl.getAttribute("data-pane-id")!;
-					const zone = getDropZoneFromPoint(me.clientX, me.clientY, paneEl);
+					const zone = getDropZone(me.clientX, me.clientY, paneEl);
 					targetPaneId = tid;
 					targetZone = zone;
 					document.dispatchEvent(
@@ -128,10 +117,7 @@ export function usePaneDragDrop({ paneId, workspaceId, onFocus }: UsePaneDragDro
 						}
 					}
 					// Suppress click after drag
-					document.addEventListener("click", (ev) => ev.stopPropagation(), {
-						capture: true,
-						once: true,
-					});
+					suppressNextClick();
 				}
 
 				setIsDragging(false);

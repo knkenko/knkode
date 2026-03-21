@@ -74,10 +74,10 @@ export const ZONE_STYLES: Record<DropZone, React.CSSProperties> = {
 /** Determine which drop zone the cursor is in based on position within the element.
  *  Center is inner 50% on each axis. Edges are outer 25%; left/right checked
  *  first so they claim corners over top/bottom. */
-export function getDropZone(e: React.DragEvent, el: HTMLElement): DropZone {
+export function getDropZone(clientX: number, clientY: number, el: HTMLElement): DropZone {
 	const rect = el.getBoundingClientRect();
-	const x = (e.clientX - rect.left) / rect.width;
-	const y = (e.clientY - rect.top) / rect.height;
+	const x = (clientX - rect.left) / rect.width;
+	const y = (clientY - rect.top) / rect.height;
 	if (x < 0.25) return "left";
 	if (x > 0.75) return "right";
 	if (y < 0.25) return "top";

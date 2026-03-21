@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
-const DRAG_THRESHOLD = 5;
+import { DRAG_THRESHOLD, suppressNextClick } from "../lib/ui-constants";
 
 interface UseDragReorderOptions {
 	onReorder: (fromIndex: number, toIndex: number) => void;
@@ -102,10 +101,7 @@ export function useDragReorder({
 						onReorderRef.current(s.from, s.over);
 					}
 					// Suppress the click event that follows pointerup after a drag
-					document.addEventListener("click", (ev) => ev.stopPropagation(), {
-						capture: true,
-						once: true,
-					});
+					suppressNextClick();
 				}
 
 				s.from = null;
