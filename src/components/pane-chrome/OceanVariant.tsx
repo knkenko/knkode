@@ -4,7 +4,7 @@ import { resolveGlow } from "./shared";
 createAndRegisterVariant("Ocean", {
 	statusBar: {
 		height: 30,
-		className: "gap-2 px-4 py-1 text-[11px] font-light transition-all duration-300 z-20",
+		className: "gap-2 px-4 py-1 text-[11px] font-light transition-[opacity,background,box-shadow] duration-300 z-20",
 		style: (theme, isFocused) => {
 			const glowColor = resolveGlow(theme);
 			const isBottom = theme.statusBarPosition === "bottom";

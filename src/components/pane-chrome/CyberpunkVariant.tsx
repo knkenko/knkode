@@ -47,7 +47,7 @@ function Frame({
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ""} w-full flex items-center gap-2 px-4 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest shrink-0 select-none transition-all duration-300 z-20 ${sepClass}`}
+			className={`${headerProps.className || ""} w-full flex items-center gap-2 px-4 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest shrink-0 select-none transition-[opacity,background,box-shadow] duration-300 z-20 ${sepClass}`}
 			style={{
 				...headerProps.style,
 				height: 32,

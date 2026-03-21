@@ -3,7 +3,7 @@ import { createAndRegisterVariant } from "./createVariant";
 createAndRegisterVariant("Tokyo Night", {
 	statusBar: {
 		height: 26,
-		className: "gap-2 px-3 text-[10px] font-light transition-all duration-300 z-20",
+		className: "gap-2 px-3 text-[10px] font-light transition-[opacity,background,box-shadow] duration-300 z-20",
 		style: (theme, isFocused) => {
 			const isBottom = theme.statusBarPosition === "bottom";
 			return {
