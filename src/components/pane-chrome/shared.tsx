@@ -123,7 +123,7 @@ export function getSepVars(
 	glowColor: string,
 	animation: SeparatorAnimation = "scan",
 	duration = 3,
-	borderHeight = 2,
+	borderHeight = 1,
 ): React.CSSProperties {
 	return {
 		"--sep-bg": gradient,

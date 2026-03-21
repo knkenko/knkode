@@ -179,18 +179,24 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 			</>
 		);
 
-		// Build activity CSS class + custom properties for the header's border animation
+		// Build activity CSS class + custom properties for the header's border animation.
+		// When active/attention, the ::after pseudo-element replaces the original border,
+		// so we clear border styles to avoid doubling.
 		const sepClass = getSepClass(agentStatus, isBottom);
-		const sepStyle =
-			agentStatus !== "idle"
-				? getSepVars(
-						config.activity?.gradient(theme) ??
-							`linear-gradient(90deg, transparent 0%, ${theme.glow ?? theme.accent} 50%, transparent 100%)`,
-						theme.glow ?? theme.accent,
-						config.activity?.animation ?? "scan",
-						config.activity?.duration ?? 3,
-					)
-				: {};
+		const isAnimating = agentStatus !== "idle";
+		const sepStyle = isAnimating
+			? getSepVars(
+					config.activity?.gradient(theme) ??
+						`linear-gradient(90deg, transparent 0%, ${theme.glow ?? theme.accent} 50%, transparent 100%)`,
+					theme.glow ?? theme.accent,
+					config.activity?.animation ?? "scan",
+					config.activity?.duration ?? 3,
+				)
+			: {};
+		// Hide original border when ::after is active — prevents double separator
+		const borderClear: React.CSSProperties = isAnimating
+			? { borderImage: "none", borderColor: "transparent" }
+			: {};
 
 		const header = (
 			<div
@@ -202,6 +208,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 					...sb.style(theme, isFocused),
 					...sb.borderImage?.(theme, isFocused),
 					...sepStyle,
+					...borderClear,
 				}}
 			>
 				{isEditing ? (

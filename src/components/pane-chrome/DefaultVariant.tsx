@@ -27,13 +27,16 @@ function Frame({
 }: FrameProps) {
 	const isBottom = theme.statusBarPosition === "bottom";
 	const sepClass = getSepClass(agentStatus, isBottom);
-	const sepStyle =
-		agentStatus !== "idle"
-			? getSepVars(
+	const isAnimating = agentStatus !== "idle";
+	const sepStyle = isAnimating
+		? {
+				...getSepVars(
 					`linear-gradient(90deg, transparent 0%, ${theme.accent} 50%, transparent 100%)`,
 					theme.accent,
-				)
-			: {};
+				),
+				borderColor: "transparent",
+			}
+		: {};
 
 	const header = (
 		<div

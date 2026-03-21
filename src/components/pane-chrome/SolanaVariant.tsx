@@ -29,16 +29,16 @@ function Frame({
 	const c2 = glowColor;
 	const isBottom = theme.statusBarPosition === "bottom";
 	const sepClass = getSepClass(agentStatus, isBottom);
-	const sepStyle =
-		agentStatus !== "idle"
-			? getSepVars(
-					`linear-gradient(90deg, ${c1}44, ${c1}, ${c2}, ${c1}44)`,
-					c1,
-					"shimmer",
-					2.5,
-					2,
-				)
-			: {};
+	const isAnimating = agentStatus !== "idle";
+	const sepStyle = isAnimating
+		? getSepVars(
+				`linear-gradient(90deg, ${c1}44, ${c1}, ${c2}, ${c1}44)`,
+				c1,
+				"shimmer",
+				2.5,
+				2,
+			)
+		: {};
 
 	const header = (
 		<div
@@ -55,6 +55,7 @@ function Frame({
 					? `linear-gradient(90deg, ${c1}, ${c2}) 1`
 					: `linear-gradient(90deg, ${c1}33, ${c2}33) 1`,
 				...sepStyle,
+				...(isAnimating ? { borderImage: "none", borderColor: "transparent" } : {}),
 			}}
 		>
 			{isEditing ? (

@@ -29,15 +29,15 @@ function Frame({
 
 	const isBottom = theme.statusBarPosition === "bottom";
 	const sepClass = getSepClass(agentStatus, isBottom);
-	const sepStyle =
-		agentStatus !== "idle"
-			? getSepVars(
-					`linear-gradient(90deg, ${theme.accent}44, ${theme.accent}, ${theme.accent}44)`,
-					theme.accent,
-					"shimmer",
-					2.5,
-				)
-			: {};
+	const isAnimating = agentStatus !== "idle";
+	const sepStyle = isAnimating
+		? getSepVars(
+				`linear-gradient(90deg, ${theme.accent}44, ${theme.accent}, ${theme.accent}44)`,
+				theme.accent,
+				"shimmer",
+				2.5,
+			)
+		: {};
 
 	const header = (
 		<div
@@ -52,6 +52,7 @@ function Frame({
 				borderBottom: isBottom ? "none" : `1px solid ${theme.accent}66`,
 				textShadow: isFocused ? `0 0 6px ${glowColor}44` : "none",
 				...sepStyle,
+				...(isAnimating ? { borderColor: "transparent" } : {}),
 			}}
 		>
 			{isEditing ? (
