@@ -113,6 +113,9 @@ pub struct PtyManager {
     sessions: Arc<Mutex<HashMap<String, PtySession>>>,
     next_generation: AtomicU64,
     terminal_state: Arc<TerminalState>,
+    /// Timestamp of last PTY output per pane. Updated by reader threads,
+    /// polled by CwdTracker to detect idle vs active agents.
+    last_output_at: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl PtyManager {
@@ -121,6 +124,7 @@ impl PtyManager {
             sessions: Arc::new(Mutex::new(HashMap::new())),
             next_generation: AtomicU64::new(1),
             terminal_state,
+            last_output_at: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -274,6 +278,7 @@ impl PtyManager {
         let id_clone = id.clone();
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
+        let output_times = Arc::clone(&self.last_output_at);
         std::thread::spawn(move || {
             let mut buf = [0u8; READ_BUFFER_SIZE];
             let mut last_emit = Instant::now() - RENDER_INTERVAL; // emit first frame immediately
@@ -281,6 +286,10 @@ impl PtyManager {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
+                        // Record output timestamp for activity detection
+                        if let Ok(mut times) = output_times.lock() {
+                            times.insert(id_clone.clone(), Instant::now());
+                        }
                         term_state.advance_only(&id_clone, &buf[..n]);
 
                         if last_emit.elapsed() >= RENDER_INTERVAL {
@@ -399,6 +408,9 @@ impl PtyManager {
             let _ = session.child.kill();
         }
         self.terminal_state.remove(id);
+        if let Ok(mut times) = self.last_output_at.lock() {
+            times.remove(id);
+        }
         Ok(())
     }
 
@@ -409,6 +421,9 @@ impl PtyManager {
             let _ = session.child.kill();
         }
         self.terminal_state.remove_all();
+        if let Ok(mut times) = self.last_output_at.lock() {
+            times.clear();
+        }
     }
 
     /// Get the current working directory for a pane.
@@ -422,6 +437,19 @@ impl PtyManager {
         drop(sessions);
 
         pid.and_then(detect_cwd).or(Some(fallback))
+    }
+
+    /// Returns elapsed milliseconds since last PTY output for each active pane.
+    /// The CwdTracker polls this to detect idle vs active agents.
+    pub fn get_output_ages_ms(&self) -> HashMap<String, u64> {
+        let times = self
+            .last_output_at
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        times
+            .iter()
+            .map(|(id, instant)| (id.clone(), instant.elapsed().as_millis() as u64))
+            .collect()
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, PtySession>>, String> {
