@@ -82,7 +82,8 @@ export function usePaneDragDrop({ paneId, workspaceId, onFocus }: UsePaneDragDro
 
 			const handleMove = (me: PointerEvent) => {
 				if (!dragging) {
-					if (Math.abs(me.clientX - startX) + Math.abs(me.clientY - startY) < DRAG_THRESHOLD) return;
+					if (Math.abs(me.clientX - startX) + Math.abs(me.clientY - startY) < DRAG_THRESHOLD)
+						return;
 					dragging = true;
 					setIsDragging(true);
 				}
@@ -127,7 +128,10 @@ export function usePaneDragDrop({ paneId, workspaceId, onFocus }: UsePaneDragDro
 						}
 					}
 					// Suppress click after drag
-					document.addEventListener("click", (ev) => ev.stopPropagation(), { capture: true, once: true });
+					document.addEventListener("click", (ev) => ev.stopPropagation(), {
+						capture: true,
+						once: true,
+					});
 				}
 
 				setIsDragging(false);

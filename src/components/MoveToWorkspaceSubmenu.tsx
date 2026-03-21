@@ -18,11 +18,7 @@ export function MoveToWorkspaceSubmenu({ workspaces, onMove }: MoveToWorkspaceSu
 						onMove(ws.id);
 					}}
 				>
-					<span
-						className="w-2 h-2 rounded-full shrink-0"
-						aria-hidden="true"
-						style={{ background: ws.color }}
-					/>
+					<span className="w-2 h-2 rounded-full shrink-0 bg-content-muted" aria-hidden="true" />
 					<span className="truncate">{ws.name}</span>
 				</button>
 			))}

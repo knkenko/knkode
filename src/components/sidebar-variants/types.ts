@@ -1,6 +1,6 @@
 import type {
-	CSSProperties,
 	ComponentType,
+	CSSProperties,
 	InputHTMLAttributes,
 	MouseEvent,
 	ReactNode,

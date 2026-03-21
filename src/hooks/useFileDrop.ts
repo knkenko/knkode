@@ -28,19 +28,16 @@ export function useFileDrop({ containerRef, onWrite }: UseFileDropOptions): {
 	const [isDropTarget, setIsDropTarget] = useState(false);
 	const rafRef = useRef(0);
 
-	const isOverPane = useCallback(
-		(position: ScreenPosition): boolean => {
-			const el = containerRef.current;
-			if (!el) return false;
-			const rect = el.getBoundingClientRect();
-			const scale = window.devicePixelRatio ?? 1;
-			// Tauri sends physical pixels; getBoundingClientRect returns logical
-			const x = position.x / scale;
-			const y = position.y / scale;
-			return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-		},
-		[],
-	);
+	const isOverPane = useCallback((position: ScreenPosition): boolean => {
+		const el = containerRef.current;
+		if (!el) return false;
+		const rect = el.getBoundingClientRect();
+		const scale = window.devicePixelRatio ?? 1;
+		// Tauri sends physical pixels; getBoundingClientRect returns logical
+		const x = position.x / scale;
+		const y = position.y / scale;
+		return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+	}, []);
 
 	useEffect(() => {
 		const unlisteners: UnlistenFn[] = [];
@@ -70,9 +67,11 @@ export function useFileDrop({ containerRef, onWrite }: UseFileDropOptions): {
 						return;
 					}
 					if (isOverPane(position)) {
-						const capped = paths.length > MAX_DROP_PATHS
-							? (console.warn(`[useFileDrop] Capping ${paths.length} paths to ${MAX_DROP_PATHS}`), paths.slice(0, MAX_DROP_PATHS))
-							: paths;
+						const capped =
+							paths.length > MAX_DROP_PATHS
+								? (console.warn(`[useFileDrop] Capping ${paths.length} paths to ${MAX_DROP_PATHS}`),
+									paths.slice(0, MAX_DROP_PATHS))
+								: paths;
 						onWrite(shellQuotePaths(capped));
 					}
 				}),
