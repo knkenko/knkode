@@ -18,6 +18,7 @@ const IPC_EVENTS = {
 	ptyCwdChanged: "pty:cwd-changed",
 	ptyBranchChanged: "pty:branch-changed",
 	ptyPrChanged: "pty:pr-changed",
+	ptyActivityChanged: "pty:activity-changed",
 } as const;
 
 /**
@@ -123,6 +124,12 @@ const _api: KnkodeApi = {
 		createListener<{ paneId: string; pr: PrInfo | null }>(
 			IPC_EVENTS.ptyPrChanged,
 			({ paneId, pr }) => cb(paneId, pr),
+		),
+
+	onPtyActivityChanged: (cb) =>
+		createListener<{ paneId: string; active: boolean }>(
+			IPC_EVENTS.ptyActivityChanged,
+			({ paneId, active }) => cb(paneId, active),
 		),
 };
 

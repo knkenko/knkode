@@ -127,7 +127,17 @@ export const useStore = create<StoreState>((set, get) => ({
 	collapsedSidebarSections: new Set(),
 
 	setFocusedPane: (paneId) =>
-		set((state) => ({ focusedPaneId: paneId, focusGeneration: state.focusGeneration + 1 })),
+		set((state) => {
+			const updates: Partial<StoreState> = {
+				focusedPaneId: paneId,
+				focusGeneration: state.focusGeneration + 1,
+			};
+			// Clear attention when user focuses a pane
+			if (paneId && state.paneAgentStatuses[paneId] === "attention") {
+				updates.paneAgentStatuses = { ...state.paneAgentStatuses, [paneId]: "idle" };
+			}
+			return updates;
+		}),
 
 	toggleSidebar: () => {
 		const { appState } = get();
