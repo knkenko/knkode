@@ -115,9 +115,10 @@ export function LabelButton({
  *  - shimmer: fast sparkle sweep (Matrix, Solana) */
 export type SeparatorAnimation = "scan" | "dual-scan" | "wave" | "ember" | "shimmer";
 
-/** Animated separator between status bar and terminal content.
- *  Shows a themed scanning gradient when agent is active, a static
- *  attention line when agent needs attention, nothing when idle. */
+/** Separator between status bar and terminal content.
+ *  Always renders at fixed height to prevent layout shift.
+ *  Idle: subtle theme-colored line. Active: themed scanning animation.
+ *  Attention: static glowing bar. */
 export function ActivitySeparator({
 	status,
 	color,
@@ -127,38 +128,34 @@ export function ActivitySeparator({
 	color: string;
 	animation?: SeparatorAnimation;
 }) {
-	if (status === "idle") return null;
+	const style: React.CSSProperties = { height: 3 };
 
-	const isActive = status === "active";
-
-	if (!isActive) {
+	if (status === "idle") {
+		// Subtle static line — always present, no layout shift
+		style.background = color;
+		style.opacity = 0.15;
+	} else if (status === "attention") {
 		// Attention — static colored bar with glow
-		return (
-			<div
-				role="status"
-				aria-label="Agent needs attention"
-				className="w-full shrink-0"
-				style={{
-					height: 3,
-					background: color,
-					opacity: 0.7,
-					boxShadow: `0 0 6px ${color}88`,
-				}}
-			/>
-		);
+		style.background = color;
+		style.opacity = 0.7;
+		style.boxShadow = `0 0 6px ${color}88`;
+	} else {
+		// Active — themed animation
+		Object.assign(style, getAnimationStyles(animation, color));
 	}
 
-	// Active — themed animation
-	const styles = getAnimationStyles(animation, color);
 	return (
 		<div
 			role="status"
-			aria-label="Agent is active"
+			aria-label={
+				status === "active"
+					? "Agent is active"
+					: status === "attention"
+						? "Agent needs attention"
+						: undefined
+			}
 			className="w-full shrink-0 motion-reduce:animate-none"
-			style={{
-				height: 3,
-				...styles,
-			}}
+			style={style}
 		/>
 	);
 }
@@ -170,7 +167,7 @@ function getAnimationStyles(animation: SeparatorAnimation, color: string): React
 			return {
 				background: `linear-gradient(90deg, transparent 0%, ${color} 50%, transparent 100%)`,
 				backgroundSize: "200% 100%",
-				animation: "activity-scan 2s linear infinite",
+				animation: "activity-scan 3s linear infinite",
 				opacity: 0.9,
 				boxShadow: `0 0 4px ${color}66`,
 			};
@@ -178,27 +175,27 @@ function getAnimationStyles(animation: SeparatorAnimation, color: string): React
 			return {
 				background: `linear-gradient(90deg, transparent 0%, ${color} 30%, transparent 50%, ${color}88 70%, transparent 100%)`,
 				backgroundSize: "200% 100%",
-				animation: "activity-dual-scan 1.8s linear infinite",
+				animation: "activity-dual-scan 3.5s linear infinite",
 				opacity: 0.9,
 				boxShadow: `0 0 6px ${color}66`,
 			};
 		case "wave":
 			return {
 				background: `linear-gradient(90deg, ${color}66, ${color}, ${color}66)`,
-				animation: "activity-wave 2.5s ease-in-out infinite",
+				animation: "activity-wave 3s ease-in-out infinite",
 				boxShadow: `0 0 4px ${color}44`,
 			};
 		case "ember":
 			return {
 				background: `linear-gradient(90deg, ${color}88, ${color}, ${color}88)`,
-				animation: "activity-ember 2s ease-in-out infinite",
+				animation: "activity-ember 3s ease-in-out infinite",
 				boxShadow: `0 0 6px ${color}44`,
 			};
 		case "shimmer":
 			return {
 				background: `linear-gradient(90deg, ${color}44 0%, ${color} 20%, ${color}ff 25%, ${color}44 45%, ${color} 70%, ${color}44 100%)`,
 				backgroundSize: "200% 100%",
-				animation: "activity-shimmer 1.2s linear infinite",
+				animation: "activity-shimmer 2.5s linear infinite",
 				opacity: 0.9,
 				boxShadow: `0 0 6px ${color}88`,
 			};

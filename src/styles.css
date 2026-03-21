@@ -303,13 +303,13 @@
 
 	/* scan — single bright band sweeping left to right */
 	@keyframes activity-scan {
-		0% { background-position: -200% 0; }
-		100% { background-position: 200% 0; }
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
 	}
-	/* dual-scan — two bands sweeping in opposite directions (via overlay) */
+	/* dual-scan — two bands sweeping left to right */
 	@keyframes activity-dual-scan {
-		0% { background-position: -200% 0; }
-		100% { background-position: 200% 0; }
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
 	}
 	/* wave — gentle oscillating opacity pulse */
 	@keyframes activity-wave {
@@ -321,10 +321,10 @@
 		0%, 100% { opacity: 0.5; filter: brightness(0.8); }
 		50% { opacity: 1; filter: brightness(1.3); }
 	}
-	/* shimmer — fast sparkle sweep */
+	/* shimmer — fast sparkle sweep left to right */
 	@keyframes activity-shimmer {
-		0% { background-position: -200% 0; }
-		100% { background-position: 200% 0; }
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
 	}
 
 	/* ── Sidebar pane status indicators (right side) ──────────────── */
