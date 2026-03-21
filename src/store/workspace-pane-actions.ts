@@ -1,5 +1,6 @@
 import { THEME_PRESETS } from "../data/theme-presets";
 import type {
+	AgentStatus,
 	AppState,
 	DropPosition,
 	LayoutLeaf,
@@ -42,18 +43,28 @@ function addToVisited(visited: string[], id: string): string[] {
 	return visited.includes(id) ? visited : [...visited, id];
 }
 
-/** Remove pane-scoped ephemeral state (branches, PRs) for a set of pane IDs. */
+/** Remove pane-scoped ephemeral state (branches, PRs, agent statuses) for a set of pane IDs. */
 function cleanPaneEphemeral(
-	state: { paneBranches: Record<string, string | null>; panePrs: Record<string, PrInfo | null> },
+	state: {
+		paneBranches: Record<string, string | null>;
+		panePrs: Record<string, PrInfo | null>;
+		paneAgentStatuses: Record<string, AgentStatus>;
+	},
 	paneIds: string[],
-): { paneBranches: Record<string, string | null>; panePrs: Record<string, PrInfo | null> } {
+): {
+	paneBranches: Record<string, string | null>;
+	panePrs: Record<string, PrInfo | null>;
+	paneAgentStatuses: Record<string, AgentStatus>;
+} {
 	const paneBranches = { ...state.paneBranches };
 	const panePrs = { ...state.panePrs };
+	const paneAgentStatuses = { ...state.paneAgentStatuses };
 	for (const pid of paneIds) {
 		delete paneBranches[pid];
 		delete panePrs[pid];
+		delete paneAgentStatuses[pid];
 	}
-	return { paneBranches, panePrs };
+	return { paneBranches, panePrs, paneAgentStatuses };
 }
 
 export function persistAppState(appState: AppState): void {
@@ -121,6 +132,7 @@ interface WorkspacePaneState {
 	visitedWorkspaceIds: string[];
 	paneBranches: Record<string, string | null>;
 	panePrs: Record<string, PrInfo | null>;
+	paneAgentStatuses: Record<string, AgentStatus>;
 	killPtys: (paneIds: string[]) => void;
 	createWorkspace: (name: string, preset: LayoutPreset) => Promise<Workspace>;
 }
