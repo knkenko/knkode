@@ -249,6 +249,11 @@ export interface PaneScrollDetail {
 	readonly to: "top" | "bottom";
 }
 
+/** Detail payload for the `pane:rename` CustomEvent dispatched by sidebar context menu. */
+export interface PaneRenameDetail {
+	readonly paneId: string;
+}
+
 export interface ScrollDebugEvent {
 	readonly paneId: string;
 	readonly workspaceId: string | null;
