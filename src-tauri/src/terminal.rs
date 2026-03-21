@@ -329,7 +329,7 @@ fn clean_url_tail(url: &str) -> &str {
 
 /// Detect URLs in a row's concatenated text and annotate matching cells.
 /// Each cell in a URL range gets `link` set to the full URL string.
-/// `cell_byte_offsets[i]` is the byte offset in `row_text` where cell `i` starts.
+/// `cell_byte_starts[i]` is the byte offset in `row_text` where cell `i` starts.
 fn annotate_row_links(cells: &mut [CellSnapshot]) {
     // Build the row text and track byte offset → cell index mapping.
     let mut row_text = String::with_capacity(cells.len());
@@ -346,7 +346,13 @@ fn annotate_row_links(cells: &mut [CellSnapshot]) {
         }
         let match_start = m.start();
         let match_end = match_start + url.len();
-        let url_arc = url.to_string();
+        // Prepend http:// to scheme-less matches (localhost:PORT, 127.0.0.1:PORT)
+        // so the frontend's isAllowedUrl check doesn't silently reject them.
+        let url_string = if url.starts_with("http://") || url.starts_with("https://") {
+            url.to_string()
+        } else {
+            format!("http://{url}")
+        };
 
         // Find which cells fall within this URL byte range
         for (i, &byte_start) in cell_byte_starts.iter().enumerate() {
@@ -354,7 +360,7 @@ fn annotate_row_links(cells: &mut [CellSnapshot]) {
             // Cell overlaps the URL range if it starts before match_end and ends after match_start.
             // Skip cells that already have an OSC 8 hyperlink — explicit links take priority.
             if byte_start < match_end && cell_end > match_start && cells[i].link.is_none() {
-                cells[i].link = Some(url_arc.clone());
+                cells[i].link = Some(url_string.clone());
             }
         }
     }
@@ -729,8 +735,15 @@ impl TerminalState {
                 // produce an empty vec if all images failed to encode.
                 let images = cell_images.and_then(|v| if v.is_empty() { None } else { Some(v) });
 
-                // OSC 8 explicit hyperlinks take priority — set directly from cell attrs.
-                let link = attrs.hyperlink().map(|h| h.uri().to_string());
+                // OSC 8 explicit hyperlinks — filter to http(s) for defense-in-depth.
+                let link = attrs.hyperlink().and_then(|h| {
+                    let uri = h.uri();
+                    if uri.starts_with("https://") || uri.starts_with("http://") {
+                        Some(uri.to_string())
+                    } else {
+                        None
+                    }
+                });
 
                 cells.push(CellSnapshot {
                     text: cell_ref.str().to_string(),

@@ -715,11 +715,6 @@ export function CanvasTerminal({
 			const linkColor = accentColor ?? cursorColor;
 			const rowCells = snap.rows[linkRow];
 			if (rowCells) {
-				ctx.font = buildFont(
-					{ bold: false, italic: false } as CellSnapshot,
-					scaledSize,
-					fontFamily,
-				);
 				for (let c = linkStart; c <= linkEnd && c < rowCells.length; c++) {
 					const cell = rowCells[c];
 					if (!cell?.text.trim()) continue;
