@@ -32,3 +32,9 @@ coverage/
 
 # Tauri
 src-tauri/gen/
+
+# Internal docs
+HANDOFF.md
+PROJECT_DESCRIPTION.md
+docs/plans/
+docs/reviews/
