@@ -67,11 +67,11 @@ export function useFileDrop({ containerRef, onWrite }: UseFileDropOptions): {
 						return;
 					}
 					if (isOverPane(position)) {
-						const capped =
-							paths.length > MAX_DROP_PATHS
-								? (console.warn(`[useFileDrop] Capping ${paths.length} paths to ${MAX_DROP_PATHS}`),
-									paths.slice(0, MAX_DROP_PATHS))
-								: paths;
+						let capped = paths;
+						if (paths.length > MAX_DROP_PATHS) {
+							console.warn(`[useFileDrop] Capping ${paths.length} paths to ${MAX_DROP_PATHS}`);
+							capped = paths.slice(0, MAX_DROP_PATHS);
+						}
 						onWrite(shellQuotePaths(capped));
 					}
 				}),
