@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { PANE_SCROLL_EVENT, type PaneScrollDetail } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
-import { isMac } from "../utils/platform";
+import { isModKeyHeld } from "../utils/platform";
 
 /** Delta lookup for pane navigation arrows (Left = prev, Right = next). */
 const PANE_NAV_DELTAS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
@@ -37,8 +37,7 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 			if (e.defaultPrevented) return;
 
 			// Check modifier key first to avoid unnecessary state reads on every keypress.
-			// isMac is a module-level constant (never changes) — safe to omit from deps.
-			const isMod = isMac ? e.metaKey : e.ctrlKey;
+			const isMod = isModKeyHeld(e);
 			if (!isMod) return;
 
 			// Read latest store state imperatively (avoids stale closure)

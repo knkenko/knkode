@@ -7,6 +7,11 @@ export const isWindows = /^Win/.test(platform);
 /** Returns "Cmd" on macOS, "Ctrl" on other platforms. Used for tooltip/shortcut display. */
 export const modKey = isMac ? "Cmd" : "Ctrl";
 
+/** Whether the platform modifier key (Cmd on macOS, Ctrl elsewhere) is held in an event. */
+export function isModKeyHeld(e: { metaKey: boolean; ctrlKey: boolean }): boolean {
+	return isMac ? e.metaKey : e.ctrlKey;
+}
+
 /** macOS traffic-light (close/minimize/maximize) width in px. */
 export const MACOS_TRAFFIC_LIGHT_WIDTH = "90px";
 /** Windows caption-button (minimize/maximize/close) width in px. */

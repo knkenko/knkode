@@ -16,7 +16,7 @@ import {
 	DEFAULT_FONT_SIZE,
 	DEFAULT_LINE_HEIGHT,
 } from "../shared/types";
-import { isMac } from "../utils/platform";
+import { isMac, isModKeyHeld } from "../utils/platform";
 
 export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;
@@ -36,6 +36,8 @@ export interface CanvasTerminalProps {
 	readonly selectionColor?: string | undefined;
 	/** Pane ID used by getSelectionText IPC. */
 	readonly paneId: string;
+	/** Theme accent color for link hover highlight. Falls back to cursorColor prop. */
+	readonly accentColor?: string;
 }
 
 /** Smooth cursor blink — full cycle duration (fade out → fade in). */
@@ -152,6 +154,20 @@ function moveByWord(
 	// Find end of this word
 	while (c < totalCols - 1 && isWordChar(c + 1)) c++;
 	return c;
+}
+
+/** Find the column range [startCol, endCol] of a link in a row.
+ *  Scans left and right from `col` for cells with the same `link` value. */
+function findLinkExtent(
+	row: readonly CellSnapshot[],
+	col: number,
+	link: string,
+): [number, number] {
+	let start = col;
+	while (start > 0 && row[start - 1]?.link === link) start--;
+	let end = col;
+	while (end < row.length - 1 && row[end + 1]?.link === link) end++;
+	return [start, end];
 }
 
 /** Convert client (mouse) coordinates to a viewport-relative cell position
@@ -410,6 +426,7 @@ export function CanvasTerminal({
 	isFocused = true,
 	selectionColor,
 	paneId,
+	accentColor,
 }: CanvasTerminalProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -448,6 +465,15 @@ export function CanvasTerminal({
 	const clickStreakRef = useRef(1);
 	/** Whether a non-degenerate selection is active (set by multi-click or drag). */
 	const selectionActiveRef = useRef(false);
+
+	// Link hover state — tracked to draw accent underline on Cmd+hover
+	const linkHoverRef = useRef<{
+		url: string;
+		row: number;
+		cols: [number, number];
+	} | null>(null);
+	/** Whether the platform modifier key (Cmd/Ctrl) is currently held. */
+	const modKeyHeldRef = useRef(false);
 
 	// Keep refs in sync
 	gridRef.current = grid;
@@ -680,6 +706,35 @@ export function CanvasTerminal({
 			drawSelectionHighlight(ctx, anchor, end, snap, cellW, cellH, selectionColorRef.current);
 		}
 
+		// Draw link hover highlight — accent-colored text + underline on Cmd+hover
+		const linkHover = linkHoverRef.current;
+		if (linkHover && linkHover.row >= 0 && linkHover.row < snap.rows.length) {
+			const { row: linkRow, cols: [linkStart, linkEnd] } = linkHover;
+			const linkColor = accentColor ?? cursorColor;
+			const rowCells = snap.rows[linkRow];
+			if (rowCells) {
+				for (let c = linkStart; c <= linkEnd && c < rowCells.length; c++) {
+					const cell = rowCells[c];
+					if (!cell?.text.trim()) continue;
+					const x = c * cellW;
+					const y = linkRow * cellH;
+					// Redraw background to clear original text
+					if (cell.bg !== snap.defaultBg) {
+						ctx.fillStyle = cell.bg;
+						ctx.fillRect(x, y, cellW, cellH);
+					} else {
+						ctx.clearRect(x, y, cellW, cellH);
+					}
+					// Draw text in accent color
+					ctx.font = buildFont(cell, scaledSize, fontFamily);
+					ctx.fillStyle = linkColor;
+					ctx.fillText(cell.text, x, y + baselineOffset);
+					// Underline
+					drawHLine(ctx, linkColor, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
+				}
+			}
+		}
+
 		// Draw cursor
 		if (snap.cursorVisible) {
 			const cx = snap.cursorCol * cellW;
@@ -703,7 +758,7 @@ export function CanvasTerminal({
 				cursorCell,
 			);
 		}
-	}, [background, cursorColor, fontSize, fontFamily, lineHeight]);
+	}, [accentColor, background, cursorColor, fontSize, fontFamily, lineHeight]);
 
 	// Keep draw ref in sync so the resize observer can trigger redraws
 	// without being recreated when draw's dependencies change.
@@ -837,6 +892,8 @@ export function CanvasTerminal({
 		// Reset blink timer on grid change (keystroke makes cursor fully visible)
 		blinkStart.current = performance.now();
 		cursorOpacity.current = CURSOR_MAX_OPACITY;
+		// Clear stale link hover — grid content may have shifted under the highlight
+		linkHoverRef.current = null;
 		draw();
 
 		// Ingest any new images from this snapshot. If new images were decoded,
@@ -1053,6 +1110,30 @@ export function CanvasTerminal({
 			const snap = gridRef.current;
 			if (!snap) return;
 
+			// Cmd+click (Mac) or Ctrl+click (other) on a link → open externally
+			const modHeld = isModKeyHeld(e);
+			if (modHeld) {
+				const rowCells = snap.rows[cell.row];
+				const linkUrl = rowCells?.[cell.col]?.link;
+				if (linkUrl) {
+					e.preventDefault();
+					window.api.openExternal(linkUrl).catch(() => {
+						// Brief visual feedback: flash link cells without accent to signal rejection
+						const hover = linkHoverRef.current;
+						if (hover) {
+							linkHoverRef.current = null;
+							drawRef.current();
+							// Restore after a beat so the user sees the flash
+							setTimeout(() => {
+								linkHoverRef.current = hover;
+								drawRef.current();
+							}, 150);
+						}
+					});
+					return;
+				}
+			}
+
 			const absRow = toAbsoluteRow(snap, cell.row);
 			selectionActiveRef.current = false;
 
@@ -1204,6 +1285,78 @@ export function CanvasTerminal({
 		[cellAtPixel],
 	);
 
+	/** Clear link hover state and redraw if needed. */
+	const clearLinkHover = useCallback(() => {
+		if (linkHoverRef.current) {
+			linkHoverRef.current = null;
+			const container = containerRef.current;
+			if (container) container.style.cursor = "";
+			drawRef.current();
+		}
+	}, []);
+
+	/** Update link hover state based on current mouse position + modifier. */
+	const handleMouseMove = useCallback(
+		(e: React.MouseEvent) => {
+			const modHeld = isModKeyHeld(e);
+			modKeyHeldRef.current = modHeld;
+			if (!modHeld) {
+				clearLinkHover();
+				return;
+			}
+
+			const cell = cellAtPixel(e.clientX, e.clientY);
+			if (!cell) {
+				clearLinkHover();
+				return;
+			}
+			const snap = gridRef.current;
+			if (!snap) return;
+
+			const rowCells = snap.rows[cell.row];
+			const linkUrl = rowCells?.[cell.col]?.link;
+			if (!linkUrl) {
+				clearLinkHover();
+				return;
+			}
+
+			// Already hovering this exact link — skip redraw
+			const prev = linkHoverRef.current;
+			if (prev && prev.url === linkUrl && prev.row === cell.row) {
+				return;
+			}
+
+			const [start, end] = findLinkExtent(rowCells, cell.col, linkUrl);
+			linkHoverRef.current = { url: linkUrl, row: cell.row, cols: [start, end] };
+			const container = containerRef.current;
+			if (container) container.style.cursor = "pointer";
+			drawRef.current();
+		},
+		[cellAtPixel, clearLinkHover],
+	);
+
+	// Track modifier key release to clear link hover via window-level listeners
+	useEffect(() => {
+		const onKeyChange = (e: KeyboardEvent) => {
+			const modHeld = isModKeyHeld(e);
+			if (modKeyHeldRef.current && !modHeld) {
+				modKeyHeldRef.current = false;
+				clearLinkHover();
+			}
+			modKeyHeldRef.current = modHeld;
+		};
+		// Use window-level listeners so we catch modifier release even when mouse leaves
+		window.addEventListener("keydown", onKeyChange);
+		window.addEventListener("keyup", onKeyChange);
+		// Also clear on blur (e.g., Cmd+Tab away)
+		window.addEventListener("blur", clearLinkHover);
+		return () => {
+			window.removeEventListener("keydown", onKeyChange);
+			window.removeEventListener("keyup", onKeyChange);
+			window.removeEventListener("blur", clearLinkHover);
+		};
+	}, [clearLinkHover]);
+
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: canvas terminal cannot be a native textarea
 		<div
@@ -1215,6 +1368,8 @@ export function CanvasTerminal({
 			onKeyDown={handleKeyDown}
 			onPaste={handlePaste}
 			onMouseDown={handleMouseDown}
+			onMouseMove={handleMouseMove}
+			onMouseLeave={clearLinkHover}
 		>
 			<canvas ref={canvasRef} className="block" />
 		</div>

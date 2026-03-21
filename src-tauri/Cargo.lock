@@ -2158,6 +2158,7 @@ dependencies = [
  "dirs",
  "image",
  "portable-pty",
+ "regex",
  "serde",
  "serde_json",
  "tattoy-termwiz",

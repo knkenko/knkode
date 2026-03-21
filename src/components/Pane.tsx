@@ -420,6 +420,7 @@ export const Pane = memo(function Pane({
 							isFocused={isFocused}
 							selectionColor={mergedTheme.selectionColor}
 							paneId={paneId}
+							accentColor={variantTheme.accent}
 						/>
 						{/* Scrollbar — themed track, fades in on scroll, fades out after 2s */}
 						{hasScrollback && (
