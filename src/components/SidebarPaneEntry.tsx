@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback } from "react";
+import { type ThemePresetName, toPresetName } from "../data/theme-presets";
 import { useContextMenu } from "../hooks/useContextMenu";
-import { getPortalRoot } from "../lib/ui-constants";
-import { toPresetName, type ThemePresetName } from "../data/theme-presets";
-import type { PaneConfig, Workspace } from "../shared/types";
+import { PANE_RENAME_EVENT, type PaneConfig } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
-import { MoveToWorkspaceSubmenu } from "./MoveToWorkspaceSubmenu";
+import { PaneContextMenu } from "./PaneContextMenu";
 import { PaneEntryVariant } from "./sidebar-variants/ThemeRegistry";
 
 interface SidebarPaneEntryProps {
@@ -16,7 +14,6 @@ interface SidebarPaneEntryProps {
 	config: PaneConfig;
 	isFocused: boolean;
 	canClose: boolean;
-	otherOpenWorkspaces: Workspace[];
 	onClick: () => void;
 	onClose?: () => void;
 }
@@ -28,7 +25,6 @@ export function SidebarPaneEntry({
 	config,
 	isFocused,
 	canClose,
-	otherOpenWorkspaces,
 	onClick,
 	onClose,
 }: SidebarPaneEntryProps) {
@@ -36,18 +32,17 @@ export function SidebarPaneEntry({
 	const pr = useStore((s) => s.panePrs[paneId] ?? null);
 	const agentStatus = useStore((s) => s.paneAgentStatuses[paneId] ?? "idle");
 	const homeDir = useStore((s) => s.homeDir);
-	const movePaneToWorkspace = useStore((s) => s.movePaneToWorkspace);
+	const splitPane = useStore((s) => s.splitPane);
+	const updatePaneConfig = useStore((s) => s.updatePaneConfig);
 
 	const shortCwd = shortenPath(config.cwd, homeDir);
 	const preset = toPresetName(config.themeOverride?.preset ?? workspacePreset);
 
 	const ctx = useContextMenu();
-	const [showMoveMenu, setShowMoveMenu] = useState(false);
 
-	const closeContext = () => {
-		ctx.close();
-		setShowMoveMenu(false);
-	};
+	const handleRename = useCallback(() => {
+		window.dispatchEvent(new CustomEvent(PANE_RENAME_EVENT, { detail: { paneId } }));
+	}, [paneId]);
 
 	return (
 		<>
@@ -64,73 +59,23 @@ export function SidebarPaneEntry({
 				onContextMenu={ctx.open}
 			/>
 
-			{/* Context menu — portalled to escape overflow-hidden containers */}
-			{ctx.isOpen &&
-				createPortal(
-					<div
-						ref={ctx.ref}
-						className="ctx-menu fixed z-[300]"
-						style={{ left: ctx.position.x, top: ctx.position.y }}
-						onKeyDown={(e) => {
-							if (e.key === "Escape") closeContext();
-						}}
-						onMouseDown={(e) => e.stopPropagation()}
-					>
-						<button
-							type="button"
-							className="ctx-item"
-							onClick={(e) => {
-								e.stopPropagation();
-								onClick();
-								closeContext();
-							}}
-						>
-							Focus
-						</button>
-						{/* Only allow move/close when pane can be removed from source workspace */}
-						{canClose && otherOpenWorkspaces.length > 0 && (
-							<>
-								<div className="ctx-separator" />
-								<button
-									type="button"
-									className="ctx-item"
-									onClick={(e) => {
-										e.stopPropagation();
-										setShowMoveMenu((v) => !v);
-									}}
-								>
-									Move to Workspace
-								</button>
-								{showMoveMenu && (
-									<MoveToWorkspaceSubmenu
-										workspaces={otherOpenWorkspaces}
-										onMove={(toWsId) => {
-											movePaneToWorkspace(workspaceId, paneId, toWsId);
-											closeContext();
-										}}
-									/>
-								)}
-							</>
-						)}
-						{canClose && onClose && (
-							<>
-								<div className="ctx-separator" />
-								<button
-									type="button"
-									className="ctx-item text-danger"
-									onClick={(e) => {
-										e.stopPropagation();
-										onClose();
-										closeContext();
-									}}
-								>
-									Close Pane
-								</button>
-							</>
-						)}
-					</div>,
-					getPortalRoot(),
-				)}
+			{ctx.isOpen && (
+				<PaneContextMenu
+					paneId={paneId}
+					workspaceId={workspaceId}
+					config={config}
+					canClose={canClose}
+					anchorPos={ctx.position}
+					onUpdateConfig={(updates) => updatePaneConfig(workspaceId, paneId, updates)}
+					// iTerm2 convention: "Split Vertical" = vertical divider = horizontal (side-by-side) layout
+					onSplitVertical={() => splitPane(workspaceId, paneId, "horizontal")}
+					onSplitHorizontal={() => splitPane(workspaceId, paneId, "vertical")}
+					onClose={() => onClose?.()}
+					onRename={handleRename}
+					onFocus={onClick}
+					onDismiss={ctx.close}
+				/>
+			)}
 		</>
 	);
 }

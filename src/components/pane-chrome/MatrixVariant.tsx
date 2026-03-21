@@ -49,9 +49,7 @@ function Frame({
 					style={{ borderColor: theme.accent, color: fg }}
 				/>
 			) : (
-				<LabelButton onEdit={onDoubleClickLabel}>
-					{label}
-				</LabelButton>
+				<LabelButton onEdit={onDoubleClickLabel}>{label}</LabelButton>
 			)}
 
 			<span className="mx-1 opacity-40">|</span>

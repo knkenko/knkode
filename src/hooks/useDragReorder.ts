@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
-const DRAG_THRESHOLD = 5;
+import { DRAG_THRESHOLD, suppressNextClick } from "../lib/ui-constants";
 
 interface UseDragReorderOptions {
 	onReorder: (fromIndex: number, toIndex: number) => void;
@@ -45,77 +44,85 @@ export function useDragReorder({
 
 	const cleanupRef = useRef<(() => void) | null>(null);
 
-	const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
-		if (e.button !== 0) return; // Left button only
+	const handlePointerDown = useCallback(
+		(e: React.PointerEvent, index: number) => {
+			if (e.button !== 0) return; // Left button only
 
-		const s = stateRef.current;
-		s.from = index;
-		s.over = null;
-		s.dragging = false;
-		s.startX = e.clientX;
-		s.startY = e.clientY;
-
-		// Capture container ref at pointerdown time — the target element won't change
-		const container = (e.target as HTMLElement).closest(containerSelector);
-
-		const findTargetIndex = (clientX: number, clientY: number): number | null => {
-			if (!container) return null;
-			const items = container.querySelectorAll<HTMLElement>(itemSelector);
-			for (let i = 0; i < items.length; i++) {
-				const rect = items[i]!.getBoundingClientRect();
-				if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-					return i;
-				}
-			}
-			return null;
-		};
-
-		const handleMove = (me: PointerEvent) => {
-			if (!s.dragging) {
-				const dx = me.clientX - s.startX;
-				const dy = me.clientY - s.startY;
-				if (Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
-				s.dragging = true;
-				setFromRef.current(s.from);
-			}
-
-			const target = findTargetIndex(me.clientX, me.clientY);
-			if (target !== null && target !== s.over) {
-				s.over = target;
-				setOverRef.current(target);
-			}
-		};
-
-		const handleUp = () => {
-			document.removeEventListener("pointermove", handleMove);
-			document.removeEventListener("pointerup", handleUp);
-			cleanupRef.current = null;
-
-			if (s.dragging) {
-				if (s.from !== null && s.over !== null && s.from !== s.over) {
-					onReorderRef.current(s.from, s.over);
-				}
-				// Suppress the click event that follows pointerup after a drag
-				document.addEventListener("click", (ev) => ev.stopPropagation(), { capture: true, once: true });
-			}
-
-			s.from = null;
+			const s = stateRef.current;
+			s.from = index;
 			s.over = null;
 			s.dragging = false;
-			setFromRef.current(null);
-			setOverRef.current(null);
-		};
+			s.startX = e.clientX;
+			s.startY = e.clientY;
 
-		// Clean up any stale listeners (shouldn't happen, but safety)
-		cleanupRef.current?.();
+			// Capture container ref at pointerdown time — the target element won't change
+			const container = (e.target as HTMLElement).closest(containerSelector);
 
-		document.addEventListener("pointermove", handleMove);
-		document.addEventListener("pointerup", handleUp);
-		cleanupRef.current = () => {
-			document.removeEventListener("pointermove", handleMove);
-			document.removeEventListener("pointerup", handleUp);
-		};
-	}, [containerSelector, itemSelector]);
+			const findTargetIndex = (clientX: number, clientY: number): number | null => {
+				if (!container) return null;
+				const items = container.querySelectorAll<HTMLElement>(itemSelector);
+				for (let i = 0; i < items.length; i++) {
+					const rect = items[i]!.getBoundingClientRect();
+					if (
+						clientX >= rect.left &&
+						clientX <= rect.right &&
+						clientY >= rect.top &&
+						clientY <= rect.bottom
+					) {
+						return i;
+					}
+				}
+				return null;
+			};
+
+			const handleMove = (me: PointerEvent) => {
+				if (!s.dragging) {
+					const dx = me.clientX - s.startX;
+					const dy = me.clientY - s.startY;
+					if (Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
+					s.dragging = true;
+					setFromRef.current(s.from);
+				}
+
+				const target = findTargetIndex(me.clientX, me.clientY);
+				if (target !== null && target !== s.over) {
+					s.over = target;
+					setOverRef.current(target);
+				}
+			};
+
+			const handleUp = () => {
+				document.removeEventListener("pointermove", handleMove);
+				document.removeEventListener("pointerup", handleUp);
+				cleanupRef.current = null;
+
+				if (s.dragging) {
+					if (s.from !== null && s.over !== null && s.from !== s.over) {
+						onReorderRef.current(s.from, s.over);
+					}
+					// Suppress the click event that follows pointerup after a drag
+					suppressNextClick();
+				}
+
+				s.from = null;
+				s.over = null;
+				s.dragging = false;
+				setFromRef.current(null);
+				setOverRef.current(null);
+			};
+
+			// Clean up any stale listeners (shouldn't happen, but safety)
+			cleanupRef.current?.();
+
+			document.addEventListener("pointermove", handleMove);
+			document.addEventListener("pointerup", handleUp);
+			cleanupRef.current = () => {
+				document.removeEventListener("pointermove", handleMove);
+				document.removeEventListener("pointerup", handleUp);
+			};
+		},
+		[containerSelector, itemSelector],
+	);
 
 	// Cleanup on unmount
 	useEffect(() => () => cleanupRef.current?.(), []);

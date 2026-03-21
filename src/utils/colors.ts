@@ -24,7 +24,8 @@ function isValidTimingFn(value: string): boolean {
 }
 
 /** Allowlist for CSS box-shadow values — numeric offsets, rgba/hsla colors, inset keyword. */
-const BOX_SHADOW_RE = /^[0-9a-z\s,#.%+-]+(rgba?\([\d\s,.]+\)|hsla?\([\d\s,.%]+\))?[0-9a-z\s,#.%+-]*$/i;
+const BOX_SHADOW_RE =
+	/^[0-9a-z\s,#.%+-]+(rgba?\([\d\s,.]+\)|hsla?\([\d\s,.%]+\))?[0-9a-z\s,#.%+-]*$/i;
 function isValidBoxShadow(value: string): boolean {
 	return value === "none" || BOX_SHADOW_RE.test(value);
 }
@@ -311,9 +312,10 @@ function generateSidebarVariables(
 		"--sidebar-letter-spacing": `${Math.max(0, Math.min(0.3, sidebar?.letterSpacing ?? 0))}em`,
 		"--sidebar-header-weight": HEADER_WEIGHT_MAP[sidebar?.headerWeight ?? "medium"],
 		"--sidebar-card-bg": validHexOr(sidebar?.cardBg, "transparent"),
-		"--sidebar-card-border": sidebar?.cardBorder && isValidHex(sidebar.cardBorder)
-			? `1px solid ${sidebar.cardBorder}`
-			: "none",
+		"--sidebar-card-border":
+			sidebar?.cardBorder && isValidHex(sidebar.cardBorder)
+				? `1px solid ${sidebar.cardBorder}`
+				: "none",
 		"--sidebar-card-radius": `${Math.max(0, Math.min(12, sidebar?.cardRadius ?? 0))}px`,
 	};
 }

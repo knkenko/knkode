@@ -165,10 +165,7 @@ export function createWorkspacePaneSlice(
 
 		createDefaultWorkspace: async () => {
 			const state = get();
-			return state.createWorkspace(
-				`Workspace ${state.workspaces.length + 1}`,
-				"single",
-			);
+			return state.createWorkspace(`Workspace ${state.workspaces.length + 1}`, "single");
 		},
 
 		updateWorkspace: async (workspace: Workspace) => {

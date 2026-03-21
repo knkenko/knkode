@@ -1,14 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { toPresetName } from "../data/theme-presets";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useWindowDrag } from "../hooks/useWindowDrag";
-import { toPresetName } from "../data/theme-presets";
 import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
 
-import { CollapsedWorkspaceVariant, WorkspaceSectionWrapper } from "./sidebar-variants/ThemeRegistry";
+import {
+	CollapsedWorkspaceVariant,
+	WorkspaceSectionWrapper,
+} from "./sidebar-variants/ThemeRegistry";
 
 /** px */ const SIDEBAR_WIDTH = 200;
 /** px — wide enough to contain macOS traffic lights (90px) and show truncated workspace names */ const SIDEBAR_COLLAPSED_WIDTH = 96;
@@ -131,7 +134,6 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
 							const paneIds = getPaneIdsInOrder(ws.layout.tree);
-							const otherOpen = openWorkspaces.filter((w) => w.id !== ws.id);
 							const canClose = paneIds.length > 1;
 
 							return (
@@ -163,7 +165,6 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 															config={config}
 															isFocused={focusedPaneId === paneId && isActive}
 															canClose={canClose}
-															otherOpenWorkspaces={otherOpen}
 															onClick={() => handlePaneClick(ws.id, paneId)}
 															{...(canClose ? { onClose: () => closePane(ws.id, paneId) } : {})}
 														/>
@@ -349,7 +350,9 @@ function CollapsedView({
 	activeWorkspaceId: string | null;
 	onActivate: (id: string) => void;
 }) {
-	const activePreset = toPresetName(workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset);
+	const activePreset = toPresetName(
+		workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset,
+	);
 
 	return (
 		<div className="flex flex-col py-1">

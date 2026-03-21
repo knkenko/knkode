@@ -91,7 +91,13 @@ type SettingsAction =
 	| { type: "APPLY_PRESET"; preset: string };
 
 /** Effect-level field names within SettingsState. */
-type EffectStateField = "dimLevel" | "opacityLevel" | "gradientLevel" | "glowLevel" | "scanlineLevel" | "noiseLevel";
+type EffectStateField =
+	| "dimLevel"
+	| "opacityLevel"
+	| "gradientLevel"
+	| "glowLevel"
+	| "scanlineLevel"
+	| "noiseLevel";
 
 /** Maps effect UI categories to their corresponding state field names, used by SET_EFFECT. */
 const EFFECT_STATE_KEY: Record<EffectCategory, EffectStateField> = {
@@ -174,18 +180,25 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 
 	const effects = useMemo(() => {
 		const rec = {} as Record<EffectCategory, EffectLevel>;
-		for (const [cat, key] of Object.entries(EFFECT_STATE_KEY) as [EffectCategory, EffectStateField][]) {
+		for (const [cat, key] of Object.entries(EFFECT_STATE_KEY) as [
+			EffectCategory,
+			EffectStateField,
+		][]) {
 			rec[cat] = state[key];
 		}
 		return rec;
-	}, [state.dimLevel, state.opacityLevel, state.gradientLevel, state.glowLevel, state.scanlineLevel, state.noiseLevel]);
+	}, [
+		state.dimLevel,
+		state.opacityLevel,
+		state.gradientLevel,
+		state.glowLevel,
+		state.scanlineLevel,
+		state.noiseLevel,
+	]);
 
-	const handleEffectChange = useCallback(
-		(category: EffectCategory, level: EffectLevel) => {
-			dispatch({ type: "SET_EFFECT", category, level });
-		},
-		[],
-	);
+	const handleEffectChange = useCallback((category: EffectCategory, level: EffectLevel) => {
+		dispatch({ type: "SET_EFFECT", category, level });
+	}, []);
 
 	const buildThemeFromInputs = useCallback((): PaneTheme => {
 		const preset = findPreset(state.themePreset);

@@ -85,12 +85,12 @@ export function DefaultDarkEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-0">
 					{branch && (
-						<span className="text-[9px] font-mono text-[#8892b0] truncate shrink-0 max-w-[120px] opacity-70">
+						<span className="text-[9px] font-mono text-[#8892b0] truncate min-w-0 flex-1 opacity-70">
 							 {branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] font-mono bg-[#232946] px-1 rounded-sm text-[#8892b0] shrink-0">
+						<span className="text-[9px] font-mono bg-[#232946] px-1 rounded-sm text-[#8892b0] shrink-0 ml-auto">
 							#{pr.number}
 						</span>
 					)}
@@ -184,11 +184,11 @@ export function DraculaEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-0">
 					{branch && (
-						<span className="text-[9px] text-[#50fa7b] font-mono truncate max-w-[120px]">
+						<span className="text-[9px] text-[#50fa7b] font-mono truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#ffb86c] font-mono shrink-0">#{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#ffb86c] font-mono shrink-0 ml-auto">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -268,12 +268,12 @@ export function TokyoNightEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-0">
 					{branch && (
-						<span className="text-[9px] text-[#9ece6a] font-mono shrink-0 truncate max-w-[120px]">
+						<span className="text-[9px] text-[#9ece6a] font-mono truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] font-mono bg-[#1a1b26] text-[#ff9e64] px-1 rounded-sm border border-[#292e42] shrink-0">
+						<span className="text-[9px] font-mono bg-[#1a1b26] text-[#ff9e64] px-1 rounded-sm border border-[#292e42] shrink-0 ml-auto">
 							PR:{pr.number}
 						</span>
 					)}
@@ -365,11 +365,11 @@ export function NordEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-3.5">
 					{branch && (
-						<span className="text-[9px] text-[#a3be8c] truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#a3be8c] truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#ebcb8b] shrink-0">#{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#ebcb8b] shrink-0 ml-auto">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -460,12 +460,12 @@ export function CatppuccinEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-0">
 					{branch && (
-						<span className="text-[9px] text-[#a6e3a1] font-medium truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#a6e3a1] font-medium truncate min-w-0 flex-1">
 							 {branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] font-bold bg-[#f9e2af]/20 text-[#f9e2af] px-1.5 rounded-md shrink-0">
+						<span className="text-[9px] font-bold bg-[#f9e2af]/20 text-[#f9e2af] px-1.5 rounded-md shrink-0 ml-auto">
 							PR {pr.number}
 						</span>
 					)}
@@ -545,11 +545,11 @@ export function GruvboxEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-6 font-mono">
 					{branch && (
-						<span className="text-[9px] text-[#b8bb26] truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#b8bb26] truncate min-w-0 flex-1">
 							[{branch}]
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#fabd2f] shrink-0">#{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#fabd2f] shrink-0 ml-auto">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -633,11 +633,11 @@ export function MonokaiEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full font-mono pl-0">
 					{branch && (
-						<span className="text-[9px] text-[#e6db74] truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#e6db74] truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#ae81ff] shrink-0">#{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#ae81ff] shrink-0 ml-auto">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -715,11 +715,11 @@ export function EverforestEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-0">
 					{branch && (
-						<span className="text-[9px] text-[#83c092] truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#83c092] truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#dbbc7f] shrink-0">PR-{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#dbbc7f] shrink-0 ml-auto">PR-{pr.number}</span>}
 				</div>
 			)}
 		</button>

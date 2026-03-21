@@ -12,11 +12,7 @@ import type {
 } from "../shared/types";
 import { createLayoutFromPreset } from "./layout-tree";
 import { createSnippetSlice } from "./snippet-actions";
-import {
-	createWorkspacePaneSlice,
-	defaultTheme,
-	persistAppState,
-} from "./workspace-pane-actions";
+import { createWorkspacePaneSlice, defaultTheme, persistAppState } from "./workspace-pane-actions";
 
 interface StoreState {
 	// Data
@@ -94,10 +90,7 @@ interface StoreState {
 	/** Update PR info for a pane and persist to PaneConfig.lastPr. */
 	updatePanePr: (paneId: string, pr: PrInfo | null) => void;
 	/** Update agent status for a pane. */
-	updatePaneAgentStatus: (
-		paneId: string,
-		status: AgentStatus,
-	) => void;
+	updatePaneAgentStatus: (paneId: string, status: AgentStatus) => void;
 	/** Persist pixel sizes as percentages at a given tree path.
 	 *  `path` is an array of child indices from the root to the target branch node.
 	 *  An empty array `[]` targets the root node itself.

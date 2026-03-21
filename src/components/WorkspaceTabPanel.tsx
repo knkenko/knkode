@@ -15,23 +15,19 @@ interface WorkspaceTabPanelProps {
 	panes: Record<string, PaneConfig>;
 	name: string;
 	onNameChange: (name: string) => void;
-	color: string;
-	onColorChange: (color: string) => void;
 	homeDir: string;
 	currentPreset: LayoutPreset | null;
 	onLayoutChange: (preset: LayoutPreset) => void;
 	statusBarPosition: StatusBarPosition;
 	onStatusBarPositionChange: (pos: StatusBarPosition) => void;
 	onPaneUpdate: (paneId: string, updates: Partial<PaneConfig>) => void;
-	hidden: boolean;
+	hidden?: boolean;
 }
 
 export function WorkspaceTabPanel({
 	panes,
 	name,
 	onNameChange,
-	color,
-	onColorChange,
 	homeDir,
 	currentPreset,
 	onLayoutChange,
@@ -57,15 +53,6 @@ export function WorkspaceTabPanel({
 						onChange={(e) => onNameChange(e.target.value)}
 						maxLength={128}
 						className="settings-input flex-1 min-w-0"
-					/>
-				</label>
-				<label className="flex items-center gap-3">
-					<span className="text-xs text-content-secondary w-16 shrink-0">Color</span>
-					<input
-						type="color"
-						value={color}
-						onChange={(e) => onColorChange(e.target.value)}
-						className="color-swatch"
 					/>
 				</label>
 			</SettingsSection>

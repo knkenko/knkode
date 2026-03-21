@@ -13,8 +13,7 @@ export function AgentStatusIndicator({
 	if (status === "idle") return null;
 
 	if (status === "in_progress") {
-		if (gruvbox)
-			return <span className="w-2 h-3 bg-[#fe8019] animate-pulse shrink-0" />;
+		if (gruvbox) return <span className="w-2 h-3 bg-[#fe8019] animate-pulse shrink-0" />;
 		return (
 			<svg
 				className="animate-spin h-3 w-3 text-[#6c63ff] shrink-0"

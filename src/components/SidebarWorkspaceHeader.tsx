@@ -1,8 +1,8 @@
 import { createPortal } from "react-dom";
+import type { ThemePresetName } from "../data/theme-presets";
 import { useContextMenu } from "../hooks/useContextMenu";
 import { useInlineEdit } from "../hooks/useInlineEdit";
 import { getPortalRoot } from "../lib/ui-constants";
-import type { ThemePresetName } from "../data/theme-presets";
 import type { Workspace } from "../shared/types";
 import { WorkspaceHeaderVariant } from "./sidebar-variants/ThemeRegistry";
 

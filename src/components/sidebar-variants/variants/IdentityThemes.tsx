@@ -75,9 +75,9 @@ export function MatrixEntry({
 			</div>
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full uppercase opacity-90">
-					{branch && <span className="text-[9px] truncate max-w-[120px] shrink-0">B:{branch}</span>}
+					{branch && <span className="text-[9px] truncate min-w-0 flex-1">B:{branch}</span>}
 					{pr && (
-						<span className="text-[9px] border border-[#00ff41]/50 px-1 shrink-0">
+						<span className="text-[9px] border border-[#00ff41]/50 px-1 shrink-0 ml-auto">
 							[PR:{pr.number}]
 						</span>
 					)}
@@ -176,12 +176,12 @@ export function CyberpunkEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full uppercase">
 					{branch && (
-						<span className="text-[9px] text-[#01c5c4] shrink-0 font-bold truncate max-w-[120px]">
+						<span className="text-[9px] text-[#01c5c4] font-bold truncate min-w-0 flex-1">
 							[{branch}]
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] bg-[#fef08a] text-[#0d0221] px-1 font-bold shrink-0">
+						<span className="text-[9px] bg-[#fef08a] text-[#0d0221] px-1 font-bold shrink-0 ml-auto">
 							PR:{pr.number}
 						</span>
 					)}
@@ -283,12 +283,12 @@ export function SolanaEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full">
 					{branch && (
-						<span className="text-[9px] text-[#33e6c0] font-medium truncate max-w-[120px] shrink-0">
+						<span className="text-[9px] text-[#33e6c0] font-medium truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] font-bold bg-[#9945ff]/20 text-[#c77dff] px-1.5 rounded-md shrink-0">
+						<span className="text-[9px] font-bold bg-[#9945ff]/20 text-[#c77dff] px-1.5 rounded-md shrink-0 ml-auto">
 							#{pr.number}
 						</span>
 					)}
@@ -374,8 +374,8 @@ export function AmberEntry({
 			</div>
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full pl-4 opacity-80">
-					{branch && <span className="text-[9px] shrink-0 truncate max-w-[120px]">[{branch}]</span>}
-					{pr && <span className="text-[9px] shrink-0">PR:{pr.number}</span>}
+					{branch && <span className="text-[9px] truncate min-w-0 flex-1">[{branch}]</span>}
+					{pr && <span className="text-[9px] shrink-0 ml-auto">PR:{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -468,12 +468,12 @@ export function VaporwaveEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full">
 					{branch && (
-						<span className="text-[9px] text-[#05ffa1] shrink-0 font-mono italic truncate max-w-[120px]">
+						<span className="text-[9px] text-[#05ffa1] font-mono italic truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] bg-[#01cdfe]/20 text-[#01cdfe] px-1 font-bold shrink-0">
+						<span className="text-[9px] bg-[#01cdfe]/20 text-[#01cdfe] px-1 font-bold shrink-0 ml-auto">
 							#{pr.number}
 						</span>
 					)}
@@ -577,12 +577,12 @@ export function OceanEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full">
 					{branch && (
-						<span className="text-[9px] text-[#4dd8e0] shrink-0 truncate max-w-[120px]">
+						<span className="text-[9px] text-[#4dd8e0] truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
 					{pr && (
-						<span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 px-1 rounded-sm shrink-0">
+						<span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 px-1 rounded-sm shrink-0 ml-auto">
 							#{pr.number}
 						</span>
 					)}
@@ -680,11 +680,11 @@ export function SunsetEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full">
 					{branch && (
-						<span className="text-[9px] text-[#f0b048] shrink-0 truncate max-w-[120px]">
+						<span className="text-[9px] text-[#f0b048] truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#ffc040] shrink-0">#{pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#ffc040] shrink-0 ml-auto">#{pr.number}</span>}
 				</div>
 			)}
 		</button>
@@ -787,11 +787,11 @@ export function ArcticEntry({
 			{(branch || pr) && (
 				<div className="flex items-center gap-2 min-w-0 w-full">
 					{branch && (
-						<span className="text-[9px] text-[#a0e0f8] font-mono shrink-0 truncate max-w-[120px]">
+						<span className="text-[9px] text-[#a0e0f8] font-mono truncate min-w-0 flex-1">
 							{branch}
 						</span>
 					)}
-					{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">PR {pr.number}</span>}
+					{pr && <span className="text-[9px] text-[#48c8e0] shrink-0 ml-auto">PR {pr.number}</span>}
 				</div>
 			)}
 		</button>

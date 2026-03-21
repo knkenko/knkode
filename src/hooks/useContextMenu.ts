@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { useClickOutside } from "./useClickOutside";
 import { type ScreenPosition, VIEWPORT_MARGIN } from "../lib/ui-constants";
+import { useClickOutside } from "./useClickOutside";
 
 /** Shared context menu state — handles open/close, positioning, click-outside, and viewport clamping. */
 export function useContextMenu() {
@@ -35,8 +35,14 @@ export function useContextMenu() {
 		const clamp = () => {
 			const { width, height } = el.getBoundingClientRect();
 			setClampedPos({
-				x: Math.max(VIEWPORT_MARGIN, Math.min(rawPos.x, window.innerWidth - width - VIEWPORT_MARGIN)),
-				y: Math.max(VIEWPORT_MARGIN, Math.min(rawPos.y, window.innerHeight - height - VIEWPORT_MARGIN)),
+				x: Math.max(
+					VIEWPORT_MARGIN,
+					Math.min(rawPos.x, window.innerWidth - width - VIEWPORT_MARGIN),
+				),
+				y: Math.max(
+					VIEWPORT_MARGIN,
+					Math.min(rawPos.y, window.innerHeight - height - VIEWPORT_MARGIN),
+				),
 			});
 		};
 		clamp();

@@ -95,7 +95,9 @@ export function LabelButton({
 		<button
 			type="button"
 			onDoubleClick={onEdit}
-			onKeyDown={(e) => { if (e.key === "Enter") onEdit(); }}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") onEdit();
+			}}
 			title="Double-click to rename"
 			className={`bg-transparent border-none p-0 cursor-default shrink-0 ${FOCUS_VIS} ${className ?? ""}`}
 			style={style}
