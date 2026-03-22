@@ -48,14 +48,7 @@ fn apply_effects(window: &tauri::WebviewWindow) {
 
     #[cfg(target_os = "windows")]
     {
-        use tauri::window::{Effect, EffectsBuilder, TitleBarStyle};
-
-        // Override Overlay → Visible to eliminate the empty gap above the app content.
-        // Overlay extends the frame into the client area on Windows but the webview
-        // doesn't fill it, creating a translucent strip that wastes vertical space.
-        if let Err(e) = window.set_title_bar_style(TitleBarStyle::Visible) {
-            eprintln!("[window] Failed to set title bar style: {e}");
-        }
+        use tauri::window::{Effect, EffectsBuilder};
 
         let effects = EffectsBuilder::new().effect(Effect::Acrylic).build();
         if let Err(e) = window.set_effects(effects) {
