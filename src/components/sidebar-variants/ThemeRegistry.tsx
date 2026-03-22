@@ -260,7 +260,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	},
 	Matrix: {
 		wrapper: {
-			base: "mb-2 border border-[#00ff41]/20",
+			base: "mb-2 border border-[#00ff41]/35",
 			active: "bg-[#0a0a0a] shadow-[0_0_10px_rgba(0,255,65,0.1)]",
 			inactive: "bg-black",
 		},
@@ -278,7 +278,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		wrapper: {
 			base: "mb-3 overflow-hidden border-l-2",
 			active: "bg-[#0d0221] border-[#ff2a6d]/60",
-			inactive: "bg-[#050014] border-[#2a0550]",
+			inactive: "bg-[#050014] border-[#5a1080]",
 		},
 		collapsed: {
 			button:
@@ -298,7 +298,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		wrapper: {
 			base: "mb-2 mx-1.5 rounded-2xl overflow-hidden transition-all duration-300 border",
 			active: "bg-[#0c0c1d] shadow-[0_0_15px_rgba(153,69,255,0.15)] border-[#1e1e3d]",
-			inactive: "bg-[#050510] border-[#2a2a50]",
+			inactive: "bg-[#050510] border-[#35356a]",
 		},
 		collapsed: {
 			button:
@@ -314,7 +314,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	},
 	Amber: {
 		wrapper: {
-			base: "mb-2 border border-[#3d2800]",
+			base: "mb-2 border border-[#5c3d00]",
 			active: "bg-[#0c0800]",
 			inactive: "bg-black",
 		},
@@ -353,7 +353,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		wrapper: {
 			base: "mb-2 mx-1 rounded-2xl overflow-hidden border",
 			active: "bg-[#020b14] shadow-[0_0_15px_rgba(0,200,255,0.1)] border-[#0a2838]",
-			inactive: "bg-[#01050a] border-[#0e3a50]",
+			inactive: "bg-[#01050a] border-[#144a65]",
 		},
 		collapsed: {
 			button:
@@ -369,7 +369,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		wrapper: {
 			base: "mb-2 border-l-2",
 			active: "bg-[#110808] border-[#e04028]/50",
-			inactive: "bg-[#0a0505] border-[#4d2418]",
+			inactive: "bg-[#0a0505] border-[#7a3525]",
 		},
 		collapsed: {
 			button:
