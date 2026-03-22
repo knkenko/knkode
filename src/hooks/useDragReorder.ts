@@ -11,7 +11,7 @@ interface UseDragReorderOptions {
 
 /**
  * Pointer-event based drag reorder for tab-like elements.
- * Replaces HTML5 DnD which doesn't fire drop events in WKWebView (Tauri/macOS).
+ * Replaces HTML5 DnD which doesn't fire drop events in WKWebView (Electron/macOS).
  *
  * Hit-testing uses `getBoundingClientRect` on each item to find the target.
  */
