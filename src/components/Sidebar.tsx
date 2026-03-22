@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toPresetName } from "../data/theme-presets";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { useDragReorder } from "../hooks/useDragReorder";
 import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
@@ -39,8 +40,18 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const updateWorkspace = useStore((s) => s.updateWorkspace);
 	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
 	const closePane = useStore((s) => s.closePane);
+	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
 
 	const handleBarMouseDown = useWindowDrag();
+
+	const { dragFromIndex, dragOverIndex, handlePointerDown: handleWorkspaceDragPointerDown } = useDragReorder({
+		onReorder: useCallback(
+			(from: number, to: number) => reorderWorkspaceTabs(from, to),
+			[reorderWorkspaceTabs],
+		),
+		containerSelector: "[data-workspace-list]",
+		itemSelector: "[data-workspace-item]",
+	});
 
 	const paneAgentStatuses = useStore((s) => s.paneAgentStatuses);
 
@@ -145,19 +156,31 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 						activeWorkspaceId={activeWorkspaceId}
 						attentionWorkspaceIds={attentionWorkspaceIds}
 						onActivate={setActiveWorkspace}
+						dragFromIndex={dragFromIndex}
+						dragOverIndex={dragOverIndex}
+						onDragPointerDown={handleWorkspaceDragPointerDown}
 					/>
 				) : (
-					<div className="flex flex-col py-1">
-						{openWorkspaces.map((ws) => {
+					<div data-workspace-list className="flex flex-col py-1">
+						{openWorkspaces.map((ws, index) => {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
 							const paneIds = getPaneIdsInOrder(ws.layout.tree);
 							const canClose = paneIds.length > 1;
+							const isDragSource = dragFromIndex === index;
+							const isDropTarget = dragOverIndex === index && dragFromIndex !== null && dragFromIndex !== index;
 
 							return (
-								<div key={ws.id}>
+								<div
+									key={ws.id}
+									data-workspace-item
+									className={`${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
+								>
 									<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
-										<div className="relative">
+										<div
+											className="relative"
+											onPointerDown={(e) => handleWorkspaceDragPointerDown(e, index)}
+										>
 											<SidebarWorkspaceHeader
 												workspace={ws}
 												preset={activePreset}
@@ -369,22 +392,35 @@ function CollapsedView({
 	activeWorkspaceId,
 	attentionWorkspaceIds,
 	onActivate,
+	dragFromIndex,
+	dragOverIndex,
+	onDragPointerDown,
 }: {
 	workspaces: Workspace[];
 	activeWorkspaceId: string | null;
 	attentionWorkspaceIds: ReadonlySet<string>;
 	onActivate: (id: string) => void;
+	dragFromIndex: number | null;
+	dragOverIndex: number | null;
+	onDragPointerDown: (e: React.PointerEvent, index: number) => void;
 }) {
 	const activePreset = toPresetName(
 		workspaces.find((w) => w.id === activeWorkspaceId)?.theme.preset,
 	);
 
 	return (
-		<div className="flex flex-col py-1">
-			{workspaces.map((ws) => {
+		<div data-workspace-list className="flex flex-col py-1">
+			{workspaces.map((ws, index) => {
 				const isActive = ws.id === activeWorkspaceId;
+				const isDragSource = dragFromIndex === index;
+				const isDropTarget = dragOverIndex === index && dragFromIndex !== null && dragFromIndex !== index;
 				return (
-					<div key={ws.id} className="relative">
+					<div
+						key={ws.id}
+						data-workspace-item
+						className={`relative ${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
+						onPointerDown={(e) => onDragPointerDown(e, index)}
+					>
 						<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
 							<CollapsedWorkspaceVariant
 								preset={activePreset}
