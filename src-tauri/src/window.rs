@@ -38,6 +38,13 @@ fn apply_effects(window: &tauri::WebviewWindow) {
     {
         use tauri::window::{Effect, EffectsBuilder};
 
+        // Overlay title bar — set here instead of tauri.conf.json so it
+        // only applies on macOS. The config field is processed on all
+        // platforms and creates a visible gap on Windows.
+        if let Err(e) = window.set_title_bar_style(tauri::TitleBarStyle::Overlay) {
+            eprintln!("[window] Failed to set title bar style: {e}");
+        }
+
         let effects = EffectsBuilder::new()
             .effect(Effect::UnderWindowBackground)
             .build();
