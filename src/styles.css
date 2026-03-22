@@ -1,90 +1,131 @@
 @import "tailwindcss";
 
-/* Bundled terminal fonts — ensures they work regardless of local installation */
+/* Bundled Nerd Font Mono variants — includes Powerline/icon glyphs.
+   Only 400 (regular) and 700 (bold) weights bundled; browser synthesizes intermediates. */
 @font-face {
 	font-family: "JetBrains Mono";
-	src: url("./assets/fonts/jetbrains-mono.woff2") format("woff2");
-	font-weight: 100 800;
+	font-weight: 400;
+	src: url("./assets/fonts/jetbrains-mono-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "JetBrains Mono";
+	font-weight: 700;
+	src: url("./assets/fonts/jetbrains-mono-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Fira Code";
-	src: url("./assets/fonts/fira-code.woff2") format("woff2");
-	font-weight: 300 700;
+	font-weight: 400;
+	src: url("./assets/fonts/fira-code-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Fira Code";
+	font-weight: 700;
+	src: url("./assets/fonts/fira-code-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Source Code Pro";
-	src: url("./assets/fonts/source-code-pro.woff2") format("woff2");
-	font-weight: 200 900;
+	font-weight: 400;
+	src: url("./assets/fonts/source-code-pro-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Source Code Pro";
+	font-weight: 700;
+	src: url("./assets/fonts/source-code-pro-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Cascadia Code";
 	font-weight: 400;
-	src: url("./assets/fonts/cascadia-code-400.woff2") format("woff2");
+	src: url("./assets/fonts/cascadia-code-regular.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Cascadia Code";
 	font-weight: 700;
-	src: url("./assets/fonts/cascadia-code-700.woff2") format("woff2");
+	src: url("./assets/fonts/cascadia-code-bold.woff2") format("woff2");
 	font-display: swap;
 }
-/* IBM Plex Mono — only 400/700 bundled. Intermediate weights (500, 600)
-   used by font-medium/font-semibold are synthesized by the browser. */
 @font-face {
 	font-family: "IBM Plex Mono";
 	font-weight: 400;
-	src: url("./assets/fonts/ibm-plex-mono-400.woff2") format("woff2");
+	src: url("./assets/fonts/ibm-plex-mono-regular.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "IBM Plex Mono";
 	font-weight: 700;
-	src: url("./assets/fonts/ibm-plex-mono-700.woff2") format("woff2");
+	src: url("./assets/fonts/ibm-plex-mono-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Hack";
 	font-weight: 400;
-	src: url("./assets/fonts/hack-400.woff2") format("woff2");
+	src: url("./assets/fonts/hack-regular.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Hack";
 	font-weight: 700;
-	src: url("./assets/fonts/hack-700.woff2") format("woff2");
+	src: url("./assets/fonts/hack-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Inconsolata";
-	src: url("./assets/fonts/inconsolata.woff2") format("woff2");
-	font-weight: 200 900;
+	font-weight: 400;
+	src: url("./assets/fonts/inconsolata-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Inconsolata";
+	font-weight: 700;
+	src: url("./assets/fonts/inconsolata-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Ubuntu Mono";
 	font-weight: 400;
-	src: url("./assets/fonts/ubuntu-mono-400.woff2") format("woff2");
+	src: url("./assets/fonts/ubuntu-mono-regular.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Ubuntu Mono";
 	font-weight: 700;
-	src: url("./assets/fonts/ubuntu-mono-700.woff2") format("woff2");
+	src: url("./assets/fonts/ubuntu-mono-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Roboto Mono";
-	src: url("./assets/fonts/roboto-mono.woff2") format("woff2");
-	font-weight: 100 700;
+	font-weight: 400;
+	src: url("./assets/fonts/roboto-mono-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Roboto Mono";
+	font-weight: 700;
+	src: url("./assets/fonts/roboto-mono-bold.woff2") format("woff2");
 	font-display: swap;
 }
 @font-face {
 	font-family: "Victor Mono";
-	src: url("./assets/fonts/victor-mono.woff2") format("woff2");
-	font-weight: 100 700;
+	font-weight: 400;
+	src: url("./assets/fonts/victor-mono-regular.woff2") format("woff2");
+	font-display: swap;
+}
+@font-face {
+	font-family: "Victor Mono";
+	font-weight: 700;
+	src: url("./assets/fonts/victor-mono-bold.woff2") format("woff2");
+	font-display: swap;
+}
+/* Symbols-only Nerd Font — fallback for fonts without patched glyphs (e.g. SF Mono) */
+@font-face {
+	font-family: "Symbols Nerd Font Mono";
+	src: url("./assets/fonts/symbols-nerd-font-mono.woff2") format("woff2");
 	font-display: swap;
 }
 
