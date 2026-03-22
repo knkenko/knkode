@@ -46,12 +46,15 @@ fn apply_effects(window: &tauri::WebviewWindow) {
         }
     }
 
-    // Windows: skip Acrylic effect — it inflates the title bar with a
-    // translucent strip that pushes the terminal content too far down.
-    // The native opaque title bar is compact and standard-height (~30px).
     #[cfg(target_os = "windows")]
     {
-        // Ensure window controls are enabled (acrylic previously grayed them)
+        use tauri::window::{Effect, EffectsBuilder};
+
+        let effects = EffectsBuilder::new().effect(Effect::Acrylic).build();
+        if let Err(e) = window.set_effects(effects) {
+            eprintln!("[window] Failed to set acrylic: {e}");
+        }
+        // Force maximizable/resizable — acrylic can gray out window controls
         if let Err(e) = window.set_maximizable(true) {
             eprintln!("[window] Failed to set maximizable: {e}");
         }
