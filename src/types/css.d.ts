@@ -6,5 +6,7 @@ declare module "react" {
 		WebkitAppRegion?: "drag" | "no-drag";
 		/** macOS traffic-light spacing — left padding for window controls. */
 		"--spacing-traffic"?: string;
+		/** Windows caption-button spacing — right padding for minimize/maximize/close. */
+		"--spacing-caption"?: string;
 	}
 }

@@ -50,15 +50,11 @@ fn apply_effects(window: &tauri::WebviewWindow) {
     {
         use tauri::window::{Effect, EffectsBuilder};
 
-        // Hide native title bar — custom window controls rendered in React
-        if let Err(e) = window.set_decorations(false) {
-            eprintln!("[window] Failed to disable decorations: {e}");
-        }
-
         let effects = EffectsBuilder::new().effect(Effect::Acrylic).build();
         if let Err(e) = window.set_effects(effects) {
             eprintln!("[window] Failed to set acrylic: {e}");
         }
+        // Force maximizable/resizable — acrylic can gray out window controls
         if let Err(e) = window.set_maximizable(true) {
             eprintln!("[window] Failed to set maximizable: {e}");
         }
