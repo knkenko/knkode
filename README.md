@@ -4,16 +4,16 @@ A terminal workspace manager that saves your multi-pane layouts so you stop rebu
 
 <table>
   <tr>
-    <td align="center"><img src="docs/themes/matrix.svg" width="220"/><br/><sub>Matrix</sub></td>
-    <td align="center"><img src="docs/themes/cyberpunk.svg" width="220"/><br/><sub>Cyberpunk</sub></td>
-    <td align="center"><img src="docs/themes/vaporwave.svg" width="220"/><br/><sub>Vaporwave</sub></td>
-    <td align="center"><img src="docs/themes/amber.svg" width="220"/><br/><sub>Amber</sub></td>
+    <td><img src="docs/themes/matrix.svg" width="220"/></td>
+    <td><img src="docs/themes/cyberpunk.svg" width="220"/></td>
+    <td><img src="docs/themes/vaporwave.svg" width="220"/></td>
+    <td><img src="docs/themes/amber.svg" width="220"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/themes/solana.svg" width="220"/><br/><sub>Solana</sub></td>
-    <td align="center"><img src="docs/themes/ocean.svg" width="220"/><br/><sub>Ocean</sub></td>
-    <td align="center"><img src="docs/themes/sunset.svg" width="220"/><br/><sub>Sunset</sub></td>
-    <td align="center"><img src="docs/themes/arctic.svg" width="220"/><br/><sub>Arctic</sub></td>
+    <td><img src="docs/themes/solana.svg" width="220"/></td>
+    <td><img src="docs/themes/ocean.svg" width="220"/></td>
+    <td><img src="docs/themes/sunset.svg" width="220"/></td>
+    <td><img src="docs/themes/arctic.svg" width="220"/></td>
   </tr>
 </table>
 
