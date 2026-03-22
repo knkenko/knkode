@@ -12,7 +12,8 @@ export interface BaseWorkspaceHeaderProps {
 	name: string;
 	isActive: boolean;
 	isCollapsed: boolean;
-	paneCount: number;
+	/** Number of panes in this workspace that have attention status. Badge shown when > 0. */
+	attentionCount: number;
 	isEditing: boolean;
 	inputProps: InputHTMLAttributes<HTMLInputElement>;
 	onClick: (e: MouseEvent) => void;

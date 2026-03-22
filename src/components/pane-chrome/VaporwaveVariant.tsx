@@ -1,5 +1,5 @@
 import { registerVariant } from ".";
-import { FOCUS_VIS, LabelButton, PrBadge, getSepClass, getSepVars, resolveGlow } from "./shared";
+import { FOCUS_VIS, getSepClass, getSepVars, LabelButton, PrBadge, resolveGlow } from "./shared";
 import type { FrameProps, PaneVariant, ScrollButtonProps } from "./types";
 
 function Frame({
@@ -46,7 +46,7 @@ function Frame({
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ""} relative z-20 flex items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
+			className={`${headerProps.className || ""} relative z-20 flex items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none overflow-hidden transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
 			style={{
 				...headerProps.style,
 				height: 32,
@@ -97,7 +97,7 @@ function Frame({
 			{branch && (
 				<output
 					aria-label={`Git branch: ${branch}`}
-					className="min-w-0 text-[10px] font-medium px-3 py-0.5 rounded-full overflow-hidden text-ellipsis whitespace-nowrap"
+					className="min-w-0 text-[9px] font-medium px-2 py-0.5 rounded-full overflow-hidden text-ellipsis whitespace-nowrap"
 					title={branch}
 					style={{
 						background: `linear-gradient(135deg, ${c1}, ${c3})`,
@@ -113,7 +113,7 @@ function Frame({
 				<PrBadge
 					pr={pr}
 					onOpenExternal={onOpenExternal}
-					className="text-[10px] font-medium px-3 py-0.5 rounded-full hover:brightness-110 transition-all"
+					className="text-[9px] font-medium px-2 py-0.5 rounded-full hover:brightness-110 transition-all"
 					style={{
 						background: `linear-gradient(135deg, ${c1}, ${c3})`,
 						color: theme.background,
@@ -144,7 +144,7 @@ function Frame({
 					color: theme.foreground,
 				}}
 			>
-				SPLIT ┃
+				┃
 			</button>
 			<button
 				type="button"
@@ -157,7 +157,7 @@ function Frame({
 					color: theme.foreground,
 				}}
 			>
-				SPLIT ━
+				━
 			</button>
 			{canClose && (
 				<button
@@ -171,7 +171,7 @@ function Frame({
 						color: theme.foreground,
 					}}
 				>
-					CLOSE ✕
+					✕
 				</button>
 			)}
 			{contextMenu}
@@ -182,7 +182,6 @@ function Frame({
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
 			{!isBottom && header}
 
-			{/* Terminal Content */}
 			<div
 				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent ${isBottom ? "mb-1" : "mt-1"}`}
 			>

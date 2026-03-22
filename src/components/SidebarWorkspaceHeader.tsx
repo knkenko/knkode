@@ -11,8 +11,8 @@ interface SidebarWorkspaceHeaderProps {
 	preset: ThemePresetName;
 	isActive: boolean;
 	isCollapsed: boolean;
-	/** Number of panes in this workspace. Always >= 1. Badge shown when > 1. */
-	paneCount: number;
+	/** Number of panes in this workspace that have attention status. Badge shown when > 0. */
+	attentionCount: number;
 	onToggleCollapse: () => void;
 	onActivate: () => void;
 	onRename: (name: string) => void;
@@ -25,7 +25,7 @@ export function SidebarWorkspaceHeader({
 	preset,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	onToggleCollapse,
 	onActivate,
 	onRename,
@@ -59,7 +59,7 @@ export function SidebarWorkspaceHeader({
 				name={workspace.name}
 				isActive={isActive}
 				isCollapsed={isCollapsed}
-				paneCount={paneCount}
+				attentionCount={attentionCount}
 				isEditing={isEditing}
 				inputProps={inputProps}
 				onClick={handleClick}

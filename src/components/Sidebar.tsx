@@ -87,18 +87,19 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 		return toPresetName(active?.theme.preset);
 	}, [workspaces, activeWorkspaceId]);
 
-	/** Workspace IDs where at least one pane has attention status. */
-	const attentionWorkspaceIds = useMemo(() => {
+	/** Per-workspace attention pane counts and the set of workspace IDs with any attention. */
+	const { attentionWorkspaceIds, attentionCounts } = useMemo(() => {
 		const ids = new Set<string>();
+		const counts = new Map<string, number>();
 		for (const ws of workspaces) {
+			let count = 0;
 			for (const paneId of Object.keys(ws.panes)) {
-				if (paneAgentStatuses[paneId] === "attention") {
-					ids.add(ws.id);
-					break;
-				}
+				if (paneAgentStatuses[paneId] === "attention") count++;
 			}
+			counts.set(ws.id, count);
+			if (count > 0) ids.add(ws.id);
 		}
-		return ids;
+		return { attentionWorkspaceIds: ids, attentionCounts: counts };
 	}, [workspaces, paneAgentStatuses]);
 
 	const [actionError, setActionError] = useState<string | null>(null);
@@ -236,7 +237,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 												preset={activePreset}
 												isActive={isActive}
 												isCollapsed={isSectionCollapsed}
-												paneCount={paneIds.length}
+												attentionCount={attentionCounts.get(ws.id) ?? 0}
 												onToggleCollapse={() => toggleSidebarSection(ws.id)}
 												onActivate={() => setActiveWorkspace(ws.id)}
 												onRename={(name) => updateWorkspaceField(ws.id, { name })}
