@@ -739,7 +739,9 @@ export const TERMINAL_FONTS = [
 
 // Fallbacks intentionally overlap with TERMINAL_FONTS; unavailable fonts are skipped.
 // Order: Windows-first (Consolas, Cascadia Code), then macOS (Menlo, Monaco), then generic.
-const FONT_FALLBACKS = "Consolas, Cascadia Code, Menlo, Monaco, monospace";
+// "Symbols Nerd Font Mono" is a symbols-only fallback for Powerline/icon glyphs on unpatched fonts.
+const FONT_FALLBACKS =
+	"Consolas, Cascadia Code, Menlo, Monaco, Symbols Nerd Font Mono, monospace";
 
 export const DEFAULT_FONT_FAMILY = `${TERMINAL_FONTS[0]}, ${FONT_FALLBACKS}`;
 
