@@ -73,6 +73,58 @@ fn detect_cwd(_pid: u32) -> Option<String> {
     None
 }
 
+/// Check if a shell process has a foreground child (i.e., a command is running).
+/// Returns `Some(true)` if a foreground child exists, `Some(false)` if idle.
+///
+/// On macOS, `ps -o stat=` includes `+` when the process is in the terminal's
+/// foreground process group. If the shell has `+`, it's the foreground — idle.
+/// If `+` is absent, another process group has taken the foreground — active.
+#[cfg(target_os = "macos")]
+fn has_foreground_child(pid: u32) -> Option<bool> {
+    use std::process::Command;
+    let output = Command::new("ps")
+        .args(["-o", "stat=", "-p", &pid.to_string()])
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stat = String::from_utf8_lossy(&output.stdout);
+    // '+' in STAT = process is in the foreground process group.
+    // Shell has '+' → shell is foreground → no child running (idle).
+    Some(!stat.contains('+'))
+}
+
+/// Check if a shell process has a foreground child on Linux.
+///
+/// Reads `/proc/<pid>/stat` and compares field 5 (pgrp) against field 8 (tpgid).
+/// If tpgid != pgrp, another process group owns the terminal foreground.
+#[cfg(target_os = "linux")]
+fn has_foreground_child(pid: u32) -> Option<bool> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    // Format: pid (comm) state ppid pgrp session tty_nr tpgid ...
+    // (comm) can contain spaces/parens, so skip past the closing ')'.
+    let after_comm = stat.rfind(')')? + 2;
+    let fields: Vec<&str> = stat.get(after_comm..)?.split_whitespace().collect();
+    // After ')': state(0) ppid(1) pgrp(2) session(3) tty_nr(4) tpgid(5)
+    let pgrp: i32 = fields.get(2)?.parse().ok()?;
+    let tpgid: i32 = fields.get(5)?.parse().ok()?;
+    Some(tpgid != pgrp)
+}
+
+/// Windows: foreground process group detection is not straightforward with ConPTY.
+/// Returns `None` — the tracker falls back to output-age heuristics on Windows.
+#[cfg(target_os = "windows")]
+fn has_foreground_child(_pid: u32) -> Option<bool> {
+    None
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn has_foreground_child(_pid: u32) -> Option<bool> {
+    None
+}
+
 /// Emit a terminal render snapshot to the frontend.
 /// Returns `true` if the emit succeeded or there was nothing to emit,
 /// `false` if the Tauri event channel is broken.
@@ -595,17 +647,29 @@ impl PtyManager {
         pid.and_then(detect_cwd).or(Some(fallback))
     }
 
-    /// Returns elapsed time since last PTY output for each pane that has produced output.
-    /// The CwdTracker polls this once per cycle to detect idle vs active agents.
-    pub fn get_output_ages(&self) -> HashMap<String, Duration> {
-        let times = self
-            .last_output_at
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        times
-            .iter()
-            .map(|(id, instant)| (id.clone(), instant.elapsed()))
-            .collect()
+    /// Returns foreground process status for each active session.
+    /// `true` = a foreground child process is running (command in progress).
+    /// `false` = shell is in foreground (idle, waiting for input).
+    /// Sessions where detection fails (Windows, or process exited) are omitted.
+    ///
+    /// Collects PIDs under the sessions lock, then releases it before running
+    /// OS-level checks to avoid blocking PTY operations.
+    pub fn get_foreground_statuses(&self) -> HashMap<String, bool> {
+        let pids: Vec<(String, u32)> = {
+            let sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
+            sessions
+                .iter()
+                .filter_map(|(id, session)| session.platform.pid().map(|pid| (id.clone(), pid)))
+                .collect()
+        };
+
+        let mut result = HashMap::with_capacity(pids.len());
+        for (id, pid) in pids {
+            if let Some(has_child) = has_foreground_child(pid) {
+                result.insert(id, has_child);
+            }
+        }
+        result
     }
 
     fn lock_sessions(&self) -> Result<MutexGuard<'_, HashMap<String, PtySession>>, String> {
