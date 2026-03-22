@@ -277,8 +277,8 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	Cyberpunk: {
 		wrapper: {
 			base: "mb-3 overflow-hidden border-l-2 border-b",
-			active: "bg-[#0d0221] border-l-[#ff2a6d]/60 border-b-[#5a1080]/40",
-			inactive: "bg-[#050014] border-l-[#5a1080] border-b-[#5a1080]/40",
+			active: "bg-[#0d0221] border-l-[#ff2a6d]/60 border-b-[#7a20a0]",
+			inactive: "bg-[#050014] border-l-[#5a1080] border-b-[#7a20a0]",
 		},
 		collapsed: {
 			button:
@@ -368,8 +368,8 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	Sunset: {
 		wrapper: {
 			base: "mb-2 border-l-2 border-b",
-			active: "bg-[#110808] border-l-[#e04028]/50 border-b-[#7a3525]/40",
-			inactive: "bg-[#0a0505] border-l-[#7a3525] border-b-[#7a3525]/40",
+			active: "bg-[#110808] border-l-[#e04028]/50 border-b-[#9a4530]",
+			inactive: "bg-[#0a0505] border-l-[#7a3525] border-b-[#9a4530]",
 		},
 		collapsed: {
 			button:
