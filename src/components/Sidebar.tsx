@@ -418,20 +418,22 @@ function CollapsedView({
 					<div
 						key={ws.id}
 						data-workspace-item
-						className={`relative ${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
+						className={`${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
 						onPointerDown={(e) => onDragPointerDown(e, index)}
 					>
 						<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
-							<CollapsedWorkspaceVariant
-								preset={activePreset}
-								name={ws.name}
-								isActive={isActive}
-								onClick={() => onActivate(ws.id)}
-							/>
+							<div className="relative">
+								<CollapsedWorkspaceVariant
+									preset={activePreset}
+									name={ws.name}
+									isActive={isActive}
+									onClick={() => onActivate(ws.id)}
+								/>
+								{attentionWorkspaceIds.has(ws.id) && !isActive && (
+									<AttentionDot size="h-2 w-2" className="absolute top-1/2 -translate-y-1/2 right-1 pointer-events-none" />
+								)}
+							</div>
 						</WorkspaceSectionWrapper>
-						{attentionWorkspaceIds.has(ws.id) && !isActive && (
-							<AttentionDot size="h-2 w-2" className="absolute top-1 right-1" />
-						)}
 					</div>
 				);
 			})}

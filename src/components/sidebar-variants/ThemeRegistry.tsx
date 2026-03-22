@@ -423,7 +423,7 @@ export function WorkspaceSectionWrapper({
 }) {
 	const { wrapper } = getConfig(preset);
 	return (
-		<div className={`${wrapper.base} ${isActive ? wrapper.active : wrapper.inactive}`}>
+		<div className={`${wrapper.base} ${isActive ? wrapper.active : `border-b border-edge/30 ${wrapper.inactive}`}`}>
 			{children}
 		</div>
 	);
