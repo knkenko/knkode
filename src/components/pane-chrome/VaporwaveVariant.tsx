@@ -46,7 +46,7 @@ function Frame({
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ""} relative z-20 flex flex-nowrap items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
+			className={`${headerProps.className || ""} relative z-20 flex items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none overflow-hidden transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
 			style={{
 				...headerProps.style,
 				height: 32,
@@ -182,7 +182,6 @@ function Frame({
 		<div className="relative flex flex-col h-full w-full bg-transparent overflow-hidden">
 			{!isBottom && header}
 
-			{/* Terminal Content */}
 			<div
 				className={`relative z-10 flex-1 w-full min-h-0 bg-transparent ${isBottom ? "mb-1" : "mt-1"}`}
 			>

@@ -132,7 +132,7 @@ export function CyberpunkHeader({
 						isActive ? "bg-[#0d0221] text-[#05d9e8]" : "bg-[#2a0550] text-[#05d9e8]"
 					}`}
 				>
-					x{attentionCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>

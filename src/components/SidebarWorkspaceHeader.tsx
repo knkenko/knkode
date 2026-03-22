@@ -11,7 +11,7 @@ interface SidebarWorkspaceHeaderProps {
 	preset: ThemePresetName;
 	isActive: boolean;
 	isCollapsed: boolean;
-	/** Number of panes with attention status. Badge shown when > 0. */
+	/** Number of panes in this workspace that have attention status. Badge shown when > 0. */
 	attentionCount: number;
 	onToggleCollapse: () => void;
 	onActivate: () => void;
