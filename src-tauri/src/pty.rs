@@ -81,6 +81,7 @@ fn detect_cwd(_pid: u32) -> Option<String> {
 /// Returns a map from PID to `true` (foreground child running) / `false` (idle).
 /// PIDs where detection fails (exited, not found) are omitted.
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
     use std::process::Command;
 
@@ -384,6 +385,9 @@ pub struct PtyManager {
     sessions: Arc<Mutex<HashMap<String, PtySession>>>,
     next_generation: AtomicU64,
     terminal_state: Arc<TerminalState>,
+    /// Timestamp of last PTY output per pane. Updated by reader threads,
+    /// polled by CwdTracker to detect idle vs active agents.
+    last_output_at: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl PtyManager {
@@ -392,6 +396,7 @@ impl PtyManager {
             sessions: Arc::new(Mutex::new(HashMap::new())),
             next_generation: AtomicU64::new(1),
             terminal_state,
+            last_output_at: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -505,6 +510,7 @@ impl PtyManager {
         let id_clone = id.clone();
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
+        let output_times = Arc::clone(&self.last_output_at);
         std::thread::spawn(move || {
             eprintln!("[pty] Reader thread started for {id_clone}");
             let mut buf = [0u8; READ_BUFFER_SIZE];
@@ -532,6 +538,17 @@ impl PtyManager {
                         term_state.advance_only(&id_clone, &buf[..n]);
 
                         if last_emit.elapsed() >= RENDER_INTERVAL {
+                            // Record output timestamp for activity detection.
+                            // Throttled to ~60fps — sub-16ms precision is irrelevant
+                            // given the 2-second idle threshold polled every 3 seconds.
+                            let mut times = output_times.lock().unwrap_or_else(|e| e.into_inner());
+                            if let Some(t) = times.get_mut(&id_clone) {
+                                *t = Instant::now();
+                            } else {
+                                times.insert(id_clone.clone(), Instant::now());
+                            }
+                            drop(times);
+
                             dirty.store(false, Ordering::Release);
                             if !emit_snapshot(&app, &term_state, &id_clone) {
                                 break;
@@ -574,6 +591,11 @@ impl PtyManager {
             // Wait for child outside the lock to avoid blocking other operations
             let exit_code: i64 = if let Some(mut session) = removed {
                 term_state.remove(&id_clone);
+                // Clean up output timestamp so poll_activity doesn't evaluate a dead pane
+                output_times
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .remove(&id_clone);
                 session.platform.wait()
             } else {
                 // Session was replaced by a new generation — skip exit event
@@ -642,6 +664,10 @@ impl PtyManager {
             session.platform.kill();
         }
         self.terminal_state.remove(id);
+        self.last_output_at
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(id);
         Ok(())
     }
 
@@ -652,6 +678,10 @@ impl PtyManager {
             session.platform.kill();
         }
         self.terminal_state.remove_all();
+        self.last_output_at
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 
     /// Get the current working directory for a pane.
@@ -667,6 +697,19 @@ impl PtyManager {
         pid.and_then(detect_cwd).or(Some(fallback))
     }
 
+    /// Returns elapsed time since last PTY output for each pane that has produced output.
+    /// The CwdTracker polls this once per cycle to detect idle vs active agents.
+    pub fn get_output_ages(&self) -> HashMap<String, Duration> {
+        let times = self
+            .last_output_at
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        times
+            .iter()
+            .map(|(id, instant)| (id.clone(), instant.elapsed()))
+            .collect()
+    }
+
     /// Returns foreground process status for each active session.
     /// `true` = a foreground child process is running (command in progress).
     /// `false` = shell is in foreground (idle, waiting for input).
@@ -674,6 +717,7 @@ impl PtyManager {
     ///
     /// Collects PIDs under the sessions lock, then releases it before running
     /// OS-level checks to avoid blocking PTY operations.
+    #[allow(dead_code)]
     pub fn get_foreground_statuses(&self) -> HashMap<String, bool> {
         let pids: Vec<(String, u32)> = {
             let sessions = match self.lock_sessions() {
