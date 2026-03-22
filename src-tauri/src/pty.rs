@@ -81,7 +81,6 @@ fn detect_cwd(_pid: u32) -> Option<String> {
 /// Returns a map from PID to `true` (foreground child running) / `false` (idle).
 /// PIDs where detection fails (exited, not found) are omitted.
 #[cfg(target_os = "macos")]
-#[allow(dead_code)]
 fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
     use std::process::Command;
 
@@ -717,7 +716,6 @@ impl PtyManager {
     ///
     /// Collects PIDs under the sessions lock, then releases it before running
     /// OS-level checks to avoid blocking PTY operations.
-    #[allow(dead_code)]
     pub fn get_foreground_statuses(&self) -> HashMap<String, bool> {
         let pids: Vec<(String, u32)> = {
             let sessions = match self.lock_sessions() {

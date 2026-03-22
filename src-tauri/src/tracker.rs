@@ -170,7 +170,7 @@ impl CwdTracker {
                         );
                     }
 
-                    // Activity detection — check output ages for all panes in one pass
+                    // Activity detection — foreground child + recent output = active
                     poll_activity(&pane_ids, &panes, &pty_manager, &app);
 
                     let elapsed = cycle_start.elapsed();
@@ -399,8 +399,15 @@ fn poll_pane(
     }
 }
 
-/// Check PTY output ages and emit activity-changed events on state transitions.
-/// Called once per polling cycle; fetches the bulk output-age map internally.
+/// Detect pane activity by combining two signals:
+/// 1. **Foreground child** — is a command running (not just the shell)?
+/// 2. **Recent output** — has the pane produced output within the idle threshold?
+///
+/// A pane is "active" only when both are true: a foreground child exists AND
+/// there's recent output. This filters out shell echo (typing without a command)
+/// and silent foreground processes (command waiting for input).
+///
+/// On platforms without foreground detection (Windows), falls back to output-only.
 fn poll_activity(
     pane_ids: &[String],
     panes: &Mutex<HashMap<String, PaneState>>,
@@ -408,6 +415,7 @@ fn poll_activity(
     app: &tauri::AppHandle,
 ) {
     let ages = pty_manager.get_output_ages();
+    let fg_statuses = pty_manager.get_foreground_statuses();
 
     // Acquire the panes lock once, collect all transitions, then emit outside the lock.
     let mut transitions: Vec<(&str, bool)> = Vec::new();
@@ -416,7 +424,14 @@ fn poll_activity(
             let Some(age) = ages.get(pane_id) else {
                 continue;
             };
-            let is_active = *age < ACTIVITY_IDLE_THRESHOLD;
+            let has_recent_output = *age < ACTIVITY_IDLE_THRESHOLD;
+
+            // Combine signals: need both a foreground child AND recent output.
+            // If foreground detection is unavailable (Windows), fall back to output-only.
+            let is_active = match fg_statuses.get(pane_id) {
+                Some(&has_fg_child) => has_fg_child && has_recent_output,
+                None => has_recent_output,
+            };
 
             if let Some(state) = panes_guard.get_mut(pane_id) {
                 // Skip activity detection during warmup — shell startup
