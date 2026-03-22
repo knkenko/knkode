@@ -44,11 +44,12 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 
 	const handleBarMouseDown = useWindowDrag();
 
-	const { dragFromIndex, dragOverIndex, handlePointerDown: handleWorkspaceDragPointerDown } = useDragReorder({
-		onReorder: useCallback(
-			(from: number, to: number) => reorderWorkspaceTabs(from, to),
-			[reorderWorkspaceTabs],
-		),
+	const {
+		dragFromIndex,
+		dragOverIndex,
+		handlePointerDown: handleWorkspaceDragPointerDown,
+	} = useDragReorder({
+		onReorder: reorderWorkspaceTabs,
 		containerSelector: "[data-workspace-list]",
 		itemSelector: "[data-workspace-item]",
 	});
