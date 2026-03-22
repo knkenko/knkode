@@ -11,12 +11,9 @@ use tauri::Emitter;
 /// Polling interval for CWD/branch/PR detection. Effective cycle time accounts
 /// for processing duration so the interval stays consistent.
 const POLL_INTERVAL: Duration = Duration::from_secs(3);
-/// If no PTY output for this long, consider the pane idle. Set below POLL_INTERVAL
-/// so that the worst-case detection lag is POLL_INTERVAL + ACTIVITY_IDLE_THRESHOLD (~5s).
-const ACTIVITY_IDLE_THRESHOLD: Duration = Duration::from_millis(2000);
 /// Suppress activity detection for this long after a pane is first tracked.
-/// Prevents shell startup output (prompt, rc files) from triggering false
-/// "attention" indicators on unfocused panes at app launch.
+/// Prevents shell startup scripts (compinit, rc files) from spawning child
+/// processes that would trigger false "attention" on unfocused panes at launch.
 const ACTIVITY_WARMUP: Duration = Duration::from_secs(5);
 const PR_REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 const TOOL_RETRY_INTERVAL: Duration = Duration::from_secs(300);
@@ -170,7 +167,7 @@ impl CwdTracker {
                         );
                     }
 
-                    // Activity detection — check output ages for all panes in one pass
+                    // Activity detection — check foreground process status for all panes
                     poll_activity(&pane_ids, &panes, &pty_manager, &app);
 
                     let elapsed = cycle_start.elapsed();
@@ -399,37 +396,43 @@ fn poll_pane(
     }
 }
 
-/// Check PTY output ages and emit activity-changed events on state transitions.
-/// Called once per polling cycle; fetches the bulk output-age map internally.
+/// Check foreground process status and emit activity-changed events on state transitions.
+/// Called once per polling cycle. Uses OS-level foreground process group detection
+/// (macOS: `ps` STAT field, Linux: `/proc/<pid>/stat` tpgid). On platforms where
+/// detection is unavailable (Windows), panes are silently skipped.
 fn poll_activity(
     pane_ids: &[String],
     panes: &Mutex<HashMap<String, PaneState>>,
     pty_manager: &PtyManager,
     app: &tauri::AppHandle,
 ) {
-    let ages = pty_manager.get_output_ages();
+    let fg_statuses = pty_manager.get_foreground_statuses();
 
     // Acquire the panes lock once, collect all transitions, then emit outside the lock.
     let mut transitions: Vec<(&str, bool)> = Vec::new();
-    if let Ok(mut panes_guard) = panes.lock() {
-        for pane_id in pane_ids {
-            let now_active = ages
-                .get(pane_id)
-                .is_some_and(|age| *age < ACTIVITY_IDLE_THRESHOLD);
+    let Ok(mut panes_guard) = panes.lock() else {
+        eprintln!("[tracker] Panes lock poisoned — skipping activity detection");
+        return;
+    };
+    for pane_id in pane_ids {
+        // Skip panes where foreground detection is unavailable
+        let Some(&has_fg_child) = fg_statuses.get(pane_id) else {
+            continue;
+        };
 
-            if let Some(state) = panes_guard.get_mut(pane_id) {
-                // Skip activity detection during warmup — shell startup
-                // output would cause false "attention" on unfocused panes.
-                if state.tracked_at.elapsed() < ACTIVITY_WARMUP {
-                    continue;
-                }
-                if now_active != state.active {
-                    state.active = now_active;
-                    transitions.push((pane_id, now_active));
-                }
+        if let Some(state) = panes_guard.get_mut(pane_id) {
+            // Skip activity detection during warmup — shell startup
+            // would cause false "attention" on unfocused panes.
+            if state.tracked_at.elapsed() < ACTIVITY_WARMUP {
+                continue;
+            }
+            if has_fg_child != state.active {
+                state.active = has_fg_child;
+                transitions.push((pane_id, has_fg_child));
             }
         }
     }
+    drop(panes_guard);
 
     for (pane_id, active) in transitions {
         let _ = app.emit(
