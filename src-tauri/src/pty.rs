@@ -161,55 +161,11 @@ fn check_foreground_single_linux(pid: u32) -> Option<bool> {
     Some(tpgid != pgrp)
 }
 
-/// Windows: check if shell processes have child processes via process snapshot.
-/// ConPTY has no foreground process group concept, so we check the process tree
-/// instead — if the shell has any child process, a command is running.
+/// Windows: foreground process group detection is not available with ConPTY.
+/// Activity detection on Windows requires a separate heuristic (not yet implemented).
 #[cfg(target_os = "windows")]
-fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
-    use std::collections::HashSet;
-    use winapi::um::handleapi::CloseHandle;
-    use winapi::um::tlhelp32::{
-        CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
-    };
-
-    if pids.is_empty() {
-        return HashMap::new();
-    }
-
-    let shell_pids: HashSet<u32> = pids.iter().map(|(_, pid)| *pid).collect();
-
-    // Snapshot all processes and find which shell PIDs have children
-    let mut parent_pids_with_children: HashSet<u32> = HashSet::new();
-    unsafe {
-        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if snapshot == winapi::um::handleapi::INVALID_HANDLE_VALUE {
-            eprintln!("[pty] CreateToolhelp32Snapshot failed — foreground detection unavailable");
-            return HashMap::new();
-        }
-
-        let mut entry: PROCESSENTRY32 = std::mem::zeroed();
-        entry.dwSize = std::mem::size_of::<PROCESSENTRY32>() as u32;
-
-        if Process32First(snapshot, &mut entry) != 0 {
-            loop {
-                // If this process's parent is one of our shell PIDs, mark it
-                if shell_pids.contains(&entry.th32ParentProcessID) {
-                    parent_pids_with_children.insert(entry.th32ParentProcessID);
-                }
-                if Process32Next(snapshot, &mut entry) == 0 {
-                    break;
-                }
-            }
-        }
-        CloseHandle(snapshot);
-    }
-
-    // Map results: shell has children → active, no children → idle
-    let mut result = HashMap::with_capacity(pids.len());
-    for &(_, pid) in pids {
-        result.insert(pid, parent_pids_with_children.contains(&pid));
-    }
-    result
+fn check_foreground_batch(_pids: &[(String, u32)]) -> HashMap<u32, bool> {
+    HashMap::new()
 }
 
 /// Unsupported platform — foreground detection unavailable.
