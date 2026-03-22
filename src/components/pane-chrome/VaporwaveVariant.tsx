@@ -46,7 +46,7 @@ function Frame({
 	const header = (
 		<div
 			{...headerProps}
-			className={`${headerProps.className || ""} relative z-20 flex items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none overflow-hidden transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
+			className={`${headerProps.className || ""} @container/hdr relative z-20 flex items-center gap-2 px-3 py-1.5 text-[11px] tracking-wider font-light shrink-0 select-none overflow-hidden transition-[opacity,background,box-shadow] duration-300 ${sepClass}`}
 			style={{
 				...headerProps.style,
 				height: 32,
@@ -138,26 +138,26 @@ function Frame({
 				onClick={onSplitVertical}
 				title={`Split vertical (${shortcuts.splitV})`}
 				aria-label="Split pane vertically"
-				className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all ${FOCUS_VIS}`}
+				className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all shrink-0 whitespace-nowrap ${FOCUS_VIS}`}
 				style={{
 					background: `linear-gradient(135deg, ${c1}44, ${c2}44)`,
 					color: theme.foreground,
 				}}
 			>
-				┃
+				<span className="hidden @[480px]/hdr:inline">SPLIT </span>┃
 			</button>
 			<button
 				type="button"
 				onClick={onSplitHorizontal}
 				title={`Split horizontal (${shortcuts.splitH})`}
 				aria-label="Split pane horizontally"
-				className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all ${FOCUS_VIS}`}
+				className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all shrink-0 whitespace-nowrap ${FOCUS_VIS}`}
 				style={{
 					background: `linear-gradient(135deg, ${c1}44, ${c2}44)`,
 					color: theme.foreground,
 				}}
 			>
-				━
+				<span className="hidden @[480px]/hdr:inline">SPLIT </span>━
 			</button>
 			{canClose && (
 				<button
@@ -165,13 +165,13 @@ function Frame({
 					onClick={onClose}
 					title={`Close pane (${shortcuts.close})`}
 					aria-label="Close pane"
-					className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all ${FOCUS_VIS}`}
+					className={`text-[9px] tracking-wider font-medium px-2 py-0.5 rounded-full cursor-pointer border-none hover:brightness-110 transition-all shrink-0 whitespace-nowrap ${FOCUS_VIS}`}
 					style={{
 						background: `linear-gradient(135deg, ${c1}44, ${c2}44)`,
 						color: theme.foreground,
 					}}
 				>
-					✕
+					<span className="hidden @[480px]/hdr:inline">CLOSE </span>✕
 				</button>
 			)}
 			{contextMenu}
