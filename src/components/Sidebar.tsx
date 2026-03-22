@@ -236,7 +236,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 												preset={activePreset}
 												isActive={isActive}
 												isCollapsed={isSectionCollapsed}
-												paneCount={paneIds.length}
+												attentionCount={paneIds.filter((id) => paneAgentStatuses[id] === "attention").length}
 												onToggleCollapse={() => toggleSidebarSection(ws.id)}
 												onActivate={() => setActiveWorkspace(ws.id)}
 												onRename={(name) => updateWorkspaceField(ws.id, { name })}

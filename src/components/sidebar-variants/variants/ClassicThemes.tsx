@@ -6,7 +6,7 @@ export function DefaultDarkHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -45,9 +45,9 @@ export function DefaultDarkHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[9px] leading-none px-1.5 py-0.5 rounded-sm bg-[#232946] shrink-0 border border-[#2a2f4a]">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -105,7 +105,7 @@ export function DraculaHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -133,9 +133,9 @@ export function DraculaHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] leading-none font-bold px-1.5 py-0.5 rounded-full bg-[#bd93f9]/20 text-[#bd93f9] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 			<svg
@@ -200,7 +200,7 @@ export function TokyoNightHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -230,9 +230,9 @@ export function TokyoNightHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[9px] leading-none px-1.5 py-0.5 rounded-sm bg-[#1a1b26] border border-[#292e42] text-[#7dcfff] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -288,7 +288,7 @@ export function NordHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -313,9 +313,9 @@ export function NordHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] leading-none px-1.5 py-0.5 rounded text-[#81a1c1] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 			<svg
@@ -381,7 +381,7 @@ export function CatppuccinHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -409,9 +409,9 @@ export function CatppuccinHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#cba6f7]/20 text-[#cba6f7] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 			<svg
@@ -480,7 +480,7 @@ export function GruvboxHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -508,8 +508,8 @@ export function GruvboxHeader({
 					[{name}]
 				</span>
 			)}
-			{paneCount > 1 && (
-				<span className="font-mono text-[10px] text-[#83a598] shrink-0">({paneCount})</span>
+			{attentionCount > 0 && (
+				<span className="font-mono text-[10px] text-[#83a598] shrink-0">({attentionCount})</span>
 			)}
 		</button>
 	);
@@ -561,7 +561,7 @@ export function MonokaiHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -595,9 +595,9 @@ export function MonokaiHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] px-1.5 py-0.5 rounded bg-[#49483e] text-[#66d9ef] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -649,7 +649,7 @@ export function EverforestHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -677,9 +677,9 @@ export function EverforestHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] px-1.5 py-0.5 rounded text-[#d699b6] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>

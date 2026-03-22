@@ -5,7 +5,7 @@ export function MatrixHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -33,7 +33,7 @@ export function MatrixHeader({
 			) : (
 				<span className="sidebar-header text-[12px] truncate flex-1 min-w-0">{name}</span>
 			)}
-			{paneCount > 1 && <span className="text-[10px] shrink-0 opacity-80">SYS:{paneCount}</span>}
+			{attentionCount > 0 && <span className="text-[10px] shrink-0 opacity-80">{attentionCount}</span>}
 		</button>
 	);
 }
@@ -92,7 +92,7 @@ export function CyberpunkHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -125,13 +125,13 @@ export function CyberpunkHeader({
 			) : (
 				<span className="sidebar-header text-[11px] truncate flex-1 min-w-0">{name}</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span
 					className={`text-[9px] px-1 shrink-0 ${
 						isActive ? "bg-[#0d0221] text-[#05d9e8]" : "bg-[#2a0550] text-[#05d9e8]"
 					}`}
 				>
-					x{paneCount}
+					x{attentionCount}
 				</span>
 			)}
 		</button>
@@ -196,7 +196,7 @@ export function SolanaHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -236,9 +236,9 @@ export function SolanaHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#14f195]/20 text-[#14f195] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -303,7 +303,7 @@ export function AmberHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -331,8 +331,8 @@ export function AmberHeader({
 			) : (
 				<span className="sidebar-header text-[12px] font-bold truncate flex-1 min-w-0">{name}</span>
 			)}
-			{paneCount > 1 && (
-				<span className="text-[10px] px-1 border border-[#b37a00] shrink-0">{paneCount}</span>
+			{attentionCount > 0 && (
+				<span className="text-[10px] px-1 border border-[#b37a00] shrink-0">{attentionCount}</span>
 			)}
 		</button>
 	);
@@ -387,7 +387,7 @@ export function VaporwaveHeader({
 	name,
 	isActive,
 	isCollapsed: _isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -421,9 +421,9 @@ export function VaporwaveHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] px-1.5 bg-[#ff2d95]/20 text-[#ff2d95] rounded-sm shrink-0 font-bold">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -488,7 +488,7 @@ export function OceanHeader({
 	name,
 	isActive,
 	isCollapsed: _isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -530,9 +530,9 @@ export function OceanHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] px-2 rounded-full bg-[#00e5b0]/20 text-[#00e5b0] shrink-0">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -597,7 +597,7 @@ export function SunsetHeader({
 	name,
 	isActive,
 	isCollapsed: _isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -633,9 +633,9 @@ export function SunsetHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[10px] px-1.5 rounded-sm bg-[#b83820] text-[#fff0d8] shrink-0 font-bold">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
@@ -696,7 +696,7 @@ export function ArcticHeader({
 	name,
 	isActive,
 	isCollapsed,
-	paneCount,
+	attentionCount,
 	isEditing,
 	inputProps,
 	onClick,
@@ -740,9 +740,9 @@ export function ArcticHeader({
 					{name}
 				</span>
 			)}
-			{paneCount > 1 && (
+			{attentionCount > 0 && (
 				<span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#a0e0f8]/20 text-[#a0e0f8] shrink-0 font-medium">
-					{paneCount}
+					{attentionCount}
 				</span>
 			)}
 		</button>
