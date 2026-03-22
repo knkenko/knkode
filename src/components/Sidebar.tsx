@@ -174,11 +174,11 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 								<div
 									key={ws.id}
 									data-workspace-item
-									className={`${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
+									className={`transition-all duration-150 ${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
 								>
 									<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
 										<div
-											className="relative"
+											className={`relative ${dragFromIndex === null ? "cursor-grab" : "cursor-grabbing"}`}
 											onPointerDown={(e) => handleWorkspaceDragPointerDown(e, index)}
 										>
 											<SidebarWorkspaceHeader
@@ -418,7 +418,7 @@ function CollapsedView({
 					<div
 						key={ws.id}
 						data-workspace-item
-						className={`${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
+						className={`transition-all duration-150 ${dragFromIndex === null ? "cursor-grab" : "cursor-grabbing"} ${isDragSource ? "opacity-40" : ""} ${isDropTarget ? "bg-accent/10" : ""}`}
 						onPointerDown={(e) => onDragPointerDown(e, index)}
 					>
 						<WorkspaceSectionWrapper preset={activePreset} isActive={isActive}>
