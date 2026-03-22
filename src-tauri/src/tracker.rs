@@ -407,7 +407,7 @@ fn poll_pane(
 /// there's recent output. This filters out shell echo (typing without a command)
 /// and silent foreground processes (command waiting for input).
 ///
-/// On platforms without foreground detection (Windows), falls back to output-only.
+/// On platforms without foreground detection, falls back to output-only.
 fn poll_activity(
     pane_ids: &[String],
     panes: &Mutex<HashMap<String, PaneState>>,
@@ -427,7 +427,7 @@ fn poll_activity(
             let has_recent_output = *age < ACTIVITY_IDLE_THRESHOLD;
 
             // Combine signals: need both a foreground child AND recent output.
-            // If foreground detection is unavailable (Windows), fall back to output-only.
+            // If foreground detection is unavailable, fall back to output-only.
             let is_active = match fg_statuses.get(pane_id) {
                 Some(&has_fg_child) => has_fg_child && has_recent_output,
                 None => has_recent_output,
