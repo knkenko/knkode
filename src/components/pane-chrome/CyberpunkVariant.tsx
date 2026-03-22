@@ -58,7 +58,7 @@ function Frame({
 				background: `linear-gradient(90deg, ${activeC1}26 0%, ${activeC2}14 100%), #0d0221`,
 				boxShadow: isFocused ? `0 ${isBottom ? "-1px" : "1px"} 8px ${glowColor}44` : "none",
 				...sepStyle,
-				...(isAnimating ? { borderColor: "transparent" } : {}),
+				borderColor: isAnimating ? "transparent" : `${activeC1}88`,
 			}}
 		>
 			{isEditing ? (

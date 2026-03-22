@@ -196,7 +196,7 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 		// Hide original border when ::after is active — prevents double separator
 		const borderClear: React.CSSProperties = isAnimating
 			? { borderImage: "none", borderColor: "transparent" }
-			: {};
+			: { borderColor: "transparent" };
 
 		const header = (
 			<div

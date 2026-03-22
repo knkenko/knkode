@@ -55,7 +55,9 @@ function Frame({
 					? `linear-gradient(90deg, ${c1}, ${c2}) 1`
 					: `linear-gradient(90deg, ${c1}33, ${c2}33) 1`,
 				...sepStyle,
-				...(isAnimating ? { borderImage: "none", borderColor: "transparent" } : {}),
+				...(isAnimating
+					? { borderImage: "none", borderColor: "transparent" }
+					: { borderColor: "transparent" }),
 			}}
 		>
 			{isEditing ? (

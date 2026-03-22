@@ -60,7 +60,9 @@ function Frame({
 				backgroundColor: "#0a0015dd",
 				backdropFilter: "blur(4px)",
 				...sepStyle,
-				...(isAnimating ? { borderImage: "none", borderColor: "transparent" } : {}),
+				...(isAnimating
+					? { borderImage: "none", borderColor: "transparent" }
+					: { borderColor: "transparent" }),
 			}}
 		>
 			{isEditing ? (

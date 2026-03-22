@@ -52,7 +52,7 @@ function Frame({
 				borderBottom: isBottom ? "none" : `1px solid ${theme.accent}66`,
 				textShadow: isFocused ? `0 0 6px ${glowColor}44` : "none",
 				...sepStyle,
-				...(isAnimating ? { borderColor: "transparent" } : {}),
+				borderColor: isAnimating ? "transparent" : `${theme.accent}66`,
 			}}
 		>
 			{isEditing ? (
