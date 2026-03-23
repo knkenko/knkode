@@ -401,4 +401,5 @@ export interface KnkodeApi {
 	onPtyBranchChanged(cb: (paneId: string, branch: string | null) => void): Unsubscribe;
 	onPtyPrChanged(cb: (paneId: string, pr: PrInfo | null) => void): Unsubscribe;
 	onPtyActivityChanged(cb: (paneId: string, active: boolean) => void): Unsubscribe;
+	onPtyTitleChanged(cb: (paneId: string, title: string) => void): Unsubscribe;
 }

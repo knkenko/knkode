@@ -19,6 +19,7 @@ export const IPC_EVENTS = {
 	ptyBranchChanged: "pty:branch-changed",
 	ptyPrChanged: "pty:pr-changed",
 	ptyActivityChanged: "pty:activity-changed",
+	ptyTitleChanged: "pty:title-changed",
 	appCheckUpdate: "app:check-update",
 } as const;
 
@@ -131,6 +132,12 @@ const _api: KnkodeApi = {
 		createListener<{ paneId: string; active: boolean }>(
 			IPC_EVENTS.ptyActivityChanged,
 			({ paneId, active }) => cb(paneId, active),
+		),
+
+	onPtyTitleChanged: (cb) =>
+		createListener<{ paneId: string; title: string }>(
+			IPC_EVENTS.ptyTitleChanged,
+			({ paneId, title }) => cb(paneId, title),
 		),
 };
 
