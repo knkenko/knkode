@@ -127,7 +127,10 @@ fn detect_cwd(pid: u32) -> Option<String> {
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
         if handle.is_null() {
-            eprintln!("[pty] detect_cwd: OpenProcess failed for pid {pid}: {}", std::io::Error::last_os_error());
+            eprintln!(
+                "[pty] detect_cwd: OpenProcess failed for pid {pid}: {}",
+                std::io::Error::last_os_error()
+            );
             return None;
         }
         let _guard = WinHandle(handle);
@@ -376,8 +379,15 @@ fn check_foreground_batch(_pids: &[(String, u32)]) -> HashMap<u32, bool> {
 /// Emit a terminal render snapshot to the frontend.
 /// Returns `true` if the emit succeeded or there was nothing to emit,
 /// `false` if the Tauri event channel is broken.
+///
+/// Also checks for terminal title changes (OSC 1/2) and emits
+/// `pty:title-changed` when the title differs from the last snapshot.
 fn emit_snapshot(app: &tauri::AppHandle, term_state: &TerminalState, id: &str) -> bool {
     if let Some(snapshot) = term_state.snapshot(id) {
+        // Check for title change piggy-backing on the snapshot cadence.
+        if let Some(title) = term_state.check_title_changed(id) {
+            let _ = app.emit("pty:title-changed", json!({ "paneId": id, "title": title }));
+        }
         app.emit("terminal:render", json!({ "id": id, "grid": snapshot }))
             .is_ok()
     } else {

@@ -261,6 +261,9 @@ pub struct TerminalState {
     /// Per-session set of image hashes already sent to the frontend.
     /// Prevents re-sending the same image data on every snapshot frame.
     sent_image_hashes: Mutex<HashMap<String, HashSet<[u8; 32]>>>,
+    /// Last-seen terminal title per pane (OSC 1/2). Used to detect changes
+    /// and emit `pty:title-changed` events only when the title actually differs.
+    last_titles: Mutex<HashMap<String, String>>,
     default_palette: Arc<ColorPalette>,
     config: Arc<dyn TerminalConfiguration + Send + Sync>,
 }
@@ -372,6 +375,7 @@ impl TerminalState {
             terminals: Mutex::new(HashMap::new()),
             palettes: Mutex::new(HashMap::new()),
             sent_image_hashes: Mutex::new(HashMap::new()),
+            last_titles: Mutex::new(HashMap::new()),
             default_palette: Arc::new(ColorPalette::default()),
             config: Arc::new(TermConfig),
         }
@@ -597,6 +601,13 @@ impl TerminalState {
             }
             Err(e) => eprintln!("[terminal] remove sent_image_hashes lock failed for {id}: {e}"),
         }
+        // Clean up last title for this session
+        match self.last_titles.lock() {
+            Ok(mut titles) => {
+                titles.remove(id);
+            }
+            Err(e) => eprintln!("[terminal] remove last_titles lock failed for {id}: {e}"),
+        }
         // Palette intentionally NOT removed — survives pane restart.
         // Cleaned up in remove_all() on app shutdown.
     }
@@ -616,6 +627,10 @@ impl TerminalState {
             Ok(mut hashes) => hashes.clear(),
             Err(e) => eprintln!("[terminal] remove_all sent_image_hashes lock failed: {e}"),
         }
+        match self.last_titles.lock() {
+            Ok(mut titles) => titles.clear(),
+            Err(e) => eprintln!("[terminal] remove_all last_titles lock failed: {e}"),
+        }
     }
 
     /// Get the palette for a terminal, falling back to the default.
@@ -631,6 +646,35 @@ impl TerminalState {
                 Arc::clone(&self.default_palette)
             }
         }
+    }
+
+    /// Check if the terminal title (OSC 1/2) has changed since the last check.
+    /// Returns `Some(new_title)` if it changed, `None` if unchanged or unavailable.
+    pub fn check_title_changed(&self, id: &str) -> Option<String> {
+        let terminals = match self.lock_terminals() {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("[terminal] check_title lock failed for {id}: {e}");
+                return None;
+            }
+        };
+        let terminal = terminals.get(id)?;
+        let current = terminal.get_title().to_string();
+        drop(terminals);
+
+        let mut last_titles = match self.last_titles.lock() {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("[terminal] last_titles lock failed for {id}: {e}");
+                return None;
+            }
+        };
+        let last = last_titles.get(id);
+        if last.map(|l| l.as_str()) == Some(&current) {
+            return None;
+        }
+        last_titles.insert(id.to_string(), current.clone());
+        Some(current)
     }
 
     fn snapshot_with_palette(
