@@ -43,28 +43,32 @@ function addToVisited(visited: string[], id: string): string[] {
 	return visited.includes(id) ? visited : [...visited, id];
 }
 
-/** Remove pane-scoped ephemeral state (branches, PRs, agent statuses) for a set of pane IDs. */
+/** Remove pane-scoped ephemeral state (branches, PRs, agent statuses, titles) for a set of pane IDs. */
 function cleanPaneEphemeral(
 	state: {
 		paneBranches: Record<string, string | null>;
 		panePrs: Record<string, PrInfo | null>;
 		paneAgentStatuses: Record<string, AgentStatus>;
+		paneTitles: Record<string, string | null>;
 	},
 	paneIds: string[],
 ): {
 	paneBranches: Record<string, string | null>;
 	panePrs: Record<string, PrInfo | null>;
 	paneAgentStatuses: Record<string, AgentStatus>;
+	paneTitles: Record<string, string | null>;
 } {
 	const paneBranches = { ...state.paneBranches };
 	const panePrs = { ...state.panePrs };
 	const paneAgentStatuses = { ...state.paneAgentStatuses };
+	const paneTitles = { ...state.paneTitles };
 	for (const pid of paneIds) {
 		delete paneBranches[pid];
 		delete panePrs[pid];
 		delete paneAgentStatuses[pid];
+		delete paneTitles[pid];
 	}
-	return { paneBranches, panePrs, paneAgentStatuses };
+	return { paneBranches, panePrs, paneAgentStatuses, paneTitles };
 }
 
 export function persistAppState(appState: AppState): void {
@@ -133,6 +137,7 @@ interface WorkspacePaneState {
 	paneBranches: Record<string, string | null>;
 	panePrs: Record<string, PrInfo | null>;
 	paneAgentStatuses: Record<string, AgentStatus>;
+	paneTitles: Record<string, string | null>;
 	killPtys: (paneIds: string[]) => void;
 	createWorkspace: (name: string, preset: LayoutPreset) => Promise<Workspace>;
 }

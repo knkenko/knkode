@@ -41,6 +41,8 @@ interface StoreState {
 	panePrs: Record<string, PrInfo | null>;
 	/** Current agent status per pane. Ephemeral runtime state. */
 	paneAgentStatuses: Record<string, AgentStatus>;
+	/** Terminal title per pane (from OSC 1/2 escape sequences). Ephemeral runtime state. */
+	paneTitles: Record<string, string | null>;
 	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
 	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
 	collapsedSidebarSections: ReadonlySet<string>;
@@ -91,6 +93,8 @@ interface StoreState {
 	updatePanePr: (paneId: string, pr: PrInfo | null) => void;
 	/** Update agent status for a pane. */
 	updatePaneAgentStatus: (paneId: string, status: AgentStatus) => void;
+	/** Update terminal title for a pane (from OSC 1/2 escape sequences). */
+	updatePaneTitle: (paneId: string, title: string) => void;
 	/** Persist pixel sizes as percentages at a given tree path.
 	 *  `path` is an array of child indices from the root to the target branch node.
 	 *  An empty array `[]` targets the root node itself.
@@ -124,6 +128,7 @@ export const useStore = create<StoreState>((set, get) => ({
 	paneBranches: {},
 	panePrs: {},
 	paneAgentStatuses: {},
+	paneTitles: {},
 	collapsedSidebarSections: new Set(),
 
 	setFocusedPane: (paneId) =>
@@ -161,6 +166,13 @@ export const useStore = create<StoreState>((set, get) => ({
 		set((state) => {
 			if (state.paneAgentStatuses[paneId] === status) return {};
 			return { paneAgentStatuses: { ...state.paneAgentStatuses, [paneId]: status } };
+		});
+	},
+
+	updatePaneTitle: (paneId, title) => {
+		set((state) => {
+			if (state.paneTitles[paneId] === title) return {};
+			return { paneTitles: { ...state.paneTitles, [paneId]: title } };
 		});
 	},
 
