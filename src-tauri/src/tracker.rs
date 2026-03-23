@@ -109,17 +109,24 @@ impl CwdTracker {
     pub fn track_pane(&self, pane_id: String, initial_cwd: String) {
         match self.panes.lock() {
             Ok(mut panes) => {
-                panes.insert(
-                    pane_id,
-                    PaneState {
-                        cwd: initial_cwd,
-                        branch: None,
-                        pr: None,
-                        pr_last_checked: Instant::now() - PR_REFRESH_INTERVAL,
-                        active: false,
-                        tracked_at: Instant::now(),
-                    },
-                );
+                if let Some(existing) = panes.get_mut(&pane_id) {
+                    // Pane already tracked — only update CWD, preserve branch/PR/activity
+                    // state so re-tracking (e.g. from context menu CWD change) doesn't
+                    // wipe cached data or restart warmup.
+                    existing.cwd = initial_cwd;
+                } else {
+                    panes.insert(
+                        pane_id,
+                        PaneState {
+                            cwd: initial_cwd,
+                            branch: None,
+                            pr: None,
+                            pr_last_checked: Instant::now() - PR_REFRESH_INTERVAL,
+                            active: false,
+                            tracked_at: Instant::now(),
+                        },
+                    );
+                }
             }
             Err(e) => eprintln!("[tracker] Failed to track pane — lock poisoned: {e}"),
         }
@@ -700,7 +707,7 @@ fn get_pr_status(
 /// lifetime of the polling thread.
 fn build_augmented_path() -> String {
     let current = std::env::var("PATH").unwrap_or_default();
-    let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
+    let sep = if cfg!(target_os = "windows") { ";" } else { ":" };
 
     let segments: HashSet<&str> = current.split(sep).collect();
     let missing: Vec<&str> = EXTRA_PATH_DIRS
@@ -711,7 +718,6 @@ fn build_augmented_path() -> String {
     if missing.is_empty() {
         current
     } else {
-        let sep_str = if cfg!(target_os = "windows") { ";" } else { ":" };
-        format!("{}{}{}", current, sep_str, missing.join(sep_str))
+        format!("{}{}{}", current, sep, missing.join(sep))
     }
 }
