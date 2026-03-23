@@ -5,7 +5,7 @@ import type {
 	MouseEvent,
 	ReactNode,
 } from "react";
-import type { AgentStatus, PrInfo } from "../../shared/types";
+import type { AgentStatus } from "../../shared/types";
 
 // Base props for visual rendering
 export interface BaseWorkspaceHeaderProps {
@@ -14,12 +14,6 @@ export interface BaseWorkspaceHeaderProps {
 	isCollapsed: boolean;
 	/** Number of panes in this workspace that have attention status. Badge shown when > 0. */
 	attentionCount: number;
-	/** Workspace-level CWD (majority vote across panes, focused pane breaks ties). */
-	cwd: string | null;
-	/** Workspace-level git branch (from first pane matching the winning CWD). */
-	branch: string | null;
-	/** Workspace-level PR info (from same pane as branch). */
-	pr: PrInfo | null;
 	isEditing: boolean;
 	inputProps: InputHTMLAttributes<HTMLInputElement>;
 	onClick: (e: MouseEvent) => void;

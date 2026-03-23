@@ -7,9 +7,6 @@ export function DefaultDarkHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -55,17 +52,6 @@ export function DefaultDarkHeader({
 					</span>
 				)}
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
-					<span className="text-[9px] text-[#5a6380] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] font-mono text-[#8892b0] truncate opacity-70">{branch}</span>
-							{pr && <span className="text-[9px] font-mono bg-[#232946] px-1 rounded-sm text-[#8892b0] shrink-0">#{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -85,18 +71,14 @@ export function DefaultDarkEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-7 pr-3 py-1.5 border-none cursor-pointer transition-colors duration-150 ${isFocused ? "sidebar-pane-focused text-[#e0e0e0] border-l-2 border-[#6c63ff]" : "bg-transparent text-[#5a6380] hover:text-[#8892b0] border-l-2 border-transparent"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-7 pr-3 py-1.5 border-none cursor-pointer transition-colors duration-150 ${isFocused ? "sidebar-pane-focused text-[#e0e0e0] border-l-2 border-[#6c63ff]" : "bg-transparent text-[#5a6380] hover:text-[#8892b0] border-l-2 border-transparent"}`}
 		>
-			<div className="flex items-center gap-1.5 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className={`text-[11px] truncate flex-1 ${isFocused ? "font-semibold" : ""}`}>
-					{label}
-				</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className={`text-[11px] truncate shrink ${isFocused ? "font-semibold" : ""}`}>
+				{label}
+			</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] text-[#5a6380] truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] text-[#5a6380] truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -108,9 +90,6 @@ export function DraculaHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -158,17 +137,6 @@ export function DraculaHeader({
 					<polyline points="6 9 12 15 18 9"></polyline>
 				</svg>
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-4">
-					<span className="text-[9px] text-[#6272a4] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] font-mono text-[#50fa7b] truncate">{branch}</span>
-							{pr && <span className="text-[9px] font-mono text-[#ffb86c] shrink-0">#{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -188,16 +156,12 @@ export function DraculaEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-6 pr-2 py-1.5 border-none cursor-pointer rounded-md transition-all ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] bg-[#44475a]/30" : "bg-transparent text-[#6272a4] hover:text-[#f8f8f2] hover:bg-[#44475a]/10"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-6 pr-2 py-1.5 border-none cursor-pointer rounded-md transition-all ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] bg-[#44475a]/30" : "bg-transparent text-[#6272a4] hover:text-[#f8f8f2] hover:bg-[#44475a]/10"}`}
 		>
-			<div className="flex items-center gap-1.5 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[11px] truncate font-medium flex-1">{label}</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[11px] truncate shrink font-medium">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] truncate flex-1 opacity-80">{title}</span>
-				</div>
+				<span className="text-[9px] truncate flex-1 text-right opacity-80">{title}</span>
 			)}
 		</button>
 	);
@@ -209,9 +173,6 @@ export function TokyoNightHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -248,17 +209,6 @@ export function TokyoNightHeader({
 					</span>
 				)}
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
-					<span className="text-[9px] text-[#565f89] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] font-mono text-[#9ece6a] truncate">{branch}</span>
-							{pr && <span className="text-[9px] font-mono bg-[#1a1b26] text-[#ff9e64] px-1 rounded-sm border border-[#292e42] shrink-0">PR:{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -278,16 +228,12 @@ export function TokyoNightEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-6 pr-3 py-1.5 border-none cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#c0caf5] border-l-2 border-[#bb9af7] bg-[#1f2335]/80" : "bg-transparent text-[#565f89] hover:text-[#a9b1d6] border-l-2 border-transparent hover:bg-[#1f2335]/30"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-3 py-1.5 border-none cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#c0caf5] border-l-2 border-[#bb9af7] bg-[#1f2335]/80" : "bg-transparent text-[#565f89] hover:text-[#a9b1d6] border-l-2 border-transparent hover:bg-[#1f2335]/30"}`}
 		>
-			<div className="flex items-center gap-1.5 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[11px] truncate flex-1">{label}</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[11px] truncate shrink">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -299,9 +245,6 @@ export function NordHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -346,17 +289,6 @@ export function NordHeader({
 					<path d="M2 3L5 6L8 3" />
 				</svg>
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full">
-					<span className="text-[9px] text-[#4c566a] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] text-[#a3be8c] truncate">{branch}</span>
-							{pr && <span className="text-[9px] text-[#ebcb8b] shrink-0">#{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -376,17 +308,13 @@ export function NordEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-8 pr-4 py-2 border-none cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#eceff4] bg-[#434c5e]" : "bg-transparent text-[#d8dee9] hover:text-[#eceff4] hover:bg-[#3b4252]"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-8 pr-4 py-2 border-none cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#eceff4] bg-[#434c5e]" : "bg-transparent text-[#d8dee9] hover:text-[#eceff4] hover:bg-[#3b4252]"}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 w-full">
-				{isFocused && <span className="w-1.5 h-1.5 rounded-full bg-[#88c0d0] shrink-0" />}
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[12px] truncate flex-1">{label}</span>
-			</div>
+			{isFocused && <span className="w-1.5 h-1.5 rounded-full bg-[#88c0d0] shrink-0" />}
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[12px] truncate shrink">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] text-[#4c566a] truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] text-[#4c566a] truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -398,9 +326,6 @@ export function CatppuccinHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -448,17 +373,6 @@ export function CatppuccinHeader({
 					<path d="M6 9l6 6 6-6" />
 				</svg>
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-4.5">
-					<span className="text-[9px] text-[#6c7086] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] text-[#a6e3a1] font-medium truncate">{branch}</span>
-							{pr && <span className="text-[9px] font-bold bg-[#f9e2af]/20 text-[#f9e2af] px-1.5 rounded-md shrink-0">PR {pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -478,16 +392,12 @@ export function CatppuccinEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-12px)] mx-[6px] mt-1 text-left pl-7 pr-3 py-1.5 border-none cursor-pointer rounded-lg transition-all ${isFocused ? "sidebar-pane-focused text-[#cdd6f4] bg-[#45475a]" : "bg-transparent text-[#a6adc8] hover:text-[#cdd6f4] hover:bg-[#313244]"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-12px)] mx-[6px] mt-1 text-left pl-7 pr-3 py-1.5 border-none cursor-pointer rounded-lg transition-all ${isFocused ? "sidebar-pane-focused text-[#cdd6f4] bg-[#45475a]" : "bg-transparent text-[#a6adc8] hover:text-[#cdd6f4] hover:bg-[#313244]"}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[11px] font-medium truncate flex-1">{label}</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[11px] font-medium truncate shrink">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] text-[#6c7086] truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] text-[#6c7086] truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -499,9 +409,6 @@ export function GruvboxHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -534,17 +441,6 @@ export function GruvboxHeader({
 					<span title={`${attentionCount} pane(s) need attention`} className="font-mono text-[10px] text-[#83a598] shrink-0">({attentionCount})</span>
 				)}
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-5 font-mono">
-					<span className="text-[9px] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] text-[#b8bb26] truncate">[{branch}]</span>
-							{pr && <span className="text-[9px] text-[#fabd2f] shrink-0">#{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -564,17 +460,13 @@ export function GruvboxEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0 w-full text-left pl-6 pr-2 py-1.5 border-none cursor-pointer transition-none ${isFocused ? "sidebar-pane-focused text-[#ebdbb2] bg-[#504945]" : "bg-transparent text-[#928374] hover:text-[#a89984] hover:bg-[#3c3836]"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-2 py-1.5 border-none cursor-pointer transition-none font-mono text-[11px] ${isFocused ? "sidebar-pane-focused text-[#ebdbb2] bg-[#504945]" : "bg-transparent text-[#928374] hover:text-[#a89984] hover:bg-[#3c3836]"}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 w-full font-mono text-[11px]">
-				<span className="shrink-0">{isFocused ? "->" : "  "}</span>
-				<AgentStatusIndicator status={agentStatus} gruvbox />
-				<span className="truncate flex-1">{label}</span>
-			</div>
+			<span className="shrink-0">{isFocused ? "->" : "  "}</span>
+			<AgentStatusIndicator status={agentStatus} gruvbox />
+			<span className="truncate shrink">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] font-mono pl-6 truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] font-mono truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -586,9 +478,6 @@ export function MonokaiHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -629,17 +518,6 @@ export function MonokaiHeader({
 					</span>
 				)}
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-4 font-mono">
-					<span className="text-[9px] text-[#75715e] truncate">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] text-[#e6db74] truncate">{branch}</span>
-							{pr && <span className="text-[9px] text-[#ae81ff] shrink-0">#{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -659,16 +537,12 @@ export function MonokaiEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-7 pr-3 py-1.5 border-none cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] border-l-[3px] border-[#f92672] bg-[#3e3d32]/80" : "bg-transparent text-[#75715e] hover:text-[#f8f8f2] border-l-[3px] border-transparent hover:bg-[#3e3d32]/30"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-7 pr-3 py-1.5 border-none cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] border-l-[3px] border-[#f92672] bg-[#3e3d32]/80" : "bg-transparent text-[#75715e] hover:text-[#f8f8f2] border-l-[3px] border-transparent hover:bg-[#3e3d32]/30"}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[11px] truncate flex-1 italic">{label}</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[11px] truncate shrink italic">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] text-[#75715e] font-mono truncate flex-1 opacity-70">{title}</span>
-				</div>
+				<span className="text-[9px] text-[#75715e] font-mono truncate flex-1 text-right opacity-70">{title}</span>
 			)}
 		</button>
 	);
@@ -680,9 +554,6 @@ export function EverforestHeader({
 	isActive,
 	isCollapsed,
 	attentionCount,
-	cwd,
-	branch,
-	pr,
 	isEditing,
 	inputProps,
 	onClick,
@@ -717,17 +588,6 @@ export function EverforestHeader({
 					</span>
 				)}
 			</div>
-			{cwd && (
-				<div className="flex flex-col gap-px min-w-0 w-full pl-3.5">
-					<span className="text-[9px] truncate opacity-60">{cwd}</span>
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<span className="text-[9px] text-[#83c092] truncate">{branch}</span>
-							{pr && <span className="text-[9px] text-[#dbbc7f] shrink-0">PR-{pr.number}</span>}
-						</div>
-					)}
-				</div>
-			)}
 		</button>
 	);
 }
@@ -747,16 +607,12 @@ export function EverforestEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-6 pr-3 py-2 border-none cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#d3c6aa] bg-[#3a454a]" : "bg-transparent text-[#9da9a0] hover:text-[#d3c6aa] hover:bg-[#343f44]"}`}
+			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-3 py-2 border-none cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#d3c6aa] bg-[#3a454a]" : "bg-transparent text-[#9da9a0] hover:text-[#d3c6aa] hover:bg-[#343f44]"}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 w-full">
-				<AgentStatusIndicator status={agentStatus} />
-				<span className="text-[11px] truncate flex-1">{label}</span>
-			</div>
+			<AgentStatusIndicator status={agentStatus} />
+			<span className="text-[11px] truncate shrink">{label}</span>
 			{agentStatus !== "idle" && title && (
-				<div className="flex items-center min-w-0 w-full">
-					<span className="text-[9px] truncate flex-1 opacity-60">{title}</span>
-				</div>
+				<span className="text-[9px] truncate flex-1 text-right opacity-60">{title}</span>
 			)}
 		</button>
 	);

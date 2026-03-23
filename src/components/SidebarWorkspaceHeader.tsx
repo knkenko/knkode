@@ -2,11 +2,8 @@ import { createPortal } from "react-dom";
 import type { ThemePresetName } from "../data/theme-presets";
 import { useContextMenu } from "../hooks/useContextMenu";
 import { useInlineEdit } from "../hooks/useInlineEdit";
-import { useWorkspaceGitInfo } from "../hooks/useWorkspaceGitInfo";
 import { getPortalRoot } from "../lib/ui-constants";
 import type { Workspace } from "../shared/types";
-import { useStore } from "../store";
-import { shortenPath } from "../utils/path";
 import { WorkspaceHeaderVariant } from "./sidebar-variants/ThemeRegistry";
 
 interface SidebarWorkspaceHeaderProps {
@@ -36,9 +33,6 @@ export function SidebarWorkspaceHeader({
 	onClose,
 }: SidebarWorkspaceHeaderProps) {
 	const ctx = useContextMenu();
-	const homeDir = useStore((s) => s.homeDir);
-	const gitInfo = useWorkspaceGitInfo(workspace.id);
-	const shortCwd = gitInfo.cwd ? shortenPath(gitInfo.cwd, homeDir) : null;
 
 	const { isEditing, inputProps, startEditing } = useInlineEdit(workspace.name, onRename);
 
@@ -66,9 +60,6 @@ export function SidebarWorkspaceHeader({
 				isActive={isActive}
 				isCollapsed={isCollapsed}
 				attentionCount={attentionCount}
-				cwd={shortCwd}
-				branch={gitInfo.branch}
-				pr={gitInfo.pr}
 				isEditing={isEditing}
 				inputProps={inputProps}
 				onClick={handleClick}

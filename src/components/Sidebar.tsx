@@ -8,6 +8,7 @@ import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
+import { SidebarWorkspaceGitInfo } from "./SidebarWorkspaceGitInfo";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
 import { AttentionDot } from "./sidebar-variants/AgentStatusIndicator";
 import {
@@ -261,6 +262,7 @@ export function Sidebar({
 										</div>
 										{!isSectionCollapsed && (
 											<div className="flex flex-col pb-1">
+												<SidebarWorkspaceGitInfo workspaceId={ws.id} preset={activePreset} />
 												{paneIds.map((paneId) => {
 													const config = ws.panes[paneId];
 													if (!config) return null;
