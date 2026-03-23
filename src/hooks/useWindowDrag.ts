@@ -8,7 +8,7 @@ import { useCallback } from "react";
 export function useWindowDrag() {
 	return useCallback((e: React.MouseEvent) => {
 		if (e.button !== 0) return;
-		if (e.target instanceof HTMLElement && e.target.closest(".no-drag")) return;
+		if (e.target instanceof Element && e.target.closest(".no-drag")) return;
 		e.preventDefault();
 		getCurrentWindow()
 			.startDragging()
