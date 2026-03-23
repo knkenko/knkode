@@ -47,10 +47,14 @@ export function MatrixHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] text-[#009933] font-mono uppercase truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#00ff41] font-mono uppercase truncate">B:{branch}</span>}
-					{pr && <span className="text-[9px] border border-[#00ff41]/50 font-mono uppercase shrink-0">[PR:{pr.number}]</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#00ff41] font-mono uppercase truncate">B:{branch}</span>
+							{pr && <span className="text-[9px] border border-[#00ff41]/50 font-mono uppercase shrink-0">[PR:{pr.number}]</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -150,10 +154,14 @@ export function CyberpunkHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-4">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-4">
 					<span className="text-[9px] opacity-70 font-mono uppercase truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#01c5c4] font-bold font-mono uppercase truncate">[{branch}]</span>}
-					{pr && <span className="text-[9px] bg-[#fef08a] text-[#0d0221] font-bold font-mono uppercase shrink-0">PR:{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#01c5c4] font-bold font-mono uppercase truncate">[{branch}]</span>
+							{pr && <span className="text-[9px] bg-[#fef08a] text-[#0d0221] font-bold font-mono uppercase shrink-0">PR:{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -258,10 +266,14 @@ export function SolanaHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] text-[#b380ff]/70 truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#33e6c0] font-medium truncate">{branch}</span>}
-					{pr && <span className="text-[9px] font-bold bg-[#9945ff]/20 text-[#c77dff] px-1.5 rounded-md shrink-0">#{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#33e6c0] font-medium truncate">{branch}</span>
+							{pr && <span className="text-[9px] font-bold bg-[#9945ff]/20 text-[#c77dff] px-1.5 rounded-md shrink-0">#{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -354,10 +366,14 @@ export function AmberHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-4">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-4">
 					<span className="text-[9px] font-mono uppercase truncate">{cwd}</span>
-					{branch && <span className="text-[9px] font-mono uppercase truncate">[{branch}]</span>}
-					{pr && <span className="text-[9px] font-mono uppercase shrink-0">PR:{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] font-mono uppercase truncate">[{branch}]</span>
+							{pr && <span className="text-[9px] font-mono uppercase shrink-0">PR:{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -455,10 +471,14 @@ export function VaporwaveHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] font-mono truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#05ffa1] font-mono italic truncate">{branch}</span>}
-					{pr && <span className="text-[9px] bg-[#01cdfe]/20 text-[#01cdfe] font-bold shrink-0">#{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#05ffa1] font-mono italic truncate">{branch}</span>
+							{pr && <span className="text-[9px] bg-[#01cdfe]/20 text-[#01cdfe] font-bold shrink-0">#{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -565,10 +585,14 @@ export function OceanHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] opacity-70 truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#4dd8e0] truncate">{branch}</span>}
-					{pr && <span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 px-1 rounded-sm shrink-0">#{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#4dd8e0] truncate">{branch}</span>
+							{pr && <span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 px-1 rounded-sm shrink-0">#{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -669,10 +693,14 @@ export function SunsetHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] font-mono opacity-80 truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#f0b048] truncate">{branch}</span>}
-					{pr && <span className="text-[9px] text-[#ffc040] shrink-0">#{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#f0b048] truncate">{branch}</span>
+							{pr && <span className="text-[9px] text-[#ffc040] shrink-0">#{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
@@ -781,10 +809,14 @@ export function ArcticHeader({
 				)}
 			</div>
 			{cwd && (
-				<div className="flex items-center gap-1.5 min-w-0 w-full pl-5">
+				<div className="flex flex-col gap-px min-w-0 w-full pl-5">
 					<span className="text-[9px] font-mono opacity-60 truncate">{cwd}</span>
-					{branch && <span className="text-[9px] text-[#a0e0f8] font-mono truncate">{branch}</span>}
-					{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">#{pr.number}</span>}
+					{branch && (
+						<div className="flex items-center gap-1 min-w-0">
+							<span className="text-[9px] text-[#a0e0f8] font-mono truncate">{branch}</span>
+							{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">#{pr.number}</span>}
+						</div>
+					)}
 				</div>
 			)}
 		</button>
