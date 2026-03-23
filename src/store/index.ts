@@ -36,11 +36,15 @@ interface StoreState {
 	/** Current git branch per pane. Hydrated from PaneConfig.lastBranch on init,
 	 *  updated live by CwdTracker events and persisted back to pane config. */
 	paneBranches: Record<string, string | null>;
-	/** Current PR info per pane. Hydrated from PaneConfig.lastPr on init,
-	 *  updated live by CwdTracker events and persisted back to pane config. */
+	/** Current PR info per pane. Ephemeral runtime state — NOT persisted to disk.
+	 *  Starts empty each session; re-detected by CwdTracker. PRs go stale on merge
+	 *  so persisting would cause stuck indicators on next startup. */
 	panePrs: Record<string, PrInfo | null>;
 	/** Current agent status per pane. Ephemeral runtime state. */
 	paneAgentStatuses: Record<string, AgentStatus>;
+	/** Terminal title per pane (from terminal title escape sequences). Ephemeral runtime state.
+	 *  Values are never null — entries are deleted on pane removal via cleanPaneEphemeral. */
+	paneTitles: Record<string, string>;
 	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
 	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
 	collapsedSidebarSections: ReadonlySet<string>;
@@ -87,10 +91,12 @@ interface StoreState {
 	updatePaneCwd: (workspaceId: string, paneId: string, cwd: string) => void;
 	/** Update git branch for a pane and persist to PaneConfig.lastBranch. */
 	updatePaneBranch: (paneId: string, branch: string | null) => void;
-	/** Update PR info for a pane and persist to PaneConfig.lastPr. */
+	/** Update PR info for a pane. Ephemeral — not persisted to disk. */
 	updatePanePr: (paneId: string, pr: PrInfo | null) => void;
 	/** Update agent status for a pane. */
 	updatePaneAgentStatus: (paneId: string, status: AgentStatus) => void;
+	/** Update terminal title for a pane (from OSC 1/2 escape sequences). */
+	updatePaneTitle: (paneId: string, title: string) => void;
 	/** Persist pixel sizes as percentages at a given tree path.
 	 *  `path` is an array of child indices from the root to the target branch node.
 	 *  An empty array `[]` targets the root node itself.
@@ -124,6 +130,7 @@ export const useStore = create<StoreState>((set, get) => ({
 	paneBranches: {},
 	panePrs: {},
 	paneAgentStatuses: {},
+	paneTitles: {},
 	collapsedSidebarSections: new Set(),
 
 	setFocusedPane: (paneId) =>
@@ -161,6 +168,19 @@ export const useStore = create<StoreState>((set, get) => ({
 		set((state) => {
 			if (state.paneAgentStatuses[paneId] === status) return {};
 			return { paneAgentStatuses: { ...state.paneAgentStatuses, [paneId]: status } };
+		});
+	},
+
+	updatePaneTitle: (paneId, title) => {
+		// Strip control characters (C0/C1) and clamp length for defense-in-depth.
+		// Rust backend truncates to 4096; we clamp tighter for UI display.
+		const MAX_TITLE = 512;
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally stripping C0/C1 control chars from terminal titles
+		const sanitized = title.replace(/[\x00-\x1f\x7f-\x9f]/g, "").slice(0, MAX_TITLE);
+		if (!sanitized) return;
+		set((state) => {
+			if (state.paneTitles[paneId] === sanitized) return {};
+			return { paneTitles: { ...state.paneTitles, [paneId]: sanitized } };
 		});
 	},
 

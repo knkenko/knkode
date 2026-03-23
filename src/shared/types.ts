@@ -182,7 +182,8 @@ export interface PaneConfig {
 	readonly themeOverride: Partial<PaneTheme> | null;
 	/** Last known git branch — persisted for instant sidebar rendering on startup. */
 	readonly lastBranch?: string | null;
-	/** Last known PR info — persisted for instant sidebar rendering on startup. */
+	/** Last known PR info. Field exists for schema compatibility but is NOT hydrated
+	 *  on startup — PR data is ephemeral and re-detected each session. */
 	readonly lastPr?: PrInfo | null;
 }
 
@@ -401,4 +402,5 @@ export interface KnkodeApi {
 	onPtyBranchChanged(cb: (paneId: string, branch: string | null) => void): Unsubscribe;
 	onPtyPrChanged(cb: (paneId: string, pr: PrInfo | null) => void): Unsubscribe;
 	onPtyActivityChanged(cb: (paneId: string, active: boolean) => void): Unsubscribe;
+	onPtyTitleChanged(cb: (paneId: string, title: string) => void): Unsubscribe;
 }
