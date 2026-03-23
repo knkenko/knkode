@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { type ThemePresetName, toPresetName } from "../data/theme-presets";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useDragReorder } from "../hooks/useDragReorder";
-import { useUpdateChecker } from "../hooks/useUpdateChecker";
+import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
@@ -44,11 +44,18 @@ function dragItemClassName(
 }
 
 interface SidebarProps {
+	updateState: UpdateState;
+	updateActions: UpdateActions;
 	onOpenSettings: () => void;
 	onOpenHotkeys: () => void;
 }
 
-export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
+export function Sidebar({
+	updateState,
+	updateActions,
+	onOpenSettings,
+	onOpenHotkeys,
+}: SidebarProps) {
 	const workspaces = useStore((s) => s.workspaces);
 	const openWorkspaceIds = useStore((s) => s.appState.openWorkspaceIds);
 	const activeWorkspaceId = useStore((s) => s.appState.activeWorkspaceId);
@@ -66,8 +73,6 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
 	const closePane = useStore((s) => s.closePane);
 	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
-
-	const [updateState, updateActions] = useUpdateChecker();
 
 	const handleBarMouseDown = useWindowDrag();
 

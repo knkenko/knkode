@@ -42,38 +42,51 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 
 	const updateRef = useRef<Update | null>(null);
 	const lastProgressUpdate = useRef(0);
+	const checkingRef = useRef(false);
+	const statusRef = useRef<UpdateStatus>("idle");
+	const upToDateTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	const doCheck = useCallback(async () => {
-		// Guard against concurrent checks
-		if (state.status === "checking" || state.status === "downloading") return;
+		// Guard against concurrent invocations using a ref — avoids depending on
+		// state (which would re-create this callback and trigger the effect loop
+		// that caused popup spam). Also blocks checks during downloads.
+		if (checkingRef.current) return;
+		checkingRef.current = true;
 
+		statusRef.current = "checking";
 		setState((s) => ({ ...s, status: "checking", error: null, dismissed: false }));
 		try {
 			const update = await check();
 			if (update) {
 				updateRef.current = update;
+				statusRef.current = "available";
 				setState((s) => ({
 					...s,
 					status: "available",
 					version: update.version,
 				}));
 			} else {
-				// Brief "up to date" feedback, then fade back to idle
+				// Brief "up to date" feedback, then reset back to idle
+				statusRef.current = "up_to_date";
 				setState((s) => ({ ...s, status: "up_to_date" }));
-				setTimeout(
-					() => setState((s) => (s.status === "up_to_date" ? { ...s, status: "idle" } : s)),
-					3000,
-				);
+				clearTimeout(upToDateTimerRef.current);
+				upToDateTimerRef.current = setTimeout(() => {
+					statusRef.current = "idle";
+					setState((s) => (s.status === "up_to_date" ? { ...s, status: "idle" } : s));
+				}, 3000);
 			}
 		} catch (err) {
 			console.error("[updater] Check failed:", err);
+			statusRef.current = "error";
 			setState((s) => ({
 				...s,
 				status: "error",
 				error: formatError(err),
 			}));
+		} finally {
+			checkingRef.current = false;
 		}
-	}, [state.status]);
+	}, []);
 
 	const installUpdate = useCallback(async () => {
 		const update = updateRef.current;
@@ -83,6 +96,9 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 			return;
 		}
 
+		// Prevent checks while download is in progress
+		checkingRef.current = true;
+		statusRef.current = "downloading";
 		setState((s) => ({ ...s, status: "downloading", progress: 0 }));
 
 		let downloaded = 0;
@@ -96,7 +112,7 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 						break;
 					case "Progress": {
 						downloaded += event.data.chunkLength;
-						// Throttle progress updates to ~4/sec to avoid re-rendering the entire sidebar
+						// Throttle progress updates to ~4/sec to reduce unnecessary re-renders
 						const now = Date.now();
 						if (now - lastProgressUpdate.current < 250) break;
 						lastProgressUpdate.current = now;
@@ -107,6 +123,7 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 						break;
 					}
 					case "Finished":
+						statusRef.current = "ready";
 						setState((s) => ({ ...s, progress: 1, status: "ready" }));
 						break;
 				}
@@ -114,15 +131,24 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 			// Don't auto-relaunch — let user click "Restart now" so they can save work
 		} catch (err) {
 			console.error("[updater] Download/install failed:", err);
+			statusRef.current = "error";
 			setState((s) => ({
 				...s,
 				status: "error",
 				error: formatError(err),
 			}));
+		} finally {
+			checkingRef.current = false;
 		}
 	}, []);
 
 	const restartApp = useCallback(async () => {
+		// Only allow relaunch when update is installed and ready
+		if (statusRef.current !== "ready") {
+			console.warn("[updater] restartApp called but status is not ready");
+			return;
+		}
+
 		try {
 			await relaunch();
 		} catch (err) {
@@ -139,10 +165,13 @@ export function useUpdateChecker(): [UpdateState, UpdateActions] {
 		setState((s) => ({ ...s, dismissed: true }));
 	}, []);
 
-	// Delay initial check so the UI settles and first paint is not interrupted
+	// Check once on mount after UI settles
 	useEffect(() => {
 		const timer = setTimeout(doCheck, 3000);
-		return () => clearTimeout(timer);
+		return () => {
+			clearTimeout(timer);
+			clearTimeout(upToDateTimerRef.current);
+		};
 	}, [doCheck]);
 
 	// Listen for menu "Check for Updates" event (emitted from Rust on macOS)

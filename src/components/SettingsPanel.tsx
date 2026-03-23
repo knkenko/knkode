@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { DEFAULT_PRESET_NAME, findPreset } from "../data/theme-presets";
+import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 import {
 	type CursorStyle,
 	DEFAULT_CURSOR_STYLE,
@@ -18,6 +19,7 @@ import {
 	type Workspace,
 } from "../shared/types";
 import { applyPresetWithRemap, useStore } from "../store";
+import { AboutTabPanel } from "./AboutTabPanel";
 import { type EffectCategory, TerminalTabPanel } from "./TerminalTabPanel";
 import { WorkspaceTabPanel } from "./WorkspaceTabPanel";
 
@@ -57,10 +59,12 @@ function getLatestWorkspace(wsId: string): Workspace | undefined {
 
 interface SettingsPanelProps {
 	workspace: Workspace;
+	updateState: UpdateState;
+	updateActions: UpdateActions;
 	onClose: () => void;
 }
 
-const SETTINGS_TABS = ["Workspace", "Terminal"] as const;
+const SETTINGS_TABS = ["Workspace", "Terminal", "About"] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 // ── Settings reducer ──────────────────────────────────────────────
@@ -161,7 +165,12 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
 
 // ── Component ─────────────────────────────────────────────────────
 
-export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
+export function SettingsPanel({
+	workspace,
+	updateState,
+	updateActions,
+	onClose,
+}: SettingsPanelProps) {
 	const updateWorkspace = useStore((s) => s.updateWorkspace);
 	const removeWorkspace = useStore((s) => s.removeWorkspace);
 	const updatePaneConfig = useStore((s) => s.updatePaneConfig);
@@ -441,6 +450,12 @@ export function SettingsPanel({ workspace, onClose }: SettingsPanelProps) {
 					effects={effects}
 					onEffectChange={handleEffectChange}
 					hidden={state.activeTab !== "Terminal"}
+				/>
+
+				<AboutTabPanel
+					updateState={updateState}
+					updateActions={updateActions}
+					hidden={state.activeTab !== "About"}
 				/>
 
 				<div className="flex items-center gap-2 px-6 py-3 border-t border-edge/50">

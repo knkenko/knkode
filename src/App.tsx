@@ -6,6 +6,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { Sidebar } from "./components/Sidebar";
 import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useUpdateChecker } from "./hooks/useUpdateChecker";
 import { useStore } from "./store";
 import { generateThemeVariables } from "./utils/colors";
 import { isWindows, WINDOWS_CAPTION_BUTTON_WIDTH } from "./utils/platform";
@@ -21,6 +22,8 @@ export function App() {
 	const updatePanePr = useStore((s) => s.updatePanePr);
 	const updatePaneAgentStatus = useStore((s) => s.updatePaneAgentStatus);
 	const visitedWorkspaceIds = useStore((s) => s.visitedWorkspaceIds);
+
+	const [updateState, updateActions] = useUpdateChecker();
 
 	const [showSettings, setShowSettings] = useState(false);
 	const [showHotkeys, setShowHotkeys] = useState(false);
@@ -156,7 +159,12 @@ export function App() {
 					fontSize: "var(--font-size-ui)",
 				}}
 			>
-				<Sidebar onOpenSettings={toggleSettings} onOpenHotkeys={() => setShowHotkeys(true)} />
+				<Sidebar
+					updateState={updateState}
+					updateActions={updateActions}
+					onOpenSettings={toggleSettings}
+					onOpenHotkeys={() => setShowHotkeys(true)}
+				/>
 				<div className="flex flex-col flex-1 min-w-0">
 					{themeFailed && (
 						<div className="px-3 py-1 text-xs text-danger bg-danger/10 border-b border-danger/20">
@@ -182,7 +190,12 @@ export function App() {
 								))}
 							</div>
 							{showSettings && activeWorkspace && (
-								<SettingsPanel workspace={activeWorkspace} onClose={closeSettings} />
+								<SettingsPanel
+									workspace={activeWorkspace}
+									updateState={updateState}
+									updateActions={updateActions}
+									onClose={closeSettings}
+								/>
 							)}
 						</>
 					) : (
