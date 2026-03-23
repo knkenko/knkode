@@ -1,10 +1,11 @@
-use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::AppHandle;
 
-/// Build the native application menu.
+pub const MENU_CHECK_UPDATES: &str = "check_updates";
+
+/// Build the native application menu (macOS only — called inside `#[cfg(target_os = "macos")]`).
 ///
-/// - macOS: App name (standard app menu) + Edit + View + Window
-/// - Windows/Linux: Edit + Window
+/// macOS: App name (with "Check for Updates…") + Edit + View + Window
 pub fn build_menu(handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let edit_menu = Submenu::with_items(
         handle,
@@ -59,12 +60,21 @@ pub fn build_menu(handle: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let menu = {
         let app_name = handle.config().product_name.as_deref().unwrap_or("knkode");
 
+        let check_updates = MenuItem::with_id(
+            handle,
+            MENU_CHECK_UPDATES,
+            "Check for Updates…",
+            true,
+            None::<&str>,
+        )?;
+
         let app_menu = Submenu::with_items(
             handle,
             app_name,
             true,
             &[
                 &PredefinedMenuItem::about(handle, None, None)?,
+                &check_updates,
                 &PredefinedMenuItem::separator(handle)?,
                 &PredefinedMenuItem::services(handle, None)?,
                 &PredefinedMenuItem::separator(handle)?,

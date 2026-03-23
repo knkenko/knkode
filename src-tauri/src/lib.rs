@@ -11,7 +11,7 @@ mod window;
 use config::ConfigStore;
 use pty::PtyManager;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use terminal::TerminalState;
 use tracker::CwdTracker;
 
@@ -24,6 +24,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(config_store)
         .manage(Arc::clone(&pty_manager))
         .manage(Arc::clone(&terminal_state))
@@ -55,6 +57,19 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                 let menu = menu::build_menu(app.handle())?;
                 app.set_menu(menu)?;
             }
+
+            #[cfg(target_os = "macos")]
+            {
+                let handle = app.handle().clone();
+                app.on_menu_event(move |_app, event| {
+                    if event.id().as_ref() == menu::MENU_CHECK_UPDATES {
+                        if let Err(e) = handle.emit("app:check-update", ()) {
+                            eprintln!("[updater] Failed to emit check-update event: {e}");
+                        }
+                    }
+                });
+            }
+
             window::setup_window(app);
             Ok(())
         })
