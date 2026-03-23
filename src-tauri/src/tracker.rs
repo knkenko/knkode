@@ -685,8 +685,15 @@ fn get_pr_status(
 
 /// Build an augmented PATH with extra directories for Homebrew/Linuxbrew.
 /// Cached for the lifetime of the polling thread.
+/// On Windows, extra dirs are not needed — git/gh are found via standard PATH.
 fn build_augmented_path() -> String {
     let current = std::env::var("PATH").unwrap_or_default();
+
+    // Windows uses ';' as PATH separator and doesn't need Homebrew/Linuxbrew dirs.
+    if cfg!(target_os = "windows") {
+        return current;
+    }
+
     let segments: HashSet<&str> = current.split(':').collect();
     let missing: Vec<&str> = EXTRA_PATH_DIRS
         .iter()
