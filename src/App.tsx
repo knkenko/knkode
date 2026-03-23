@@ -21,6 +21,7 @@ export function App() {
 	const updatePaneBranch = useStore((s) => s.updatePaneBranch);
 	const updatePanePr = useStore((s) => s.updatePanePr);
 	const updatePaneAgentStatus = useStore((s) => s.updatePaneAgentStatus);
+	const updatePaneTitle = useStore((s) => s.updatePaneTitle);
 	const visitedWorkspaceIds = useStore((s) => s.visitedWorkspaceIds);
 
 	const [updateState, updateActions] = useUpdateChecker();
@@ -95,9 +96,13 @@ export function App() {
 					updatePaneAgentStatus(paneId, focusedPaneId === paneId ? "idle" : "attention");
 				}
 			}),
+			window.api.onPtyTitleChanged((paneId, title) => {
+				const ws = findWs(paneId);
+				if (ws) updatePaneTitle(paneId, title);
+			}),
 		];
 		return () => unsubs.forEach((fn) => fn());
-	}, [updatePaneCwd, updatePaneBranch, updatePanePr, updatePaneAgentStatus]);
+	}, [updatePaneCwd, updatePaneBranch, updatePanePr, updatePaneAgentStatus, updatePaneTitle]);
 
 	// Must be above early returns to satisfy React's rules of hooks.
 	// Returns { vars, failed } so we can show a fallback indicator on failure.
