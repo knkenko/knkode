@@ -1,8 +1,11 @@
 name: Release
 
-# Trigger manually: gh workflow run build-release.yml --ref v2.0.0
-# The --ref flag sets GITHUB_REF_NAME to the tag for the release job.
+# Triggers on tag push (v*) or manual dispatch with --ref.
+# GITHUB_REF_NAME resolves to the tag name for the release job.
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 permissions: {}
