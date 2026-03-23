@@ -21,13 +21,13 @@ Each theme has its own visual effects — scanlines, phosphor glow, noise textur
 
 ## Download
 
-**[Latest release (v2.0.0)](https://github.com/StanK23/knkode/releases/latest)**
+**[Latest release (v2.0.2)](https://github.com/knkenko/knkode/releases/latest)**
 
 | Platform | File |
 |---|---|
-| macOS (Apple Silicon + Intel) | [knkode_2.0.0_universal.dmg](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_universal.dmg) |
-| Windows (installer) | [knkode_2.0.0_x64-setup.exe](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_x64-setup.exe) |
-| Windows (MSI) | [knkode_2.0.0_x64_en-US.msi](https://github.com/StanK23/knkode/releases/download/v2.0.0/knkode_2.0.0_x64_en-US.msi) |
+| macOS (Apple Silicon + Intel) | [knkode_2.0.2_universal.dmg](https://github.com/knkenko/knkode/releases/download/v2.0.2/knkode_2.0.2_universal.dmg) |
+| Windows (installer) | [knkode_2.0.2_x64-setup.exe](https://github.com/knkenko/knkode/releases/download/v2.0.2/knkode_2.0.2_x64-setup.exe) |
+| Windows (MSI) | [knkode_2.0.2_x64_en-US.msi](https://github.com/knkenko/knkode/releases/download/v2.0.2/knkode_2.0.2_x64_en-US.msi) |
 
 ## Why
 
@@ -73,7 +73,7 @@ Every project needs a different terminal setup — build watcher, dev server, lo
 Requires [Rust](https://rustup.rs), Node.js >= 18, and [bun](https://bun.sh).
 
 ```sh
-git clone https://github.com/StanK23/knkode.git
+git clone https://github.com/knkenko/knkode.git
 cd knkode
 bun install
 bun tauri dev
