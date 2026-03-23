@@ -2215,7 +2215,7 @@ dependencies = [
 
 [[package]]
 name = "knkode"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "base64 0.22.1",
  "dirs",
