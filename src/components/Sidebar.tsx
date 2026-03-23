@@ -2,18 +2,19 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { type ThemePresetName, toPresetName } from "../data/theme-presets";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useDragReorder } from "../hooks/useDragReorder";
+import { useUpdateChecker } from "../hooks/useUpdateChecker";
 import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
-
 import { AttentionDot } from "./sidebar-variants/AgentStatusIndicator";
 import {
 	CollapsedWorkspaceVariant,
 	WorkspaceSectionWrapper,
 } from "./sidebar-variants/ThemeRegistry";
+import { UpdateBanner } from "./UpdateBanner";
 
 /** px */ const SIDEBAR_WIDTH = 200;
 /** px — wide enough to contain macOS traffic lights (90px) and show truncated workspace names */ const SIDEBAR_COLLAPSED_WIDTH = 96;
@@ -65,6 +66,8 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
 	const closePane = useStore((s) => s.closePane);
 	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
+
+	const [updateState, updateActions] = useUpdateChecker();
 
 	const handleBarMouseDown = useWindowDrag();
 
@@ -279,6 +282,9 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 					</ul>
 				)}
 			</div>
+
+			{/* Update banner — above status bar */}
+			<UpdateBanner state={updateState} actions={updateActions} />
 
 			{/* Bottom bar — action buttons */}
 			<div className="shrink-0 border-t border-edge p-1 no-drag flex items-center gap-0.5">
