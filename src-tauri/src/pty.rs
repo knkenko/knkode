@@ -448,9 +448,9 @@ pub struct PtyManager {
     sessions: Arc<Mutex<HashMap<String, PtySession>>>,
     next_generation: AtomicU64,
     terminal_state: Arc<TerminalState>,
-    /// Bytes of PTY output accumulated per pane since the last poll.
-    /// Reader threads add to the counter; the tracker reads and resets each cycle.
-    output_bytes: Arc<Mutex<HashMap<String, u64>>>,
+    /// Timestamp of the last PTY output per pane.
+    /// Reader threads update on each render; the tracker polls to detect idle agents.
+    last_output_at: Arc<Mutex<HashMap<String, Instant>>>,
 }
 
 impl PtyManager {
@@ -459,7 +459,7 @@ impl PtyManager {
             sessions: Arc::new(Mutex::new(HashMap::new())),
             next_generation: AtomicU64::new(1),
             terminal_state,
-            output_bytes: Arc::new(Mutex::new(HashMap::new())),
+            last_output_at: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -573,7 +573,7 @@ impl PtyManager {
         let id_clone = id.clone();
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
-        let output_bytes = Arc::clone(&self.output_bytes);
+        let last_output_at = Arc::clone(&self.last_output_at);
         std::thread::spawn(move || {
             eprintln!("[pty] Reader thread started for {id_clone}");
             let mut buf = [0u8; READ_BUFFER_SIZE];
@@ -604,7 +604,8 @@ impl PtyManager {
                             // Record output timestamp for activity detection.
                             // Throttled to ~60fps — sub-16ms precision is irrelevant
                             // given the 2-second idle threshold polled every 3 seconds.
-                            let mut times = output_times.lock().unwrap_or_else(|e| e.into_inner());
+                            let mut times =
+                                last_output_at.lock().unwrap_or_else(|e| e.into_inner());
                             if let Some(t) = times.get_mut(&id_clone) {
                                 *t = Instant::now();
                             } else {
@@ -655,7 +656,7 @@ impl PtyManager {
             let exit_code: i64 = if let Some(mut session) = removed {
                 term_state.remove(&id_clone);
                 // Clean up output timestamp so poll_activity doesn't evaluate a dead pane
-                output_times
+                last_output_at
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())
                     .remove(&id_clone);
