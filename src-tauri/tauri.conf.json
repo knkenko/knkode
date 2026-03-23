@@ -33,7 +33,7 @@
 	},
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk0MDNBODczNTlBMUE1NTcKUldSWHBhRlpjNmdEbEcvSk1GQkxZQkh6VmpGOWZqbWhpdVZZdjU3ZENhdmQ4eUhST0pEZmpIOG8K",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlCODI0NENFQzgwM0MwM0YKUldRL3dBUEl6a1NDbS8wbnVLV1E3K3ZDVmphZU8yN1I5T3VxM1JmQ1N3WU9tT0hmcDd1c2tyczQK",
 			"endpoints": [
 				"https://github.com/knkenko/knkode/releases/latest/download/latest.json"
 			],
