@@ -24,12 +24,24 @@ const MAX_PR_TITLE_LEN: usize = 256;
 const MAX_LOG_MSG_LEN: usize = 200;
 const MAX_LOGGED_ERRORS: usize = 64;
 
-/// Extra PATH directories for subprocess calls. Tauri launched from Dock/Spotlight
-/// inherits a minimal PATH — Homebrew/Linuxbrew tools are invisible without this.
+/// Extra PATH directories for subprocess calls (Unix).
+/// Tauri launched from Dock/Spotlight inherits a minimal PATH —
+/// Homebrew/Linuxbrew tools are invisible without this.
+#[cfg(not(target_os = "windows"))]
 const EXTRA_PATH_DIRS: &[&str] = &[
     "/opt/homebrew/bin",
     "/usr/local/bin",
     "/home/linuxbrew/.linuxbrew/bin",
+];
+
+/// Extra PATH directories for subprocess calls (Windows).
+/// Tauri launched from Start Menu / desktop shortcut may not include
+/// Git or GitHub CLI in its PATH.
+#[cfg(target_os = "windows")]
+const EXTRA_PATH_DIRS: &[&str] = &[
+    "C:\\Program Files\\Git\\cmd",
+    "C:\\Program Files (x86)\\Git\\cmd",
+    "C:\\Program Files\\GitHub CLI",
 ];
 
 #[derive(Clone, Serialize)]
@@ -683,18 +695,14 @@ fn get_pr_status(
     }
 }
 
-/// Build an augmented PATH with extra directories for Homebrew/Linuxbrew.
-/// Cached for the lifetime of the polling thread.
-/// On Windows, extra dirs are not needed — git/gh are found via standard PATH.
+/// Build an augmented PATH with extra directories for tools like git/gh.
+/// Uses platform-specific separator and extra dirs. Cached for the
+/// lifetime of the polling thread.
 fn build_augmented_path() -> String {
     let current = std::env::var("PATH").unwrap_or_default();
+    let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
 
-    // Windows uses ';' as PATH separator and doesn't need Homebrew/Linuxbrew dirs.
-    if cfg!(target_os = "windows") {
-        return current;
-    }
-
-    let segments: HashSet<&str> = current.split(':').collect();
+    let segments: HashSet<&str> = current.split(sep).collect();
     let missing: Vec<&str> = EXTRA_PATH_DIRS
         .iter()
         .copied()
@@ -703,6 +711,7 @@ fn build_augmented_path() -> String {
     if missing.is_empty() {
         current
     } else {
-        format!("{}:{}", current, missing.join(":"))
+        let sep_str = if cfg!(target_os = "windows") { ";" } else { ":" };
+        format!("{}{}{}", current, sep_str, missing.join(sep_str))
     }
 }
