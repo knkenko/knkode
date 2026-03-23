@@ -283,7 +283,7 @@ export function Sidebar({ onOpenSettings, onOpenHotkeys }: SidebarProps) {
 				)}
 			</div>
 
-			{/* Update banner — above status bar */}
+			{/* Update banner — above bottom bar */}
 			<UpdateBanner state={updateState} actions={updateActions} />
 
 			{/* Bottom bar — action buttons */}

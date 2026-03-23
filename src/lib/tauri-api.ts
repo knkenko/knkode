@@ -12,13 +12,14 @@ import type {
 	Workspace,
 } from "../shared/types";
 
-const IPC_EVENTS = {
+export const IPC_EVENTS = {
 	terminalRender: "terminal:render",
 	ptyExit: "pty:exit",
 	ptyCwdChanged: "pty:cwd-changed",
 	ptyBranchChanged: "pty:branch-changed",
 	ptyPrChanged: "pty:pr-changed",
 	ptyActivityChanged: "pty:activity-changed",
+	appCheckUpdate: "app:check-update",
 } as const;
 
 /**
@@ -26,7 +27,7 @@ const IPC_EVENTS = {
  * Tracks a `disposed` flag so that if unsubscribe is called before
  * the listener is registered, cleanup happens as soon as `listen()` resolves.
  */
-function createListener<T>(event: string, handler: (payload: T) => void): Unsubscribe {
+export function createListener<T>(event: string, handler: (payload: T) => void): Unsubscribe {
 	let unlisten: UnlistenFn | null = null;
 	let disposed = false;
 	listen<T>(event, (e) => handler(e.payload))

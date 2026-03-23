@@ -1,15 +1,19 @@
 import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 
+const BTN_PRIMARY =
+	"h-6 text-[10px] font-medium rounded bg-accent text-white border-none cursor-pointer hover:brightness-110 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none transition-all duration-150";
+const BTN_SECONDARY =
+	"h-6 text-[10px] font-medium rounded bg-transparent text-content-muted border border-edge cursor-pointer hover:text-content hover:bg-overlay focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none transition-all duration-150";
+
+const VISIBLE_STATUSES = new Set(["available", "downloading", "ready", "error", "up_to_date"]);
+
 interface UpdateBannerProps {
 	state: UpdateState;
 	actions: UpdateActions;
 }
 
 export function UpdateBanner({ state, actions }: UpdateBannerProps) {
-	if (
-		state.dismissed ||
-		(state.status !== "available" && state.status !== "downloading" && state.status !== "ready")
-	) {
+	if (state.dismissed || !VISIBLE_STATUSES.has(state.status)) {
 		return null;
 	}
 
@@ -25,15 +29,11 @@ export function UpdateBanner({ state, actions }: UpdateBannerProps) {
 						<button
 							type="button"
 							onClick={actions.installUpdate}
-							className="flex-1 h-6 text-[10px] font-medium rounded bg-accent text-white border-none cursor-pointer hover:brightness-110 transition-all duration-150"
+							className={`flex-1 ${BTN_PRIMARY}`}
 						>
 							Install
 						</button>
-						<button
-							type="button"
-							onClick={actions.dismiss}
-							className="flex-1 h-6 text-[10px] font-medium rounded bg-transparent text-content-muted border border-edge cursor-pointer hover:text-content hover:bg-overlay transition-all duration-150"
-						>
+						<button type="button" onClick={actions.dismiss} className={`flex-1 ${BTN_SECONDARY}`}>
 							Later
 						</button>
 					</div>
@@ -55,13 +55,33 @@ export function UpdateBanner({ state, actions }: UpdateBannerProps) {
 			{state.status === "ready" && (
 				<>
 					<p className="text-[11px] text-content m-0 mb-1.5">Ready to restart</p>
-					<button
-						type="button"
-						onClick={actions.installUpdate}
-						className="w-full h-6 text-[10px] font-medium rounded bg-accent text-white border-none cursor-pointer hover:brightness-110 transition-all duration-150"
-					>
+					<button type="button" onClick={actions.restartApp} className={`w-full ${BTN_PRIMARY}`}>
 						Restart now
 					</button>
+				</>
+			)}
+
+			{state.status === "up_to_date" && (
+				<p className="text-[11px] text-content-muted m-0">You're up to date</p>
+			)}
+
+			{state.status === "error" && (
+				<>
+					<p className="text-[11px] text-danger m-0 mb-1.5">
+						{state.error ?? "Update check failed"}
+					</p>
+					<div className="flex gap-1.5">
+						<button
+							type="button"
+							onClick={actions.checkForUpdate}
+							className={`flex-1 ${BTN_SECONDARY}`}
+						>
+							Retry
+						</button>
+						<button type="button" onClick={actions.dismiss} className={`flex-1 ${BTN_SECONDARY}`}>
+							Dismiss
+						</button>
+					</div>
 				</>
 			)}
 		</div>
