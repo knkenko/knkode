@@ -582,9 +582,13 @@ export function createWorkspacePaneSlice(
 					};
 				}),
 			);
-			// Notify the CWD tracker so branch/PR detection updates immediately
-			if (updates.cwd) {
-				window.api.trackPaneGit(paneId, updates.cwd).catch(() => {});
+			// Notify the CWD tracker so branch/PR detection updates immediately.
+			// This path is triggered by context menu CWD changes; updatePaneCwd
+			// below handles CWD changes detected by the Rust tracker itself.
+			if (updates.cwd && isValidCwd(updates.cwd)) {
+				window.api.trackPaneGit(paneId, updates.cwd).catch((err) => {
+					console.warn("[store] trackPaneGit failed:", err);
+				});
 			}
 		},
 
