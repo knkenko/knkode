@@ -32,7 +32,7 @@ export function AboutTabPanel({ updateState, updateActions, hidden }: AboutTabPa
 		setLinkError(null);
 		window.api.openExternal(GITHUB_URL).catch((err: unknown) => {
 			console.error("[about] Failed to open GitHub URL:", err);
-			setLinkError("Could not open link. Copy: " + GITHUB_URL);
+			setLinkError(`Could not open link. Copy: ${GITHUB_URL}`);
 		});
 	}, []);
 
