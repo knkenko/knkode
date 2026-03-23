@@ -66,8 +66,8 @@ export function App() {
 		}
 	}, [initialized, openWorkspaceIds]);
 
-	// Listen for backend PTY events (CWD, git branch, PR status, activity state).
-	// Unified into a single effect to avoid four identical subscribe/lookup patterns.
+	// Listen for backend PTY events (CWD, git branch, PR status, activity state, terminal title).
+	// Unified into a single effect to avoid identical subscribe/lookup patterns.
 	useEffect(() => {
 		const findWs = (paneId: string) =>
 			useStore.getState().workspaces.find((w) => paneId in w.panes);

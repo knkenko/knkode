@@ -36,8 +36,9 @@ interface StoreState {
 	/** Current git branch per pane. Hydrated from PaneConfig.lastBranch on init,
 	 *  updated live by CwdTracker events and persisted back to pane config. */
 	paneBranches: Record<string, string | null>;
-	/** Current PR info per pane. Hydrated from PaneConfig.lastPr on init,
-	 *  updated live by CwdTracker events and persisted back to pane config. */
+	/** Current PR info per pane. Ephemeral runtime state — NOT persisted to disk.
+	 *  Starts empty each session; re-detected by CwdTracker. PRs go stale on merge
+	 *  so persisting would cause stuck indicators on next startup. */
 	panePrs: Record<string, PrInfo | null>;
 	/** Current agent status per pane. Ephemeral runtime state. */
 	paneAgentStatuses: Record<string, AgentStatus>;
@@ -90,7 +91,7 @@ interface StoreState {
 	updatePaneCwd: (workspaceId: string, paneId: string, cwd: string) => void;
 	/** Update git branch for a pane and persist to PaneConfig.lastBranch. */
 	updatePaneBranch: (paneId: string, branch: string | null) => void;
-	/** Update PR info for a pane and persist to PaneConfig.lastPr. */
+	/** Update PR info for a pane. Ephemeral — not persisted to disk. */
 	updatePanePr: (paneId: string, pr: PrInfo | null) => void;
 	/** Update agent status for a pane. */
 	updatePaneAgentStatus: (paneId: string, status: AgentStatus) => void;
@@ -174,6 +175,7 @@ export const useStore = create<StoreState>((set, get) => ({
 		// Strip control characters (C0/C1) and clamp length for defense-in-depth.
 		// Rust backend truncates to 4096; we clamp tighter for UI display.
 		const MAX_TITLE = 512;
+		// biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally stripping C0/C1 control chars from terminal titles
 		const sanitized = title.replace(/[\x00-\x1f\x7f-\x9f]/g, "").slice(0, MAX_TITLE);
 		if (!sanitized) return;
 		set((state) => {
