@@ -23,8 +23,7 @@ export function App() {
 	const updatePanePr = useStore((s) => s.updatePanePr);
 	const updatePaneAgentStatus = useStore((s) => s.updatePaneAgentStatus);
 	const updatePaneTitle = useStore((s) => s.updatePaneTitle);
-	const removePtyId = useStore((s) => s.removePtyId);
-	const markPtyExited = useStore((s) => s.markPtyExited);
+	const handlePtyExit = useStore((s) => s.handlePtyExit);
 	const visitedWorkspaceIds = useStore((s) => s.visitedWorkspaceIds);
 
 	const [updateState, updateActions] = useUpdateChecker();
@@ -77,7 +76,7 @@ export function App() {
 		return window.api.onTerminalRender(dispatchRender);
 	}, []);
 
-	// Listen for backend PTY events (CWD, git branch, PR status, activity state, terminal title, exit).
+	// Listen for backend PTY events (exit, CWD, git branch, PR status, activity state, terminal title).
 	// Unified into a single effect to avoid identical subscribe/lookup patterns.
 	useEffect(() => {
 		const findWs = (paneId: string) =>
@@ -85,9 +84,12 @@ export function App() {
 
 		const unsubs = [
 			window.api.onPtyExit((paneId, exitCode) => {
-				console.info(`[app] PTY exited: pane=${paneId} code=${exitCode}`);
-				removePtyId(paneId);
-				markPtyExited(paneId);
+				if (exitCode === 0) {
+					console.debug(`[app] PTY exited: pane=${paneId} code=0`);
+				} else {
+					console.warn(`[app] PTY exited: pane=${paneId} code=${exitCode}`);
+				}
+				handlePtyExit(paneId);
 			}),
 			window.api.onPtyCwdChanged((paneId, cwd) => {
 				const ws = findWs(paneId);
@@ -118,7 +120,7 @@ export function App() {
 			}),
 		];
 		return () => unsubs.forEach((fn) => fn());
-	}, [updatePaneCwd, updatePaneBranch, updatePanePr, updatePaneAgentStatus, updatePaneTitle, removePtyId, markPtyExited]);
+	}, [updatePaneCwd, updatePaneBranch, updatePanePr, updatePaneAgentStatus, updatePaneTitle, handlePtyExit]);
 
 	// Must be above early returns to satisfy React's rules of hooks.
 	// Returns { vars, failed } so we can show a fallback indicator on failure.
