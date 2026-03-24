@@ -2,47 +2,36 @@
 
 ## What Was Done
 
-### PR #56 — Subgroup Data Model + Migration + Store Foundation
-Branch: `feature/subgroup-data-model`
+### PR #61 — Performance & Battery Drain Fix (in review)
+Branch: `fix/performance-battery`
 
-- Replaced `Workspace.layout` with `subgroups: readonly SubgroupConfig[]` + `activeSubgroupId: string`
-- Added `SubgroupConfig` type to shared types
-- Migrated all store actions to operate within subgroups via helper functions
-- Added subgroup management actions: `addSubgroup`, `setActiveSubgroup`, `cycleSubgroup`
-- Built migration path in `init()` for legacy single-layout workspaces
-- Sidebar switches active subgroup when clicking pane in different group
-- PR review completed by 9 agents (20 findings) — all addressed
+7 performance fixes to eliminate idle CPU wakeups and reduce render overhead:
+1. **Cursor blink RAF** — 3-phase state machine (HOLD→BLINK→IDLE) stops RAF after 5s idle
+2. **Condvar flush** — replaced 16ms sleep-poll with `Condvar::wait_timeout`, zero wakeups when idle
+3. **Zustand selectors** — per-pane `paneBranches[paneId]` selectors replace broad record subscriptions
+4. **Render dispatcher** — O(1) `Map<string, RenderCallback>` replaces N×listener fan-out
+5. **CWD detection** — `libc::proc_vnodepathinfo` syscall replaces `lsof` fork+exec
+6. **Color interning** — `HashMap<(ColorAttribute, bool), String>` reduces ~1920 string allocs to ~20
+7. **Foreground detection** — `sysctl(KERN_PROC_PID)` replaces `ps` fork+exec
 
-### Commits
-1. `09a396a` feat: replace Workspace.layout with subgroups array
-2. `fd8e2ee` feat: add subgroup store actions
-3. `252f999` feat: switch active subgroup when clicking pane in different group
-4. `c05ac7f` feat: add subgroup action type declarations to StoreState interface
-5. `5ed84b3` fix: address all PR review findings (9 agents, 20 items)
+Review completed by 10 agents (23 findings: 3 must-fix, 10 suggestions, 10 nitpicks).
+All findings addressed in 6 fix commits (28fc942..7d82330).
 
-### PR #57 — Subgroup Bracket Rendering
-Branch: `feature/subgroup-bracket-ui` (merged)
-
-- Added `SubgroupBracket` component with themed vertical connector bars
-- Brackets appear when workspace has 2+ subgroups
-- Added `BracketColors` and `BracketPosition` types
-- All 16 theme variants have unique bracket color pairs
-
-### PR #58 — Themed Add-Pane Button (in review)
-Branch: `feature/add-pane-button`
-
-- Added `AddPaneButtonTokens` interface and `addPaneButton` slot in `ThemeVariantConfig`
-- Token-driven: single shared renderer + 16 config objects (no per-theme components)
-- Buttons call `addSubgroup(wsId)` to create new solo-pane subgroups
-- Review completed by 8 agents (9 findings) — all 9 fixed via token-driven refactor
-- `aria-label="Add new pane"` on all variants, inline styles replaced with Tailwind
+### Previous Work
+- PR #56: Subgroup data model + migration + store foundation (merged)
+- PR #57: Subgroup bracket rendering (merged)
+- PR #58: Themed add-pane button (merged)
+- PR #59: Subgroup keyboard shortcuts (merged)
 
 ## What's Next
 
-Remaining tasks from the Workspace Subgroups plan:
-
-1. **Task 4: Subgroup keyboard shortcuts** — `feature/subgroup-shortcuts` (knktx card `495ae159`)
-   - Keyboard navigation between subgroups
+PR #61 is ready for user review and merge. After merge, remaining v2.1.0 polish tasks:
+- PR 3: Silent failures (`fix/silent-failures`)
+- PR 4: Type safety (`fix/type-safety`)
+- PR 5: Accessibility (`fix/accessibility`)
+- PR 6: Dead code (`fix/dead-code`)
+- PR 7: Rust safety (`fix/rust-safety`)
+- PR 8: Documentation (`chore/docs-update`)
 
 ## Active Decisions
 
