@@ -23,10 +23,20 @@ All findings addressed in 6 fix commits (28fc942..7d82330).
 - PR #58: Themed add-pane button (merged)
 - PR #59: Subgroup keyboard shortcuts (merged)
 
+### PR #62 — Handle PTY Exit Events & Surface Creation Errors (in review)
+Branch: `fix/silent-failures`
+
+3 changes to eliminate silent failures in PTY lifecycle:
+1. **exitedPtyIds tracking** — new `ReadonlySet<string>` in store tracks which panes had their PTY exit, enabling restart-on-keypress overlay
+2. **onPtyExit listener** — centralized PTY exit handling in App.tsx with exit code logging (debug for 0, warn for non-zero) via atomic `handlePtyExit` action
+3. **PTY restart error surfacing** — Pane.tsx restart path catches `createPty` failures and restores error overlay instead of leaving a blank pane
+
+Review completed by 9 agents (13 findings: 2 must-fix, 6 suggestions, 5 nitpicks).
+All findings addressed in 3 fix commits (e477c1f..201563f).
+
 ## What's Next
 
-PR #61 merged. Remaining v2.1.0 polish tasks:
-- PR 3: Silent failures (`fix/silent-failures`)
+PR #62 ready for merge. Remaining v2.1.0 polish tasks:
 - PR 4: Type safety (`fix/type-safety`)
 - PR 5: Accessibility (`fix/accessibility`)
 - PR 6: Dead code (`fix/dead-code`)
