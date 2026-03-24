@@ -4,7 +4,7 @@ import { useFileDrop } from "../hooks/useFileDrop";
 import { useInlineEdit } from "../hooks/useInlineEdit";
 import { usePaneDragDrop } from "../hooks/usePaneDragDrop";
 import { ZONE_STYLES } from "../lib/pane-drag-utils";
-import type { ScreenPosition } from "../lib/ui-constants";
+import { SCROLLBAR_HIDE_DELAY_MS, type ScreenPosition } from "../lib/ui-constants";
 import {
 	effectMul,
 	type GridSnapshot,
@@ -168,6 +168,32 @@ export const Pane = memo(function Pane({
 		window.api.scrollTerminal(paneId, max).then(setGrid).catch(console.error);
 	}, [paneId]);
 
+	// Shared scroll-to-offset logic — sets refs and fires IPC (or snaps to bottom).
+	// Used by both the scrollbar drag handler and the wheel-scroll handler.
+	const applyScrollOffset = useCallback(
+		(newOffset: number) => {
+			scrollOffsetRef.current = newOffset;
+			isScrolledRef.current = newOffset > 0;
+
+			if (newOffset === 0) {
+				scrollToBottom();
+				return;
+			}
+
+			window.api
+				.scrollTerminal(paneId, newOffset)
+				.then((snapshot) => {
+					maxScrollRef.current = snapshot.scrollbackRows;
+					if (scrollOffsetRef.current > 0) setGrid(snapshot);
+				})
+				.catch((err: unknown) => {
+					console.error(`[pane] scrollTerminal failed for ${paneId}:`, err);
+					setPtyError(true);
+				});
+		},
+		[paneId, scrollToBottom],
+	);
+
 	// Scrollbar drag — convert pointer Y within the track to a scroll offset
 	const handleScrollbarPointerDown = useCallback(
 		(e: React.PointerEvent) => {
@@ -208,7 +234,7 @@ export const Pane = memo(function Pane({
 			const onUp = () => {
 				document.removeEventListener("pointermove", onMove);
 				document.removeEventListener("pointerup", onUp);
-				scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), 2000);
+				scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), SCROLLBAR_HIDE_DELAY_MS);
 			};
 			document.addEventListener("pointermove", onMove);
 			document.addEventListener("pointerup", onUp);
@@ -249,7 +275,7 @@ export const Pane = memo(function Pane({
 			// Show scrollbar, auto-hide after 2s of inactivity
 			setScrollbarVisible(true);
 			if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
-			scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), 2000);
+			scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), SCROLLBAR_HIDE_DELAY_MS);
 
 			pendingScrollDelta.current += deltaLines;
 			// Mark scrolled-up immediately so the render RAF (above) won't push new output to bottom.
@@ -269,29 +295,10 @@ export const Pane = memo(function Pane({
 					if (newOffset === 0) isScrolledRef.current = false;
 					return;
 				}
-				scrollOffsetRef.current = newOffset;
-				isScrolledRef.current = newOffset > 0;
-
-				if (newOffset === 0) {
-					scrollToBottom();
-					return;
-				}
-
-				window.api
-					.scrollTerminal(paneId, newOffset)
-					.then((snapshot) => {
-						maxScrollRef.current = snapshot.scrollbackRows;
-						// Only display if still scrolled at this position
-						if (scrollOffsetRef.current > 0) {
-							setGrid(snapshot);
-						}
-					})
-					.catch((err: unknown) => {
-						console.error(`[pane] scrollTerminal failed for ${paneId}:`, err);
-					});
+				applyScrollOffset(newOffset);
 			});
 		},
-		[paneId, scrollToBottom],
+		[applyScrollOffset],
 	);
 
 	// Listen for Mod+Up/Down scroll shortcuts dispatched by useKeyboardShortcuts
