@@ -162,6 +162,8 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 			}
 
 			// Mod+= / Mod++ — zoom in, Mod+- — zoom out, Mod+0 — reset font size
+			// Note: Tauri 2 does not enable native webview zoom hotkeys by default,
+			// so these keys are exclusively handled here (no double-fire risk).
 			if (e.key === "=" || e.key === "+" || e.key === "-" || e.key === "0") {
 				if (!resolvedFocusId || !activeWs) return;
 				e.preventDefault();
