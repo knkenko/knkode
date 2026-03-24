@@ -171,7 +171,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-4 py-1 text-left text-[10px] text-[#5a6380] hover:text-[#8892b0] bg-transparent border-none cursor-pointer transition-colors duration-150",
-			label: "+ New Pane",
+			label: "+ new",
 		},
 	},
 	Dracula: {
@@ -195,7 +195,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#6272a4] hover:text-[#ff79c6] bg-transparent hover:bg-[#44475a]/20 border border-dashed border-[#44475a]/40 hover:border-[#ff79c6]/40 rounded-md cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
-			label: "+ New Pane",
+			label: "+ summon",
 		},
 	},
 	"Tokyo Night": {
@@ -219,7 +219,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-4 py-1 text-left text-[10px] text-[#565f89] hover:text-[#7aa2f7] bg-transparent border-none cursor-pointer transition-colors duration-200 uppercase tracking-wider font-bold",
-			label: "+ New Pane",
+			label: "// new",
 		},
 	},
 	Nord: {
@@ -242,7 +242,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-4 py-1 text-left text-[10px] text-[#4c566a] hover:text-[#d8dee9] bg-transparent hover:bg-[#3b4252]/30 border-none cursor-pointer transition-colors duration-200 tracking-wide",
-			label: "+ New Pane",
+			label: "+ new",
 		},
 	},
 	Catppuccin: {
@@ -266,7 +266,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#7f849c] hover:text-[#cba6f7] bg-transparent hover:bg-[#313244]/30 border border-dashed border-[#313244]/60 hover:border-[#cba6f7]/40 rounded-lg cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
-			label: "+ New Pane",
+			label: "+ brew",
 		},
 	},
 	Gruvbox: {
@@ -314,7 +314,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#75715e] hover:text-[#f92672] bg-transparent border-none cursor-pointer transition-colors duration-150",
-			label: "+ New Pane",
+			label: "▸ new",
 		},
 	},
 	Everforest: {
@@ -338,12 +338,12 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#859289] hover:text-[#a7c080] bg-transparent hover:bg-[#343f44]/40 border-none cursor-pointer transition-colors duration-200",
-			label: "+ New Pane",
+			label: "+ grow",
 		},
 	},
 	Matrix: {
 		wrapper: {
-			base: "mb-2 border border-[#00ff41]/35",
+			base: "mb-2 border-t border-r border-b border-[#00ff41]/35",
 			active: "bg-[#0a0a0a] shadow-[0_0_10px_rgba(0,255,65,0.1)]",
 			inactive: "bg-black",
 		},
@@ -391,7 +391,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			style: {
 				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%)",
 			},
-			label: "+ NEW PANE",
+			label: "[ JACK_IN ]",
 		},
 	},
 	Solana: {
@@ -416,7 +416,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#b380ff] hover:text-[#f5f5ff] bg-transparent hover:bg-gradient-to-r hover:from-[#9945ff]/10 hover:to-[#14f195]/10 border border-dashed border-[#35356a] hover:border-[#9945ff]/40 rounded-full cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
-			label: "+ New Pane",
+			label: "◎ spawn",
 		},
 	},
 	Amber: {
@@ -441,12 +441,12 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#b37a00] hover:text-[#ffb000] bg-transparent hover:bg-[#ffb000]/5 border-none cursor-pointer transition-none font-mono uppercase",
-			label: "+ New Pane",
+			label: "> init_pty",
 		},
 	},
 	Vaporwave: {
 		wrapper: {
-			base: "mb-3 mx-1 rounded-md overflow-hidden border",
+			base: "mb-3 mx-1 rounded-md overflow-hidden border-t border-r border-b",
 			active: "bg-[#0a0015] shadow-[0_0_10px_rgba(255,113,206,0.15)] border-[#2d1b4e]",
 			inactive: "bg-[#05000a] border-[#2d1b4e]",
 		},
@@ -467,7 +467,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#a855f7] hover:text-[#ff71ce] bg-transparent hover:bg-[#100024]/50 border-none cursor-pointer transition-all duration-300 italic tracking-widest uppercase",
-			label: "+ New Pane",
+			label: "＋ ＮＥＷ",
 		},
 	},
 	Ocean: {
@@ -490,7 +490,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#2890b8] hover:text-[#00c8ff] bg-transparent hover:bg-[#0070a0]/10 border border-dashed border-[#144a65] hover:border-[#00c8ff]/30 rounded-xl cursor-pointer transition-all duration-300 w-[calc(100%_-_16px)]",
-			label: "+ New Pane",
+			label: "~ surface",
 		},
 	},
 	Sunset: {
@@ -519,7 +519,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#d04830] hover:text-[#e8a040] bg-transparent hover:bg-[#180c0a]/50 border-none cursor-pointer transition-all duration-200 font-bold tracking-wide",
-			label: "+ New Pane",
+			label: "+ kindle",
 		},
 	},
 	Arctic: {
@@ -543,7 +543,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		addPaneButton: {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#78b8d0] hover:text-[#48c8e0] bg-transparent hover:bg-[#1e3550]/30 border border-dashed border-[#1e3550] hover:border-[#48c8e0]/30 rounded-md cursor-pointer transition-all duration-200 uppercase tracking-widest w-[calc(100%_-_16px)]",
-			label: "+ New Pane",
+			label: "◇ new",
 		},
 	},
 };
