@@ -6,6 +6,7 @@ import { usePaneDragDrop } from "../hooks/usePaneDragDrop";
 import { ZONE_STYLES } from "../lib/pane-drag-utils";
 import { SCROLLBAR_HIDE_DELAY_MS, type ScreenPosition } from "../lib/ui-constants";
 import {
+	clampFontSize,
 	effectMul,
 	type GridSnapshot,
 	MAX_UNFOCUSED_DIM,
@@ -321,6 +322,19 @@ export const Pane = memo(function Pane({
 		[paneId],
 	);
 
+	const handleFontSizeChange = useCallback(
+		(newSize: number) => {
+			// Read themeOverride from the store imperatively to keep this callback stable —
+			// avoids recreation on every font size change (which would churn CanvasTerminal props)
+			const ws = useStore.getState().workspaces.find((w) => w.id === workspaceId);
+			const currentOverride = ws?.panes[paneId]?.themeOverride;
+			onUpdateConfig(paneId, {
+				themeOverride: { ...(currentOverride ?? {}), fontSize: clampFontSize(newSize) },
+			});
+		},
+		[paneId, workspaceId, onUpdateConfig],
+	);
+
 	const { isDropTarget } = useFileDrop({ containerRef: outerRef, onWrite: handleWrite });
 
 	// RAF-throttled scroll handler — accumulates fractional deltas from trackpad,
@@ -541,6 +555,7 @@ export const Pane = memo(function Pane({
 							selectionColor={mergedTheme.selectionColor ?? mergedTheme.accent}
 							paneId={paneId}
 							accentColor={variantTheme.accent}
+							onFontSizeChange={handleFontSizeChange}
 						/>
 						{/* Scrollbar track — themed, fades in/out, supports click-and-drag positioning when visible.
 						    Wide hit area (w-5) for touch; visible thumb stays w-1 via pointer-events-none. */}

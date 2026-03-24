@@ -1,5 +1,10 @@
 import { useEffect } from "react";
-import { PANE_SCROLL_EVENT, type PaneScrollDetail } from "../shared/types";
+import {
+	clampFontSize,
+	DEFAULT_FONT_SIZE,
+	PANE_SCROLL_EVENT,
+	type PaneScrollDetail,
+} from "../shared/types";
 import { getPaneIdsInOrder, useStore } from "../store";
 import { isModKeyHeld } from "../utils/platform";
 
@@ -22,6 +27,9 @@ const PANE_NAV_DELTAS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
  * - Mod+1-9: focus pane by index
  * - Mod+Down: scroll focused terminal to bottom
  * - Mod+Up: scroll focused terminal to top
+ * - Mod+= / Mod++: zoom in (increase font size)
+ * - Mod+-: zoom out (decrease font size)
+ * - Mod+0: reset font size to workspace default
  */
 
 interface ShortcutOptions {
@@ -150,6 +158,35 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 				if (!targetId) return;
 				e.preventDefault();
 				state.setFocusedPane(targetId);
+				return;
+			}
+
+			// Mod+= / Mod++ — zoom in, Mod+- — zoom out, Mod+0 — reset font size
+			// Note: Tauri 2 does not enable native webview zoom hotkeys by default,
+			// so these keys are exclusively handled here (no double-fire risk).
+			if (e.key === "=" || e.key === "+" || e.key === "-" || e.key === "0") {
+				if (!resolvedFocusId || !activeWs) return;
+				e.preventDefault();
+				const paneConfig = activeWs.panes[resolvedFocusId];
+				if (!paneConfig) return;
+
+				if (e.key === "0") {
+					// Reset to workspace default — remove per-pane fontSize override
+					const { fontSize: _, ...rest } = paneConfig.themeOverride ?? {};
+					state.updatePaneConfig(activeWs.id, resolvedFocusId, {
+						themeOverride: Object.keys(rest).length > 0 ? rest : null,
+					});
+				} else {
+					const currentSize =
+						paneConfig.themeOverride?.fontSize ?? activeWs.theme.fontSize ?? DEFAULT_FONT_SIZE;
+					const step = e.key === "-" ? -1 : 1;
+					const next = clampFontSize(currentSize + step);
+					if (next !== currentSize) {
+						state.updatePaneConfig(activeWs.id, resolvedFocusId, {
+							themeOverride: { ...(paneConfig.themeOverride ?? {}), fontSize: next },
+						});
+					}
+				}
 				return;
 			}
 

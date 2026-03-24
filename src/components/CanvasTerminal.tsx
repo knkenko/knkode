@@ -17,6 +17,7 @@ import type {
 	SelectionRange,
 } from "../shared/types";
 import {
+	clampFontSize,
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
 	DEFAULT_FONT_SIZE,
@@ -44,6 +45,8 @@ export interface CanvasTerminalProps {
 	readonly paneId: string;
 	/** Theme accent color for link hover highlight. Falls back to cursorColor prop. */
 	readonly accentColor?: string;
+	/** Callback when Cmd/Ctrl+Scroll changes font size. Receives the requested new size. */
+	readonly onFontSizeChange?: (newSize: number) => void;
 }
 
 /** Smooth cursor blink — full cycle duration (fade out → fade in). */
@@ -429,6 +432,7 @@ export function CanvasTerminal({
 	selectionColor,
 	paneId,
 	accentColor,
+	onFontSizeChange,
 }: CanvasTerminalProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -477,6 +481,14 @@ export function CanvasTerminal({
 	/** Whether the platform modifier key (Cmd/Ctrl) is currently held. */
 	const modKeyHeldRef = useRef(false);
 
+	// Font zoom refs — avoid stale closures in the wheel handler's addEventListener
+	// (its useEffect deps are [cellAtPixel, onWrite], not fontSize/onFontSizeChange)
+	const fontSizeRef = useRef(fontSize);
+	const onFontSizeChangeRef = useRef(onFontSizeChange);
+	/** Accumulated zoom delta from wheel events — dispatched once per RAF. */
+	const pendingZoomDelta = useRef(0);
+	const zoomRafId = useRef(0);
+
 	// Keep refs in sync
 	gridRef.current = grid;
 	onResizeRef.current = onResize;
@@ -484,6 +496,8 @@ export function CanvasTerminal({
 	cursorStyleRef.current = cursorStyle;
 	isFocusedRef.current = isFocused;
 	selectionColorRef.current = selectionColor;
+	fontSizeRef.current = fontSize;
+	onFontSizeChangeRef.current = onFontSizeChange;
 
 	/** Convert client (mouse) coordinates to a viewport-relative cell position.
 	 *  Returns viewport-relative {row, col} — NOT absolute physical rows. */
@@ -869,6 +883,28 @@ export function CanvasTerminal({
 			const { height: cellH } = cellMetrics.current;
 			if (cellH === 0) return;
 
+			// Cmd/Ctrl + Scroll → zoom font size (takes priority over all other paths,
+			// including SGR mouse grab — Cmd is explicit user intent to zoom).
+			// RAF-throttled: accumulate direction, dispatch once per frame to avoid
+			// flooding the store with updates on high-resolution trackpads.
+			if (isModKeyHeld(e) && e.deltaY !== 0 && onFontSizeChangeRef.current) {
+				e.preventDefault();
+				// scroll-down (deltaY > 0) = zoom out, scroll-up = zoom in
+				pendingZoomDelta.current += e.deltaY > 0 ? -1 : 1;
+				if (zoomRafId.current === 0) {
+					zoomRafId.current = requestAnimationFrame(() => {
+						zoomRafId.current = 0;
+						const delta = pendingZoomDelta.current;
+						pendingZoomDelta.current = 0;
+						if (delta === 0) return;
+						const current = fontSizeRef.current;
+						const next = clampFontSize(current + delta);
+						if (next !== current) onFontSizeChangeRef.current?.(next);
+					});
+				}
+				return;
+			}
+
 			const snap = gridRef.current;
 			const dpr = dprRef.current;
 
@@ -914,7 +950,10 @@ export function CanvasTerminal({
 		};
 
 		container.addEventListener("wheel", handler, { passive: false });
-		return () => container.removeEventListener("wheel", handler);
+		return () => {
+			container.removeEventListener("wheel", handler);
+			if (zoomRafId.current) cancelAnimationFrame(zoomRafId.current);
+		};
 	}, [cellAtPixel, onWrite]);
 
 	// Redraw when grid changes — grid is state that triggers redraw, draw reads from gridRef
