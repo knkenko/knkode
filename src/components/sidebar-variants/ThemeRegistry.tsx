@@ -343,7 +343,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	},
 	Matrix: {
 		wrapper: {
-			base: "mb-2 border-t border-r border-b border-[#00ff41]/35",
+			base: "mb-2 border border-[#00ff41]/35",
 			active: "bg-[#0a0a0a] shadow-[0_0_10px_rgba(0,255,65,0.1)]",
 			inactive: "bg-black",
 		},
@@ -446,7 +446,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 	},
 	Vaporwave: {
 		wrapper: {
-			base: "mb-3 mx-1 rounded-md overflow-hidden border-t border-r border-b",
+			base: "mb-3 mx-1 rounded-md overflow-hidden border",
 			active: "bg-[#0a0015] shadow-[0_0_10px_rgba(255,113,206,0.15)] border-[#2d1b4e]",
 			inactive: "bg-[#05000a] border-[#2d1b4e]",
 		},

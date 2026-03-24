@@ -77,8 +77,8 @@ export function MatrixEntry({
 			data-pane-id={paneId}
 			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-2 py-2 mt-0.5 border-b border-b-[#00ff41]/20 cursor-pointer transition-none font-mono uppercase ${
 				isFocused
-					? "sidebar-pane-focused text-[#00ff41] bg-[#00ff41]/10 border-l-2 border-l-[#00ff41]"
-					: "bg-transparent text-[#009933] hover:text-[#00ff41] border-l-2 border-l-transparent hover:bg-[#00ff41]/5"
+					? "sidebar-pane-focused text-[#00ff41] bg-[#00ff41]/10"
+					: "bg-transparent text-[#009933] hover:text-[#00ff41] hover:bg-[#00ff41]/5"
 			}`}
 		>
 			<span className="text-[11px] font-bold truncate">{title || label}</span>
@@ -450,8 +450,8 @@ export function VaporwaveEntry({
 			data-pane-id={paneId}
 			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-3 py-2 mt-0.5 border-b border-b-[#2d1b4e]/50 cursor-pointer transition-all font-sans ${
 				isFocused
-					? "sidebar-pane-focused text-[#ffffff] bg-gradient-to-r from-[#7b2fff]/30 to-transparent border-l-2 border-l-[#ff71ce]"
-					: "bg-transparent text-[#ff9de2] hover:text-[#f0d0ff] hover:bg-[#100024] border-l-2 border-l-transparent"
+					? "sidebar-pane-focused text-[#ffffff] bg-gradient-to-r from-[#7b2fff]/30 to-transparent"
+					: "bg-transparent text-[#ff9de2] hover:text-[#f0d0ff] hover:bg-[#100024]"
 			}`}
 		>
 			<span className="text-[11px] font-semibold truncate uppercase">{title || label}</span>
