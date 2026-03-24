@@ -134,6 +134,13 @@ pub struct GridSnapshot {
     /// Frontend caches decoded ImageBitmaps by hash.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub images: HashMap<String, ImageSnapshot>,
+    /// Whether the terminal is currently showing the alternate screen buffer
+    /// (used by TUI apps like vim, htop, less, tmux).
+    pub is_alt_screen: bool,
+    /// Whether the running program has enabled mouse reporting (any tracking
+    /// mode). When true, the frontend should forward mouse events as escape
+    /// sequences instead of handling them for selection/scrollback.
+    pub is_mouse_grabbed: bool,
 }
 
 /// ANSI 16-color palette sent from the frontend theme system.
@@ -866,6 +873,8 @@ impl TerminalState {
             scroll_offset: clamped_offset,
             default_bg: palette.background.to_rgb_string(),
             images: frame_images,
+            is_alt_screen: terminal.is_alt_screen_active(),
+            is_mouse_grabbed: terminal.is_mouse_grabbed(),
         }
     }
 
