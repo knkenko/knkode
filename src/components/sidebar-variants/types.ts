@@ -63,6 +63,10 @@ export interface BaseWorkspaceGitInfoProps {
 	pr: PrInfo | null;
 }
 
+export interface BaseAddPaneButtonProps {
+	onClick: () => void;
+}
+
 /** Position of a pane within its subgroup's bracket connector.
  *  `solo` when the subgroup contains exactly one pane (short centered bar). */
 export type BracketPosition = "first" | "middle" | "last" | "solo";
@@ -80,4 +84,5 @@ export interface ThemeVariantConfig {
 	Header: ComponentType<BaseWorkspaceHeaderProps>;
 	Entry: ComponentType<BasePaneEntryProps>;
 	GitInfo: ComponentType<BaseWorkspaceGitInfoProps>;
+	AddPaneButton: ComponentType<BaseAddPaneButtonProps>;
 }
