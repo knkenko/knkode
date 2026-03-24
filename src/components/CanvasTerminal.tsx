@@ -481,9 +481,13 @@ export function CanvasTerminal({
 	/** Whether the platform modifier key (Cmd/Ctrl) is currently held. */
 	const modKeyHeldRef = useRef(false);
 
-	// Font zoom refs — avoid stale closures in wheel handler
+	// Font zoom refs — avoid stale closures in the wheel handler's addEventListener
+	// (its useEffect deps are [cellAtPixel, onWrite], not fontSize/onFontSizeChange)
 	const fontSizeRef = useRef(fontSize);
 	const onFontSizeChangeRef = useRef(onFontSizeChange);
+	/** Accumulated zoom delta from wheel events — dispatched once per RAF. */
+	const pendingZoomDelta = useRef(0);
+	const zoomRafId = useRef(0);
 
 	// Keep refs in sync
 	gridRef.current = grid;
@@ -879,20 +883,30 @@ export function CanvasTerminal({
 			const { height: cellH } = cellMetrics.current;
 			if (cellH === 0) return;
 
-			const snap = gridRef.current;
-			const dpr = dprRef.current;
-
 			// Cmd/Ctrl + Scroll → zoom font size (takes priority over all other paths,
-			// including SGR mouse grab — Cmd is explicit user intent to zoom)
+			// including SGR mouse grab — Cmd is explicit user intent to zoom).
+			// RAF-throttled: accumulate direction, dispatch once per frame to avoid
+			// flooding the store with updates on high-resolution trackpads.
 			if (isModKeyHeld(e) && e.deltaY !== 0 && onFontSizeChangeRef.current) {
 				e.preventDefault();
-				const current = fontSizeRef.current;
 				// scroll-down (deltaY > 0) = zoom out, scroll-up = zoom in
-				const step = e.deltaY > 0 ? -1 : 1;
-				const next = clampFontSize(current + step);
-				if (next !== current) onFontSizeChangeRef.current(next);
+				pendingZoomDelta.current += e.deltaY > 0 ? -1 : 1;
+				if (zoomRafId.current === 0) {
+					zoomRafId.current = requestAnimationFrame(() => {
+						zoomRafId.current = 0;
+						const delta = pendingZoomDelta.current;
+						pendingZoomDelta.current = 0;
+						if (delta === 0) return;
+						const current = fontSizeRef.current;
+						const next = clampFontSize(current + delta);
+						if (next !== current) onFontSizeChangeRef.current?.(next);
+					});
+				}
 				return;
 			}
+
+			const snap = gridRef.current;
+			const dpr = dprRef.current;
 
 			// When the app has grabbed the mouse, forward wheel as SGR events.
 			// Shift bypasses forwarding so the user can still access scrollback.
@@ -936,7 +950,10 @@ export function CanvasTerminal({
 		};
 
 		container.addEventListener("wheel", handler, { passive: false });
-		return () => container.removeEventListener("wheel", handler);
+		return () => {
+			container.removeEventListener("wheel", handler);
+			if (zoomRafId.current) cancelAnimationFrame(zoomRafId.current);
+		};
 	}, [cellAtPixel, onWrite]);
 
 	// Redraw when grid changes — grid is state that triggers redraw, draw reads from gridRef
