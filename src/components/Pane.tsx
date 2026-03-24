@@ -91,9 +91,27 @@ export const Pane = memo(function Pane({
 	const pendingScrollDelta = useRef(0);
 	const scrollRafId = useRef(0);
 	const [scrollbarVisible, setScrollbarVisible] = useState(false);
+	const scrollbarVisibleRef = useRef(false);
 	const scrollbarTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const scrollbarTrackRef = useRef<HTMLDivElement>(null);
 	const scrollDragCleanupRef = useRef<(() => void) | null>(null);
+
+	// Scrollbar visibility helpers — guard state updates so continuous scrolling
+	// doesn't fire no-op setScrollbarVisible(true) every animation frame.
+	const showScrollbar = useCallback(() => {
+		if (!scrollbarVisibleRef.current) {
+			scrollbarVisibleRef.current = true;
+			setScrollbarVisible(true);
+		}
+		if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
+	}, []);
+
+	const scheduleScrollbarHide = useCallback(() => {
+		scrollbarTimerRef.current = setTimeout(() => {
+			scrollbarVisibleRef.current = false;
+			setScrollbarVisible(false);
+		}, SCROLLBAR_HIDE_DELAY_MS);
+	}, []);
 
 	const { isDragging, dropZone, outerRef, handleHeaderPointerDown } = usePaneDragDrop({
 		paneId,
@@ -232,10 +250,7 @@ export const Pane = memo(function Pane({
 				applyScrollOffset(newOffset);
 			};
 
-			// Show scrollbar on drag start
-			setScrollbarVisible(true);
-			if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
-
+			showScrollbar();
 			jumpToY(e.clientY);
 
 			// RAF-throttle drag moves to one IPC call per frame
@@ -256,10 +271,7 @@ export const Pane = memo(function Pane({
 				document.removeEventListener("pointermove", onMove);
 				document.removeEventListener("pointerup", onUp);
 				scrollDragCleanupRef.current = null;
-				scrollbarTimerRef.current = setTimeout(
-					() => setScrollbarVisible(false),
-					SCROLLBAR_HIDE_DELAY_MS,
-				);
+				scheduleScrollbarHide();
 			};
 
 			// Clean up any stale listeners before adding new ones
@@ -274,11 +286,16 @@ export const Pane = memo(function Pane({
 				document.removeEventListener("pointerup", onUp);
 			};
 		},
-		[applyScrollOffset, paneId],
+		[applyScrollOffset, paneId, showScrollbar, scheduleScrollbarHide],
 	);
 
-	// Cleanup scrollbar drag listeners on unmount
-	useEffect(() => () => scrollDragCleanupRef.current?.(), []);
+	// Cleanup scrollbar drag listeners and pending scroll RAF on unmount
+	useEffect(() => {
+		return () => {
+			scrollDragCleanupRef.current?.();
+			if (scrollRafId.current) cancelAnimationFrame(scrollRafId.current);
+		};
+	}, []);
 
 	const handleWrite = useCallback(
 		(data: string) => {
@@ -324,13 +341,8 @@ export const Pane = memo(function Pane({
 					return;
 				}
 
-				// Show scrollbar, auto-hide after inactivity
-				setScrollbarVisible(true);
-				if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
-				scrollbarTimerRef.current = setTimeout(
-					() => setScrollbarVisible(false),
-					SCROLLBAR_HIDE_DELAY_MS,
-				);
+				showScrollbar();
+				scheduleScrollbarHide();
 
 				// Mark scrolled-up so the render RAF won't push new output
 				if (totalDelta > 0) isScrolledRef.current = true;
@@ -344,7 +356,7 @@ export const Pane = memo(function Pane({
 				applyScrollOffset(newOffset);
 			});
 		},
-		[applyScrollOffset, scrollToBottom],
+		[applyScrollOffset, scrollToBottom, showScrollbar, scheduleScrollbarHide],
 	);
 
 	// Listen for Mod+Up/Down scroll shortcuts dispatched by useKeyboardShortcuts
