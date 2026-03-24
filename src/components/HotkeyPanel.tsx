@@ -38,6 +38,10 @@ const SECTIONS: { label: string; shortcuts: Shortcut[] }[] = [
 			{ keys: `${modKey}+V`, description: "Paste" },
 			{ keys: `${modKey}+Up`, description: "Scroll to top" },
 			{ keys: `${modKey}+Down`, description: "Scroll to bottom" },
+			{ keys: `${modKey}+=`, description: "Zoom in" },
+			{ keys: `${modKey}+\u2013`, description: "Zoom out" },
+			{ keys: `${modKey}+0`, description: "Reset zoom" },
+			{ keys: `${modKey}+Scroll`, description: "Zoom in/out" },
 		],
 	},
 	{
