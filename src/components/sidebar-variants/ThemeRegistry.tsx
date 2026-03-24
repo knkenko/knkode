@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, memo } from "react";
 import type { ThemePresetName } from "../../data/theme-presets";
 import type {
 	BasePaneEntryProps,
@@ -510,9 +510,16 @@ export function WorkspaceGitInfoVariant({
 	return <GitInfo {...props} />;
 }
 
+const BRACKET_POSITION_CLASSES: Record<BracketPosition, string> = {
+	first: "mt-[50%] rounded-t-full",
+	middle: "",
+	last: "mb-[50%] rounded-b-full",
+	solo: "my-[30%] rounded-full",
+};
+
 /** Renders a vertical bracket connector segment for subgroup visual grouping.
- *  Uses a thin CSS line (not Unicode) for sub-pixel rendering and continuous connection. */
-export function SubgroupBracket({
+ *  Uses a thin CSS div (not Unicode) for consistent rendering and seamless vertical connection. */
+export const SubgroupBracket = memo(function SubgroupBracket({
 	position,
 	preset,
 	isActive,
@@ -521,15 +528,14 @@ export function SubgroupBracket({
 	preset: ThemePresetName;
 	isActive: boolean;
 }) {
-	if (position === "none") return null;
 	const { bracket } = getConfig(preset);
 	const color = isActive ? bracket.active : bracket.inactive;
 	return (
 		<div className="w-3 shrink-0 flex justify-center" aria-hidden="true">
 			<div
-				className={`w-[2px] ${position === "first" ? "mt-[50%] rounded-t-full" : position === "last" ? "mb-[50%] rounded-b-full" : position === "solo" ? "my-[30%] rounded-full" : ""}`}
+				className={`w-[2px] ${BRACKET_POSITION_CLASSES[position]}`}
 				style={{ backgroundColor: color }}
 			/>
 		</div>
 	);
-}
+});

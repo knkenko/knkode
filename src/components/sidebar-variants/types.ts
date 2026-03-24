@@ -64,8 +64,8 @@ export interface BaseWorkspaceGitInfoProps {
 }
 
 /** Position of a pane within its subgroup's bracket connector.
- *  `none` when the workspace has only one subgroup (no brackets shown). */
-export type BracketPosition = "first" | "middle" | "last" | "solo" | "none";
+ *  `solo` when the subgroup contains exactly one pane (short centered bar). */
+export type BracketPosition = "first" | "middle" | "last" | "solo";
 
 /** CSS color strings for subgroup bracket connectors. */
 export interface BracketColors {

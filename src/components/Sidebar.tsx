@@ -4,8 +4,9 @@ import { useClickOutside } from "../hooks/useClickOutside";
 import { useDragReorder } from "../hooks/useDragReorder";
 import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 import { useWindowDrag } from "../hooks/useWindowDrag";
+import { Fragment } from "react";
 import type { Workspace } from "../shared/types";
-import { findSubgroupForPane, getAllPaneIds, getPaneIdsInOrder, useStore } from "../store";
+import { findSubgroupForPane, getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceGitInfo } from "./SidebarWorkspaceGitInfo";
@@ -18,6 +19,14 @@ import {
 } from "./sidebar-variants/ThemeRegistry";
 import type { BracketPosition } from "./sidebar-variants/types";
 import { UpdateBanner } from "./UpdateBanner";
+
+/** Compute bracket position for a pane within its subgroup. */
+function getBracketPosition(index: number, total: number): BracketPosition {
+	if (total === 1) return "solo";
+	if (index === 0) return "first";
+	if (index === total - 1) return "last";
+	return "middle";
+}
 
 /** px */ const SIDEBAR_WIDTH = 260;
 /** px — wide enough to contain macOS traffic lights (90px) and show truncated workspace names */ const SIDEBAR_COLLAPSED_WIDTH = 96;
@@ -233,8 +242,8 @@ export function Sidebar({
 						{openWorkspaces.map((ws, index) => {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
-							const paneIds = getAllPaneIds(ws);
-							const canClose = paneIds.length > 1;
+							const canClose = Object.keys(ws.panes).length > 1;
+							const showBrackets = ws.subgroups.length > 1;
 
 							return (
 								<li
@@ -278,48 +287,46 @@ export function Sidebar({
 													{ws.subgroups.map((sg) => {
 														const sgPaneIds = getPaneIdsInOrder(sg.layout.tree);
 														const isActiveSg = sg.id === ws.activeSubgroupId;
-														const showBrackets = ws.subgroups.length > 1;
-														return sgPaneIds.map((paneId, idx) => {
-															const config = ws.panes[paneId];
-															if (!config) return null;
-															const bracketPos: BracketPosition = !showBrackets
-																? "none"
-																: sgPaneIds.length === 1
-																	? "solo"
-																	: idx === 0
-																		? "first"
-																		: idx === sgPaneIds.length - 1
-																			? "last"
-																			: "middle";
-															return (
-																<div
-																	key={paneId}
-																	className={`flex items-stretch ${showBrackets && !isActiveSg ? "opacity-50" : ""}`}
-																>
-																	{showBrackets && (
-																		<SubgroupBracket
-																			position={bracketPos}
-																			preset={activePreset}
-																			isActive={isActiveSg}
-																		/>
-																	)}
-																	<div className="flex-1 min-w-0">
-																		<SidebarPaneEntry
-																			paneId={paneId}
-																			workspaceId={ws.id}
-																			workspacePreset={activePreset}
-																			config={config}
-																			isFocused={focusedPaneId === paneId && isActive}
-																			canClose={canClose}
-																			onClick={() => handlePaneClick(ws.id, paneId)}
-																			{...(canClose
-																				? { onClose: () => closePane(ws.id, paneId) }
-																				: {})}
-																		/>
-																	</div>
-																</div>
-															);
-														});
+														return (
+															<Fragment key={sg.id}>
+																{sgPaneIds.map((paneId, idx) => {
+																	const config = ws.panes[paneId];
+																	if (!config) return null;
+																	return (
+																		<div
+																			key={paneId}
+																			className={
+																				showBrackets && !isActiveSg
+																					? "flex items-stretch opacity-50"
+																					: "flex items-stretch"
+																			}
+																		>
+																			{showBrackets && (
+																				<SubgroupBracket
+																					position={getBracketPosition(idx, sgPaneIds.length)}
+																					preset={activePreset}
+																					isActive={isActiveSg}
+																				/>
+																			)}
+																			<div className="flex-1 min-w-0">
+																				<SidebarPaneEntry
+																					paneId={paneId}
+																					workspaceId={ws.id}
+																					workspacePreset={activePreset}
+																					config={config}
+																					isFocused={focusedPaneId === paneId && isActive}
+																					canClose={canClose}
+																					onClick={() => handlePaneClick(ws.id, paneId)}
+																					{...(canClose
+																						? { onClose: () => closePane(ws.id, paneId) }
+																						: {})}
+																				/>
+																			</div>
+																		</div>
+																	);
+																})}
+															</Fragment>
+														);
 													})}
 												</div>
 											</>
