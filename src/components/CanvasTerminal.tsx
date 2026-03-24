@@ -8,6 +8,7 @@ import {
 	sgrMouseRelease,
 	sgrWheelScroll,
 } from "../lib/mouse-to-sgr";
+import type { ScreenPosition } from "../lib/ui-constants";
 import type {
 	CellSnapshot,
 	CursorStyle,
@@ -24,6 +25,16 @@ import {
 	DEFAULT_LINE_HEIGHT,
 } from "../shared/types";
 import { isMac, isModKeyHeld } from "../utils/platform";
+
+/** Imperative methods exposed by CanvasTerminal for context menu integration. */
+export interface CanvasTerminalHandle {
+	/** Copy current selection text to clipboard and clear selection. No-op if no selection. */
+	copySelection(): void;
+	/** Read clipboard and write to PTY with bracketed paste sequences. */
+	pasteFromClipboard(): void;
+	/** Select all content in the terminal buffer and redraw. */
+	selectAll(): void;
+}
 
 export interface CanvasTerminalProps {
 	readonly grid: GridSnapshot | null;
@@ -47,6 +58,10 @@ export interface CanvasTerminalProps {
 	readonly accentColor?: string;
 	/** Callback when Cmd/Ctrl+Scroll changes font size. Receives the requested new size. */
 	readonly onFontSizeChange?: (newSize: number) => void;
+	/** Imperative handle ref for context menu actions (copy, paste, select all). */
+	readonly handleRef?: React.RefObject<CanvasTerminalHandle | null>;
+	/** Right-click callback with cursor position and current selection range (null if none). */
+	readonly onTerminalContextMenu?: (pos: ScreenPosition, selectionRange: SelectionRange | null) => void;
 }
 
 /** Smooth cursor blink — full cycle duration (fade out → fade in). */
@@ -433,6 +448,8 @@ export function CanvasTerminal({
 	paneId,
 	accentColor,
 	onFontSizeChange,
+	handleRef,
+	onTerminalContextMenu,
 }: CanvasTerminalProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -488,6 +505,7 @@ export function CanvasTerminal({
 	/** Accumulated zoom delta from wheel events — dispatched once per RAF. */
 	const pendingZoomDelta = useRef(0);
 	const zoomRafId = useRef(0);
+	const onTerminalContextMenuRef = useRef(onTerminalContextMenu);
 
 	// Keep refs in sync
 	gridRef.current = grid;
@@ -498,6 +516,7 @@ export function CanvasTerminal({
 	selectionColorRef.current = selectionColor;
 	fontSizeRef.current = fontSize;
 	onFontSizeChangeRef.current = onFontSizeChange;
+	onTerminalContextMenuRef.current = onTerminalContextMenu;
 
 	/** Convert client (mouse) coordinates to a viewport-relative cell position.
 	 *  Returns viewport-relative {row, col} — NOT absolute physical rows. */
@@ -1069,6 +1088,57 @@ export function CanvasTerminal({
 			});
 	}, [writePaste]);
 
+	// Expose imperative methods for context menu integration
+	if (handleRef) {
+		handleRef.current = {
+			copySelection() {
+				const anchor = selectionAnchorRef.current;
+				const end = selectionEndRef.current;
+				if (!anchor || !end || !selectionActiveRef.current) return;
+				const range = normalizeSelection(anchor, end);
+				window.api
+					.getSelectionText(paneId, range)
+					.then((text) => {
+						if (text) return writeText(text);
+					})
+					.then(() => clearSelection())
+					.catch((err: unknown) => {
+						console.error(`[terminal] context-menu copy failed for ${paneId}:`, err);
+						clearSelection();
+					});
+			},
+			pasteFromClipboard() {
+				pasteFromClipboard();
+			},
+			selectAll() {
+				const snap = gridRef.current;
+				if (!snap) return;
+				selectionAnchorRef.current = { row: 0, col: 0 };
+				selectionEndRef.current = {
+					row: snap.scrollbackRows + snap.totalRows - 1,
+					col: snap.cols - 1,
+				};
+				selectionActiveRef.current = true;
+				drawRef.current();
+			},
+		};
+	}
+
+	const handleContextMenu = useCallback((e: React.MouseEvent) => {
+		const snap = gridRef.current;
+		// In mouse-grabbed mode (TUI apps), suppress custom menu unless Shift is held
+		if (snap?.isMouseGrabbed && !e.shiftKey) return;
+
+		e.preventDefault();
+
+		const anchor = selectionAnchorRef.current;
+		const end = selectionEndRef.current;
+		const selRange =
+			anchor && end && selectionActiveRef.current ? normalizeSelection(anchor, end) : null;
+
+		onTerminalContextMenuRef.current?.({ x: e.clientX, y: e.clientY }, selRange);
+	}, []);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
 			// Copy shortcut: Cmd+C (macOS) or Ctrl+C (Windows/Linux)
@@ -1513,6 +1583,7 @@ export function CanvasTerminal({
 			onMouseDown={handleMouseDown}
 			onMouseMove={handleMouseMove}
 			onMouseLeave={clearLinkHover}
+			onContextMenu={handleContextMenu}
 		>
 			<canvas ref={canvasRef} className="block" />
 		</div>
