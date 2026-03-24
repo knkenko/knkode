@@ -5,7 +5,7 @@ import { useDragReorder } from "../hooks/useDragReorder";
 import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 import { useWindowDrag } from "../hooks/useWindowDrag";
 import type { Workspace } from "../shared/types";
-import { getPaneIdsInOrder, useStore } from "../store";
+import { findSubgroupForPane, getAllPaneIds, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
 import { SidebarPaneEntry } from "./SidebarPaneEntry";
 import { SidebarWorkspaceGitInfo } from "./SidebarWorkspaceGitInfo";
@@ -73,6 +73,7 @@ export function Sidebar({
 	const updateWorkspace = useStore((s) => s.updateWorkspace);
 	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
 	const closePane = useStore((s) => s.closePane);
+	const setActiveSubgroup = useStore((s) => s.setActiveSubgroup);
 	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
 
 	const handleBarMouseDown = useWindowDrag();
@@ -154,9 +155,17 @@ export function Sidebar({
 	const handlePaneClick = useCallback(
 		(workspaceId: string, paneId: string) => {
 			setActiveWorkspace(workspaceId);
+			// Switch to the subgroup containing the clicked pane (read imperatively to avoid deps)
+			const ws = useStore.getState().workspaces.find((w) => w.id === workspaceId);
+			if (ws) {
+				const sg = findSubgroupForPane(ws, paneId);
+				if (sg && sg.id !== ws.activeSubgroupId) {
+					setActiveSubgroup(workspaceId, sg.id);
+				}
+			}
 			setFocusedPane(paneId);
 		},
-		[setActiveWorkspace, setFocusedPane],
+		[setActiveWorkspace, setActiveSubgroup, setFocusedPane],
 	);
 
 	const showTransientError = useCallback((msg: string) => {
@@ -222,7 +231,7 @@ export function Sidebar({
 						{openWorkspaces.map((ws, index) => {
 							const isActive = ws.id === activeWorkspaceId;
 							const isSectionCollapsed = collapsedSections.has(ws.id);
-							const paneIds = getPaneIdsInOrder(ws.layout.tree);
+							const paneIds = getAllPaneIds(ws);
 							const canClose = paneIds.length > 1;
 
 							return (

@@ -5,7 +5,7 @@ import {
 	PANE_SCROLL_EVENT,
 	type PaneScrollDetail,
 } from "../shared/types";
-import { getPaneIdsInOrder, useStore } from "../store";
+import { getAllPaneIds, useStore } from "../store";
 import { isModKeyHeld } from "../utils/platform";
 
 /** Delta lookup for pane navigation arrows (Left = prev, Right = next). */
@@ -53,7 +53,7 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 			const activeWs = state.workspaces.find((w) => w.id === state.appState.activeWorkspaceId);
 
 			// Compute pane list once for all shortcuts that need it
-			const paneIds = activeWs ? getPaneIdsInOrder(activeWs.layout.tree) : [];
+			const paneIds = activeWs ? getAllPaneIds(activeWs) : [];
 
 			// Resolve focused pane — auto-focus first pane if none focused
 			const focusedId = state.focusedPaneId;

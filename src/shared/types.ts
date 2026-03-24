@@ -220,11 +220,19 @@ export type WorkspaceLayout =
 	| { type: "preset"; preset: LayoutPreset; tree: LayoutNode }
 	| { type: "custom"; tree: LayoutNode };
 
+/** A subgroup is an independent split layout within a workspace.
+ *  Each subgroup has its own layout tree; only the active subgroup is rendered. */
+export interface SubgroupConfig {
+	readonly id: string;
+	readonly layout: WorkspaceLayout;
+}
+
 export interface Workspace {
 	readonly id: string;
 	readonly name: string;
 	readonly theme: PaneTheme;
-	readonly layout: WorkspaceLayout;
+	readonly subgroups: readonly SubgroupConfig[];
+	readonly activeSubgroupId: string;
 	readonly panes: Record<string, PaneConfig>;
 }
 

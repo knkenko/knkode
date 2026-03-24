@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import "allotment/dist/style.css";
 import type { LayoutNode, PaneConfig, Workspace } from "../shared/types";
 import { isLayoutBranch } from "../shared/types";
-import { getFirstPaneId, useStore } from "../store";
+import { getActiveSubgroup, getFirstPaneId, useStore } from "../store";
 import { Pane } from "./Pane";
 
 interface PaneAreaProps {
@@ -102,5 +102,6 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 		);
 	};
 
-	return <div className="flex-1 overflow-hidden">{renderNode(workspace.layout.tree)}</div>;
+	const activeSubgroup = getActiveSubgroup(workspace);
+	return <div className="flex-1 overflow-hidden">{renderNode(activeSubgroup.layout.tree)}</div>;
 }
