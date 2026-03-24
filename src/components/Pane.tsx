@@ -17,7 +17,6 @@ import {
 	type PaneScrollDetail,
 	type PaneTheme,
 	type PrInfo,
-	type SelectionRange,
 } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
@@ -81,9 +80,10 @@ export const Pane = memo(function Pane({
 }: PaneProps) {
 	const [showContext, setShowContext] = useState(false);
 	const [contextPos, setContextPos] = useState<ScreenPosition>({ x: 0, y: 0 });
-	const [showTerminalContext, setShowTerminalContext] = useState(false);
-	const [terminalContextPos, setTerminalContextPos] = useState<ScreenPosition>({ x: 0, y: 0 });
-	const [terminalContextHasSelection, setTerminalContextHasSelection] = useState(false);
+	const [terminalContext, setTerminalContext] = useState<{
+		pos: ScreenPosition;
+		hasSelection: boolean;
+	} | null>(null);
 	const terminalHandleRef = useRef<CanvasTerminalHandle | null>(null);
 	const [grid, setGrid] = useState<GridSnapshot | null>(null);
 	const [ptyError, setPtyError] = useState(false);
@@ -341,14 +341,10 @@ export const Pane = memo(function Pane({
 		[paneId, workspaceId, onUpdateConfig],
 	);
 
-	const handleTerminalContextMenu = useCallback(
-		(pos: ScreenPosition, selectionRange: SelectionRange | null) => {
-			setTerminalContextPos(pos);
-			setTerminalContextHasSelection(selectionRange !== null);
-			setShowTerminalContext(true);
-		},
-		[],
-	);
+	const handleTerminalContextMenu = useCallback((pos: ScreenPosition, hasSelection: boolean) => {
+		setShowContext(false);
+		setTerminalContext({ pos, hasSelection });
+	}, []);
 
 	const { isDropTarget } = useFileDrop({ containerRef: outerRef, onWrite: handleWrite });
 
@@ -419,6 +415,7 @@ export const Pane = memo(function Pane({
 
 	const handleContextMenu = useCallback((e: React.MouseEvent) => {
 		e.preventDefault();
+		setTerminalContext(null);
 		setContextPos({ x: e.clientX, y: e.clientY });
 		setShowContext(true);
 	}, []);
@@ -650,13 +647,13 @@ export const Pane = memo(function Pane({
 				/>
 			)}
 
-			{showTerminalContext && terminalHandleRef.current && (
+			{terminalContext && terminalHandleRef.current && (
 				<TerminalContextMenu
-					anchorPos={terminalContextPos}
-					hasSelection={terminalContextHasSelection}
+					anchorPos={terminalContext.pos}
+					hasSelection={terminalContext.hasSelection}
 					terminalHandle={terminalHandleRef.current}
 					onWrite={handleWrite}
-					onDismiss={() => setShowTerminalContext(false)}
+					onDismiss={() => setTerminalContext(null)}
 				/>
 			)}
 		</div>

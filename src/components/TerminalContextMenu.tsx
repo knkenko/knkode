@@ -4,6 +4,9 @@ import { useClickOutside } from "../hooks/useClickOutside";
 import { getPortalRoot, type ScreenPosition, VIEWPORT_MARGIN } from "../lib/ui-constants";
 import type { CanvasTerminalHandle } from "./CanvasTerminal";
 
+/** Form-feed control character — clears the terminal screen when written to PTY. */
+const CLEAR_SCREEN = "\x0c";
+
 interface TerminalContextMenuProps {
 	anchorPos: ScreenPosition;
 	hasSelection: boolean;
@@ -55,10 +58,9 @@ export function TerminalContextMenu({
 	}, [anchorPos.x, anchorPos.y]);
 
 	return createPortal(
-		// biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation only, keyboard handled by Escape listener
 		<div
 			ref={ref}
-			role="presentation"
+			role="menu"
 			className="ctx-menu"
 			style={{
 				position: "fixed",
@@ -104,7 +106,7 @@ export function TerminalContextMenu({
 				type="button"
 				className="ctx-item"
 				onClick={() => {
-					onWrite("\x0c");
+					onWrite(CLEAR_SCREEN);
 					onDismiss();
 				}}
 			>
