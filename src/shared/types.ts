@@ -233,6 +233,8 @@ export interface AppState {
 	readonly activeWorkspaceId: string | null;
 	/** Whether the sidebar tree is in narrow/icon-only mode. */
 	readonly sidebarCollapsed: boolean;
+	/** Workspace IDs whose sidebar sections are collapsed. */
+	readonly collapsedWorkspaceIds: readonly string[];
 	readonly windowBounds: {
 		readonly x: number;
 		readonly y: number;

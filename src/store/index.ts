@@ -45,7 +45,8 @@ interface StoreState {
 	/** Terminal title per pane (from terminal title escape sequences). Ephemeral runtime state.
 	 *  Values are never null — entries are deleted on pane removal via cleanPaneEphemeral. */
 	paneTitles: Record<string, string>;
-	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
+	/** In-memory mirror of `appState.collapsedWorkspaceIds` as a Set for O(1) lookup.
+	 *  Hydrated from AppState on init, kept in sync by `toggleSidebarSection`.
 	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
 	collapsedSidebarSections: ReadonlySet<string>;
 
@@ -117,6 +118,7 @@ export const useStore = create<StoreState>((set, get) => ({
 		openWorkspaceIds: [],
 		activeWorkspaceId: null,
 		sidebarCollapsed: false,
+		collapsedWorkspaceIds: [],
 		windowBounds: { x: 100, y: 100, width: 1200, height: 800 },
 	},
 	homeDir: "/tmp",
@@ -157,11 +159,13 @@ export const useStore = create<StoreState>((set, get) => ({
 	},
 
 	toggleSidebarSection: (workspaceId) => {
-		const current = get().collapsedSidebarSections;
-		const next = new Set(current);
+		const state = get();
+		const next = new Set(state.collapsedSidebarSections);
 		if (next.has(workspaceId)) next.delete(workspaceId);
 		else next.add(workspaceId);
-		set({ collapsedSidebarSections: next });
+		const updated = { ...state.appState, collapsedWorkspaceIds: Array.from(next).sort() };
+		set({ collapsedSidebarSections: next, appState: updated });
+		persistAppState(updated);
 	},
 
 	updatePaneAgentStatus: (paneId, status) => {
@@ -242,6 +246,9 @@ export const useStore = create<StoreState>((set, get) => ({
 			let appState: AppState = {
 				...loadedAppState,
 				sidebarCollapsed: (loadedAppState as Partial<AppState>).sidebarCollapsed ?? false,
+				collapsedWorkspaceIds: (
+					(loadedAppState as Partial<AppState>).collapsedWorkspaceIds ?? []
+				).filter((id): id is string => typeof id === "string"),
 			};
 
 			// If no workspaces exist, create a default one
@@ -300,6 +307,7 @@ export const useStore = create<StoreState>((set, get) => ({
 				focusGeneration: initialFocusedPaneId ? 1 : 0,
 				paneBranches,
 				panePrs: {},
+				collapsedSidebarSections: new Set(appState.collapsedWorkspaceIds),
 			});
 		} catch (err) {
 			console.error("[store] Failed to initialize:", err);
