@@ -83,7 +83,9 @@ export function MatrixEntry({
 		>
 			<span className="text-[11px] font-bold truncate">{title || label}</span>
 			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#009933] font-mono">&gt; {label}</span>
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#009933] font-mono">
+					&gt; {label}
+				</span>
 			)}
 		</button>
 	);
@@ -175,7 +177,9 @@ export function CyberpunkEntry({
 		>
 			<span className="text-[11px] font-bold truncate">{title || label}</span>
 			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b967ff] font-mono">{label}</span>
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b967ff] font-mono">
+					{label}
+				</span>
 			)}
 		</button>
 	);
@@ -359,7 +363,9 @@ export function AmberEntry({
 		>
 			<span className="text-[11px] font-bold truncate">{title || label}</span>
 			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b37a00] font-mono">{label}</span>
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b37a00] font-mono">
+					{label}
+				</span>
 			)}
 		</button>
 	);
@@ -449,9 +455,7 @@ export function VaporwaveEntry({
 			}`}
 		>
 			<span className="text-[11px] font-semibold truncate uppercase">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#ff9de2]">{label}</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#ff9de2]">{label}</span>}
 		</button>
 	);
 }
@@ -548,9 +552,7 @@ export function OceanEntry({
 			}`}
 		>
 			<span className="text-[11px] truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#44d8f0]">{label}</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#44d8f0]">{label}</span>}
 		</button>
 	);
 }
@@ -641,9 +643,7 @@ export function SunsetEntry({
 			}`}
 		>
 			<span className="text-[11px] font-medium truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#e87858]">{label}</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#e87858]">{label}</span>}
 		</button>
 	);
 }
@@ -742,9 +742,7 @@ export function ArcticEntry({
 			}`}
 		>
 			<span className="text-[11px] truncate tracking-wide">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#68d8ee]">{label}</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#68d8ee]">{label}</span>}
 		</button>
 	);
 }

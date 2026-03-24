@@ -1,6 +1,7 @@
-import { type ReactNode, memo } from "react";
+import { memo, type ReactNode } from "react";
 import type { ThemePresetName } from "../../data/theme-presets";
 import type {
+	AddPaneButtonTokens,
 	BasePaneEntryProps,
 	BaseWorkspaceGitInfoProps,
 	BaseWorkspaceHeaderProps,
@@ -131,6 +132,22 @@ function CollapsedButton({
 	);
 }
 
+// ── Add Pane button component ────────────────────────────────────
+
+function AddPaneButton({ onClick, tokens }: { onClick: () => void; tokens: AddPaneButtonTokens }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			aria-label="Add new pane"
+			className={tokens.className}
+			style={tokens.style}
+		>
+			{tokens.label}
+		</button>
+	);
+}
+
 // ── Variant Registry ─────────────────────────────────────────────
 
 const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
@@ -151,6 +168,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: DefaultDarkHeader,
 		Entry: DefaultDarkEntry,
 		GitInfo: DefaultDarkGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-4 py-1 text-left text-[10px] text-[#5a6380] hover:text-[#8892b0] bg-transparent border-none cursor-pointer transition-colors duration-150",
+			label: "+ New Pane",
+		},
 	},
 	Dracula: {
 		wrapper: {
@@ -170,6 +192,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: DraculaHeader,
 		Entry: DraculaEntry,
 		GitInfo: DraculaGitInfo,
+		addPaneButton: {
+			className:
+				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#6272a4] hover:text-[#ff79c6] bg-transparent hover:bg-[#44475a]/20 border border-dashed border-[#44475a]/40 hover:border-[#ff79c6]/40 rounded-md cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
+			label: "+ New Pane",
+		},
 	},
 	"Tokyo Night": {
 		wrapper: {
@@ -189,6 +216,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: TokyoNightHeader,
 		Entry: TokyoNightEntry,
 		GitInfo: TokyoNightGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-4 py-1 text-left text-[10px] text-[#565f89] hover:text-[#7aa2f7] bg-transparent border-none cursor-pointer transition-colors duration-200 uppercase tracking-wider font-bold",
+			label: "+ New Pane",
+		},
 	},
 	Nord: {
 		wrapper: {
@@ -207,6 +239,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: NordHeader,
 		Entry: NordEntry,
 		GitInfo: NordGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-4 py-1 text-left text-[10px] text-[#4c566a] hover:text-[#d8dee9] bg-transparent hover:bg-[#3b4252]/30 border-none cursor-pointer transition-colors duration-200 tracking-wide",
+			label: "+ New Pane",
+		},
 	},
 	Catppuccin: {
 		wrapper: {
@@ -226,6 +263,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: CatppuccinHeader,
 		Entry: CatppuccinEntry,
 		GitInfo: CatppuccinGitInfo,
+		addPaneButton: {
+			className:
+				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#7f849c] hover:text-[#cba6f7] bg-transparent hover:bg-[#313244]/30 border border-dashed border-[#313244]/60 hover:border-[#cba6f7]/40 rounded-lg cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
+			label: "+ New Pane",
+		},
 	},
 	Gruvbox: {
 		wrapper: {
@@ -245,6 +287,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: GruvboxHeader,
 		Entry: GruvboxEntry,
 		GitInfo: GruvboxGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-2 py-1 text-left text-[10px] text-[#a89984] hover:text-[#ebdbb2] bg-transparent hover:bg-[#3c3836] border-none cursor-pointer transition-none font-mono font-bold uppercase",
+			label: "[+ NEW]",
+		},
 	},
 	Monokai: {
 		wrapper: {
@@ -264,6 +311,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: MonokaiHeader,
 		Entry: MonokaiEntry,
 		GitInfo: MonokaiGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-3 py-1 text-left text-[10px] text-[#75715e] hover:text-[#f92672] bg-transparent border-none cursor-pointer transition-colors duration-150",
+			label: "+ New Pane",
+		},
 	},
 	Everforest: {
 		wrapper: {
@@ -283,6 +335,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: EverforestHeader,
 		Entry: EverforestEntry,
 		GitInfo: EverforestGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-3 py-1 text-left text-[10px] text-[#859289] hover:text-[#a7c080] bg-transparent hover:bg-[#343f44]/40 border-none cursor-pointer transition-colors duration-200",
+			label: "+ New Pane",
+		},
 	},
 	Matrix: {
 		wrapper: {
@@ -301,6 +358,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: MatrixHeader,
 		Entry: MatrixEntry,
 		GitInfo: MatrixGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-2 py-1 text-left text-[10px] text-[#009933] hover:text-[#00ff41] bg-transparent hover:bg-[#00ff41]/5 border-none cursor-pointer transition-none font-mono font-bold uppercase",
+			label: "> SPAWN_PROCESS",
+		},
 	},
 	Cyberpunk: {
 		wrapper: {
@@ -323,6 +385,14 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: CyberpunkHeader,
 		Entry: CyberpunkEntry,
 		GitInfo: CyberpunkGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-4 py-1 text-left text-[10px] text-[#ff6e96] hover:text-[#05d9e8] bg-transparent hover:bg-[#2a0550]/30 border-none cursor-pointer transition-all duration-200 font-bold uppercase tracking-wider",
+			style: {
+				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%)",
+			},
+			label: "+ NEW PANE",
+		},
 	},
 	Solana: {
 		wrapper: {
@@ -343,6 +413,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: SolanaHeader,
 		Entry: SolanaEntry,
 		GitInfo: SolanaGitInfo,
+		addPaneButton: {
+			className:
+				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#b380ff] hover:text-[#f5f5ff] bg-transparent hover:bg-gradient-to-r hover:from-[#9945ff]/10 hover:to-[#14f195]/10 border border-dashed border-[#35356a] hover:border-[#9945ff]/40 rounded-full cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
+			label: "+ New Pane",
+		},
 	},
 	Amber: {
 		wrapper: {
@@ -363,6 +438,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: AmberHeader,
 		Entry: AmberEntry,
 		GitInfo: AmberGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-3 py-1 text-left text-[10px] text-[#b37a00] hover:text-[#ffb000] bg-transparent hover:bg-[#ffb000]/5 border-none cursor-pointer transition-none font-mono uppercase",
+			label: "+ New Pane",
+		},
 	},
 	Vaporwave: {
 		wrapper: {
@@ -384,6 +464,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: VaporwaveHeader,
 		Entry: VaporwaveEntry,
 		GitInfo: VaporwaveGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-3 py-1 text-left text-[10px] text-[#a855f7] hover:text-[#ff71ce] bg-transparent hover:bg-[#100024]/50 border-none cursor-pointer transition-all duration-300 italic tracking-widest uppercase",
+			label: "+ New Pane",
+		},
 	},
 	Ocean: {
 		wrapper: {
@@ -402,6 +487,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: OceanHeader,
 		Entry: OceanEntry,
 		GitInfo: OceanGitInfo,
+		addPaneButton: {
+			className:
+				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#2890b8] hover:text-[#00c8ff] bg-transparent hover:bg-[#0070a0]/10 border border-dashed border-[#144a65] hover:border-[#00c8ff]/30 rounded-xl cursor-pointer transition-all duration-300 w-[calc(100%_-_16px)]",
+			label: "+ New Pane",
+		},
 	},
 	Sunset: {
 		wrapper: {
@@ -426,6 +516,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: SunsetHeader,
 		Entry: SunsetEntry,
 		GitInfo: SunsetGitInfo,
+		addPaneButton: {
+			className:
+				"w-full px-3 py-1 text-left text-[10px] text-[#d04830] hover:text-[#e8a040] bg-transparent hover:bg-[#180c0a]/50 border-none cursor-pointer transition-all duration-200 font-bold tracking-wide",
+			label: "+ New Pane",
+		},
 	},
 	Arctic: {
 		wrapper: {
@@ -445,6 +540,11 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: ArcticHeader,
 		Entry: ArcticEntry,
 		GitInfo: ArcticGitInfo,
+		addPaneButton: {
+			className:
+				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#78b8d0] hover:text-[#48c8e0] bg-transparent hover:bg-[#1e3550]/30 border border-dashed border-[#1e3550] hover:border-[#48c8e0]/30 rounded-md cursor-pointer transition-all duration-200 uppercase tracking-widest w-[calc(100%_-_16px)]",
+			label: "+ New Pane",
+		},
 	},
 };
 
@@ -508,6 +608,17 @@ export function WorkspaceGitInfoVariant({
 }: BaseWorkspaceGitInfoProps & { preset: ThemePresetName }) {
 	const { GitInfo } = getConfig(preset);
 	return <GitInfo {...props} />;
+}
+
+export function AddPaneButtonVariant({
+	preset,
+	onClick,
+}: {
+	preset: ThemePresetName;
+	onClick: () => void;
+}) {
+	const { addPaneButton } = getConfig(preset);
+	return <AddPaneButton onClick={onClick} tokens={addPaneButton} />;
 }
 
 const BRACKET_POSITION_CLASSES: Record<BracketPosition, string> = {

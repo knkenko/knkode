@@ -91,11 +91,7 @@ export function DefaultDarkEntry({
 			<span className={`text-[11px] truncate ${isFocused ? "font-semibold" : ""}`}>
 				{title || label}
 			</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#5a6380]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#5a6380]">{label}</span>}
 		</button>
 	);
 }
@@ -187,11 +183,7 @@ export function DraculaEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-4 pr-2 py-1.5 border-none border-b border-[#44475a]/40 cursor-pointer rounded-md transition-all ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] bg-[#44475a]/30" : "bg-transparent text-[#6272a4] hover:text-[#f8f8f2] hover:bg-[#44475a]/10"}`}
 		>
 			<span className="text-[11px] truncate font-medium">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#6272a4]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#6272a4]">{label}</span>}
 		</button>
 	);
 }
@@ -272,11 +264,7 @@ export function TokyoNightEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-full mt-0.5 text-left pl-4 pr-3 py-1.5 border-none border-b border-[#292e42]/50 cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#c0caf5] border-l-2 border-[#bb9af7] bg-[#1f2335]/80" : "bg-transparent text-[#565f89] hover:text-[#a9b1d6] border-l-2 border-transparent hover:bg-[#1f2335]/30"}`}
 		>
 			<span className="text-[11px] truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#565f89]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#565f89]">{label}</span>}
 		</button>
 	);
 }
@@ -365,11 +353,7 @@ export function NordEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-full mt-0.5 text-left pl-4 pr-4 py-2 border-none border-b border-[#3b4252]/50 cursor-pointer transition-all ${isFocused ? "sidebar-pane-focused text-[#eceff4] bg-[#434c5e]" : "bg-transparent text-[#d8dee9] hover:text-[#eceff4] hover:bg-[#3b4252]"}`}
 		>
 			<span className="text-[12px] truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#4c566a]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#4c566a]">{label}</span>}
 		</button>
 	);
 }
@@ -461,11 +445,7 @@ export function CatppuccinEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-12px)] mx-[6px] mt-1 text-left pl-4 pr-3 py-1.5 border-none border-b border-[#313244]/50 cursor-pointer rounded-lg transition-all ${isFocused ? "sidebar-pane-focused text-[#cdd6f4] bg-[#45475a]" : "bg-transparent text-[#a6adc8] hover:text-[#cdd6f4] hover:bg-[#313244]"}`}
 		>
 			<span className="text-[11px] font-medium truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#6c7086]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#6c7086]">{label}</span>}
 		</button>
 	);
 }
@@ -544,11 +524,7 @@ export function GruvboxEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-full mt-0.5 text-left pl-4 pr-2 py-1.5 border-none border-b border-[#3c3836]/60 cursor-pointer transition-none font-mono text-[11px] ${isFocused ? "sidebar-pane-focused text-[#ebdbb2] bg-[#504945]" : "bg-transparent text-[#928374] hover:text-[#a89984] hover:bg-[#3c3836]"}`}
 		>
 			<span className="truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#928374]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#928374]">{label}</span>}
 		</button>
 	);
 }
@@ -633,11 +609,7 @@ export function MonokaiEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-full mt-0.5 text-left pl-4 pr-3 py-1.5 border-none border-b border-[#3e3d32]/50 cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#f8f8f2] border-l-[3px] border-[#f92672] bg-[#3e3d32]/80" : "bg-transparent text-[#75715e] hover:text-[#f8f8f2] border-l-[3px] border-transparent hover:bg-[#3e3d32]/30"}`}
 		>
 			<span className="text-[11px] truncate italic">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60 text-[#75715e]">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60 text-[#75715e]">{label}</span>}
 		</button>
 	);
 }
@@ -716,11 +688,7 @@ export function EverforestEntry({
 			className={`sidebar-item flex flex-col gap-0.5 w-full mt-0.5 text-left pl-4 pr-3 py-2 border-none border-b border-[#3d474d]/40 cursor-pointer transition-colors ${isFocused ? "sidebar-pane-focused text-[#d3c6aa] bg-[#3a454a]" : "bg-transparent text-[#9da9a0] hover:text-[#d3c6aa] hover:bg-[#343f44]"}`}
 		>
 			<span className="text-[11px] truncate">{title || label}</span>
-			{title && (
-				<span className="text-[9px] truncate pl-4 opacity-60">
-					{label}
-				</span>
-			)}
+			{title && <span className="text-[9px] truncate pl-4 opacity-60">{label}</span>}
 		</button>
 	);
 }
