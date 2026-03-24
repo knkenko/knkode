@@ -2,6 +2,12 @@ import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useCallback, useEffect, useRef } from "react";
 import { DEFAULT_FONT_FAMILY } from "../data/theme-presets";
 import { keyEventToAnsi, PASTE_SENTINEL } from "../lib/key-to-ansi";
+import {
+	sgrMouseMotion,
+	sgrMousePress,
+	sgrMouseRelease,
+	sgrWheelScroll,
+} from "../lib/mouse-to-sgr";
 import type {
 	CellSnapshot,
 	CursorStyle,
@@ -158,11 +164,7 @@ function moveByWord(
 
 /** Find the column range [startCol, endCol] of a link in a row.
  *  Scans left and right from `col` for cells with the same `link` value. */
-function findLinkExtent(
-	row: readonly CellSnapshot[],
-	col: number,
-	link: string,
-): [number, number] {
+function findLinkExtent(row: readonly CellSnapshot[], col: number, link: string): [number, number] {
 	let start = col;
 	while (start > 0 && row[start - 1]?.link === link) start--;
 	let end = col;
@@ -710,7 +712,10 @@ export function CanvasTerminal({
 		// Draw link hover highlight — accent-colored text + underline on Cmd+hover
 		const linkHover = linkHoverRef.current;
 		if (linkHover && linkHover.row >= 0 && linkHover.row < snap.rows.length) {
-			const { row: linkRow, cols: [linkStart, linkEnd] } = linkHover;
+			const {
+				row: linkRow,
+				cols: [linkStart, linkEnd],
+			} = linkHover;
 			const linkColor = accentColor ?? cursorColor;
 			const rowCells = snap.rows[linkRow];
 			if (rowCells) {
@@ -853,7 +858,7 @@ export function CanvasTerminal({
 		drawRef.current();
 	}, [measureCell]);
 
-	// Wheel scroll → convert pixel/line/page delta to line count and call onScroll.
+	// Wheel scroll → forward as SGR when mouse is grabbed, else scroll normally.
 	// Must use native addEventListener with { passive: false } to allow preventDefault
 	// (React's onWheel is passive by default in modern browsers).
 	useEffect(() => {
@@ -864,12 +869,33 @@ export function CanvasTerminal({
 			const { height: cellH } = cellMetrics.current;
 			if (cellH === 0) return;
 
+			const snap = gridRef.current;
 			const dpr = dprRef.current;
+
+			// When the app has grabbed the mouse, forward wheel as SGR events
+			if (snap?.isMouseGrabbed) {
+				e.preventDefault();
+				const cell = cellAtPixel(e.clientX, e.clientY);
+				if (!cell) return;
+				// SGR uses 1-based coordinates
+				const col = cell.col + 1;
+				const row = cell.row + 1;
+				// Each wheel tick sends one SGR event; for pixel deltas, discretize
+				const ticks =
+					e.deltaMode === WheelEvent.DOM_DELTA_PIXEL
+						? Math.max(1, Math.round(Math.abs(e.deltaY) / (cellH / dpr)))
+						: Math.max(1, Math.round(Math.abs(e.deltaY)));
+				const direction = e.deltaY > 0 ? -1 : 1;
+				for (let i = 0; i < ticks; i++) {
+					onWrite(sgrWheelScroll(direction, col, row, e));
+				}
+				return;
+			}
+
 			let lines: number;
 			if (e.deltaMode === WheelEvent.DOM_DELTA_LINE) {
 				lines = e.deltaY;
 			} else if (e.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-				const snap = gridRef.current;
 				lines = e.deltaY * (snap?.totalRows ?? 24);
 			} else {
 				// DOM_DELTA_PIXEL — convert using CSS-pixel cell height
@@ -886,7 +912,7 @@ export function CanvasTerminal({
 
 		container.addEventListener("wheel", handler, { passive: false });
 		return () => container.removeEventListener("wheel", handler);
-	}, []);
+	}, [cellAtPixel, onWrite]);
 
 	// Redraw when grid changes — grid is state that triggers redraw, draw reads from gridRef
 	// biome-ignore lint/correctness/useExhaustiveDependencies: grid triggers redraw via state
@@ -1105,7 +1131,9 @@ export function CanvasTerminal({
 	 *  Supports single-click (char), double-click (word), triple-click (line),
 	 *  and shift+click (extend). Drag granularity matches the click mode.
 	 *  Caches the canvas rect for the duration of the drag to avoid layout reflows.
-	 *  RAF-throttles redraws so high-frequency trackpad events don't saturate the main thread. */
+	 *  RAF-throttles redraws so high-frequency trackpad events don't saturate the main thread.
+	 *  When the app has grabbed the mouse (and Shift is not held), forwards mouse
+	 *  events as SGR sequences instead of handling selection. */
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			if (e.button !== 0) return;
@@ -1113,6 +1141,49 @@ export function CanvasTerminal({
 			if (!cell) return;
 			const snap = gridRef.current;
 			if (!snap) return;
+
+			// When mouse is grabbed by the app, forward as SGR sequences.
+			// Shift bypasses forwarding for text selection (standard terminal convention).
+			if (snap.isMouseGrabbed && !e.shiftKey) {
+				e.preventDefault();
+				const col = cell.col + 1;
+				const row = cell.row + 1;
+				onWrite(sgrMousePress(e.button, col, row, e));
+
+				const onMove = (ev: MouseEvent) => {
+					const moveCell = cellAtPixel(ev.clientX, ev.clientY);
+					if (!moveCell) return;
+					onWrite(
+						sgrMouseMotion(
+							ev.buttons === 1 ? 0 : ev.button,
+							moveCell.col + 1,
+							moveCell.row + 1,
+							ev,
+						),
+					);
+				};
+
+				const onUp = (ev: MouseEvent) => {
+					window.removeEventListener("mousemove", onMove);
+					window.removeEventListener("mouseup", onUp);
+					dragListenersRef.current = null;
+					const upCell = cellAtPixel(ev.clientX, ev.clientY);
+					if (upCell) {
+						onWrite(sgrMouseRelease(ev.button, upCell.col + 1, upCell.row + 1, ev));
+					}
+				};
+
+				// Clean up any previous drag listeners (defensive)
+				const prev = dragListenersRef.current;
+				if (prev) {
+					window.removeEventListener("mousemove", prev.move);
+					window.removeEventListener("mouseup", prev.up);
+				}
+				dragListenersRef.current = { move: onMove, up: onUp };
+				window.addEventListener("mousemove", onMove);
+				window.addEventListener("mouseup", onUp);
+				return;
+			}
 
 			// Cmd+click (Mac) or Ctrl+click (other) on a link → open externally
 			const modHeld = isModKeyHeld(e);
@@ -1286,7 +1357,7 @@ export function CanvasTerminal({
 			window.addEventListener("mousemove", onMove);
 			window.addEventListener("mouseup", onUp);
 		},
-		[cellAtPixel],
+		[cellAtPixel, onWrite],
 	);
 
 	/** Clear link hover state and redraw if needed. */
