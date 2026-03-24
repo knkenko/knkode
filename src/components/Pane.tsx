@@ -8,7 +8,9 @@ import { SCROLLBAR_HIDE_DELAY_MS, type ScreenPosition } from "../lib/ui-constant
 import {
 	effectMul,
 	type GridSnapshot,
+	MAX_FONT_SIZE,
 	MAX_UNFOCUSED_DIM,
+	MIN_FONT_SIZE,
 	PANE_RENAME_EVENT,
 	PANE_SCROLL_EVENT,
 	type PaneConfig,
@@ -321,6 +323,16 @@ export const Pane = memo(function Pane({
 		[paneId],
 	);
 
+	const handleFontSizeChange = useCallback(
+		(newSize: number) => {
+			const clamped = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newSize));
+			onUpdateConfig(paneId, {
+				themeOverride: { ...config.themeOverride, fontSize: clamped },
+			});
+		},
+		[paneId, config.themeOverride, onUpdateConfig],
+	);
+
 	const { isDropTarget } = useFileDrop({ containerRef: outerRef, onWrite: handleWrite });
 
 	// RAF-throttled scroll handler — accumulates fractional deltas from trackpad,
@@ -541,6 +553,7 @@ export const Pane = memo(function Pane({
 							selectionColor={mergedTheme.selectionColor ?? mergedTheme.accent}
 							paneId={paneId}
 							accentColor={variantTheme.accent}
+							onFontSizeChange={handleFontSizeChange}
 						/>
 						{/* Scrollbar track — themed, fades in/out, supports click-and-drag positioning when visible.
 						    Wide hit area (w-5) for touch; visible thumb stays w-1 via pointer-events-none. */}
