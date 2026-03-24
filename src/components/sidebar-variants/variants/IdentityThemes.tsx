@@ -7,6 +7,7 @@ import type {
 // --- Matrix ---
 export function MatrixHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed,
 	attentionCount,
@@ -20,7 +21,7 @@ export function MatrixHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-full px-2 py-1 text-left cursor-pointer transition-none border-y border-[#00ff41]/20 bg-[#050505] uppercase font-mono font-bold tracking-widest ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-2 py-3.5 text-left cursor-pointer transition-none border-y border-[#00ff41]/20 bg-[#050505] uppercase font-mono font-bold tracking-widest ${
 				isActive
 					? "text-[#00ff41] border-[#00ff41]/60 shadow-[0_0_8px_rgba(0,255,65,0.3)]"
 					: "text-[#009933] hover:text-[#00ff41] hover:border-[#00ff41]/40"
@@ -36,7 +37,15 @@ export function MatrixHeader({
 						className="sidebar-header bg-black border border-[#00ff41] text-[#00ff41] text-[11px] py-0 px-1 outline-none flex-1 min-w-0 font-mono uppercase"
 					/>
 				) : (
-					<span className="sidebar-header text-[12px] truncate flex-1 min-w-0">{name}</span>
+					<span className="sidebar-header text-[13px] truncate flex-1 min-w-0">{name}</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#006622] truncate min-w-0 font-mono uppercase opacity-60"
+						title={cwd}
+					>
+						{cwd}
+					</span>
 				)}
 				{attentionCount > 0 && (
 					<span
@@ -54,7 +63,7 @@ export function MatrixHeader({
 export function MatrixEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -66,19 +75,15 @@ export function MatrixEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-2 py-2 border-b border-b-[#00ff41]/10 cursor-pointer transition-none font-mono uppercase ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-2 py-2 mt-0.5 border-b border-b-[#00ff41]/20 cursor-pointer transition-none font-mono uppercase ${
 				isFocused
 					? "sidebar-pane-focused text-[#00ff41] bg-[#00ff41]/10 border-l-2 border-l-[#00ff41]"
 					: "bg-transparent text-[#009933] hover:text-[#00ff41] border-l-2 border-l-transparent hover:bg-[#00ff41]/5"
 			}`}
 		>
-			<span className="text-[11px] font-bold truncate shrink">{label}</span>
-			{agentStatus === "active" && <span className="w-2 h-3 bg-[#00ff41] animate-pulse shrink-0" />}
-			{agentStatus === "attention" && (
-				<span className="w-2 h-3 bg-red-500 animate-pulse shrink-0" />
-			)}
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right opacity-70">&gt; {title}</span>
+			<span className="text-[11px] font-bold truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#009933] font-mono">&gt; {label}</span>
 			)}
 		</button>
 	);
@@ -87,6 +92,7 @@ export function MatrixEntry({
 // --- Cyberpunk ---
 export function CyberpunkHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed,
 	attentionCount,
@@ -103,7 +109,7 @@ export function CyberpunkHeader({
 			style={{
 				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
 			}}
-			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 px-3 py-1.5 text-left cursor-pointer transition-all border-l-4 font-bold uppercase tracking-widest ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer transition-all border-l-4 font-bold uppercase tracking-widest ${
 				isActive
 					? "text-[#0d0221] bg-[#ff2a6d] border-[#05d9e8]"
 					: "bg-[#130228] text-[#ff6e96] border-[#2a0550] hover:bg-[#2a0550] hover:text-[#05d9e8]"
@@ -121,7 +127,15 @@ export function CyberpunkHeader({
 						className="sidebar-header bg-black border border-[#05d9e8] text-[#05d9e8] text-[11px] py-0 px-1 outline-none flex-1 min-w-0 font-bold uppercase"
 					/>
 				) : (
-					<span className="sidebar-header text-[11px] truncate flex-1 min-w-0">{name}</span>
+					<span className="sidebar-header text-[13px] truncate flex-1 min-w-0">{name}</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#b967ff] truncate min-w-0 font-bold uppercase opacity-60"
+						title={cwd}
+					>
+						{cwd}
+					</span>
 				)}
 				{attentionCount > 0 && (
 					<span
@@ -141,7 +155,7 @@ export function CyberpunkHeader({
 export function CyberpunkEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -153,21 +167,15 @@ export function CyberpunkEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-4 pr-2 py-1.5 cursor-pointer transition-all font-mono border-b border-b-[#ff2a6d]/15 uppercase ${
+			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-4 pr-2 py-1.5 cursor-pointer transition-all font-mono border-b border-b-[#ff2a6d]/25 uppercase ${
 				isFocused
 					? "sidebar-pane-focused text-[#05d9e8] bg-[#2a0550]/50"
 					: "bg-transparent text-[#b967ff] hover:text-[#f0e6ff] hover:bg-[#130228]"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="text-[10px] text-[#ff2a6d] animate-pulse shrink-0">⚙</span>
-			)}
-			{agentStatus === "attention" && (
-				<span className="text-[10px] text-[#fef08a] animate-pulse shrink-0">⚠</span>
-			)}
-			<span className="text-[11px] font-bold truncate shrink">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right opacity-70">{title}</span>
+			<span className="text-[11px] font-bold truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b967ff] font-mono">{label}</span>
 			)}
 		</button>
 	);
@@ -176,6 +184,7 @@ export function CyberpunkEntry({
 // --- Solana ---
 export function SolanaHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed,
 	attentionCount,
@@ -189,7 +198,7 @@ export function SolanaHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-12px)] mx-[6px] px-3 py-2 text-left cursor-pointer rounded-xl transition-all backdrop-blur-sm ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer transition-all backdrop-blur-sm ${
 				isActive
 					? "text-[#f5f5ff] bg-gradient-to-r from-[#9945ff]/40 to-[#14f195]/20 shadow-[0_0_12px_rgba(153,69,255,0.3)]"
 					: "bg-[#0f0f24]/80 text-[#b380ff] hover:text-[#e0e0f0] hover:bg-[#1e1e3d]"
@@ -215,8 +224,16 @@ export function SolanaHeader({
 						className="sidebar-header bg-[#0c0c1d] border border-[#14f195] rounded-lg text-[#e0e0f0] text-[12px] py-px px-2 outline-none flex-1 min-w-0"
 					/>
 				) : (
-					<span className="sidebar-header text-[12px] font-semibold truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-semibold truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#b380ff] truncate min-w-0 font-mono opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -235,7 +252,7 @@ export function SolanaHeader({
 export function SolanaEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -247,21 +264,15 @@ export function SolanaEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-12px)] mx-[6px] mt-1 text-left pl-8 pr-3 py-2 cursor-pointer rounded-2xl transition-all border-b border-b-[#9945ff]/10 relative ${
+			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-12px)] mx-[6px] mt-1 text-left pl-4 pr-3 py-2 cursor-pointer rounded-2xl transition-all border-b border-b-[#9945ff]/20 ${
 				isFocused
 					? "sidebar-pane-focused text-[#f5f5ff] bg-[#1e1e3d]/60"
 					: "bg-transparent text-[#a6adc8] hover:text-[#e0e0f0] hover:bg-[#0f0f24]"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="w-1.5 h-1.5 rounded-full bg-[#14f195] animate-ping absolute left-4 shrink-0" />
-			)}
-			{agentStatus === "attention" && (
-				<span className="w-1.5 h-1.5 rounded-full bg-[#ff6b6b] animate-ping absolute left-4 shrink-0" />
-			)}
-			<span className="text-[11px] font-medium truncate shrink">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right text-[#b380ff]/70">{title}</span>
+			<span className="text-[11px] font-medium truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b380ff]/70">{label}</span>
 			)}
 		</button>
 	);
@@ -270,6 +281,7 @@ export function SolanaEntry({
 // --- Amber ---
 export function AmberHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed,
 	attentionCount,
@@ -283,7 +295,7 @@ export function AmberHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-1.5 text-left cursor-pointer transition-none border-b-2 font-mono uppercase tracking-wider ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer transition-none border-b-2 font-mono uppercase tracking-wider ${
 				isActive
 					? "text-[#ffb000] bg-[#ffb000]/10 border-[#ffb000] shadow-[0_2px_8px_rgba(255,176,0,0.2)]"
 					: "bg-transparent text-[#b37a00] border-[#5c3d10] hover:text-[#ffb000] hover:bg-[#0c0900]"
@@ -299,8 +311,16 @@ export function AmberHeader({
 						className="sidebar-header bg-[#080500] border border-[#ffb000] text-[#ffb000] text-[11px] py-px px-1 outline-none flex-1 min-w-0 font-mono uppercase"
 					/>
 				) : (
-					<span className="sidebar-header text-[12px] font-bold truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-bold truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#b37a00] truncate min-w-0 font-mono uppercase opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -319,7 +339,7 @@ export function AmberHeader({
 export function AmberEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -331,24 +351,15 @@ export function AmberEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-3 py-1.5 border-b border-b-[#5c3d00]/20 cursor-pointer transition-none font-mono uppercase ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-3 py-1.5 mt-0.5 border-b border-b-[#5c3d00]/40 cursor-pointer transition-none font-mono uppercase ${
 				isFocused
 					? "sidebar-pane-focused text-[#ffe0a0] bg-[#2a1c00]"
 					: "bg-transparent text-[#b37a00] hover:text-[#ffb000] hover:bg-[#0c0900]"
 			}`}
 		>
-			<span className="shrink-0">{isFocused ? "▶" : " "}</span>
-			<span className="text-[11px] font-bold truncate shrink">{label}</span>
-			{agentStatus === "active" && (
-				<span className="text-[9px] animate-pulse shrink-0">WAIT...</span>
-			)}
-			{agentStatus === "attention" && (
-				<span className="text-[9px] animate-pulse bg-[#ffb000] text-black px-1 shrink-0">
-					INPUT
-				</span>
-			)}
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right opacity-70">{title}</span>
+			<span className="text-[11px] font-bold truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#b37a00] font-mono">{label}</span>
 			)}
 		</button>
 	);
@@ -357,6 +368,7 @@ export function AmberEntry({
 // --- Vaporwave ---
 export function VaporwaveHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed: _isCollapsed,
 	attentionCount,
@@ -370,7 +382,7 @@ export function VaporwaveHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-2 text-left cursor-pointer transition-all border-b font-sans tracking-widest uppercase ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer transition-all border-b font-sans tracking-widest uppercase ${
 				isActive
 					? "text-[#ff71ce] bg-gradient-to-r from-[#100024] to-[#220050] border-[#01cdfe] shadow-[0_1px_8px_rgba(1,205,254,0.4)]"
 					: "bg-transparent text-[#a855f7] border-[#2d1b4e] hover:text-[#f0d0ff] hover:bg-[#100024]"
@@ -390,8 +402,16 @@ export function VaporwaveHeader({
 						className="sidebar-header bg-[#0a0015] border border-[#ff71ce] text-[#f0d0ff] text-[11px] py-px px-1 outline-none flex-1 min-w-0 font-bold uppercase"
 					/>
 				) : (
-					<span className="sidebar-header text-[11px] font-bold italic truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-bold italic truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#a855f7] truncate min-w-0 font-mono opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -410,7 +430,7 @@ export function VaporwaveHeader({
 export function VaporwaveEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -422,21 +442,15 @@ export function VaporwaveEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-6 pr-3 py-2 border-b border-b-[#2d1b4e]/30 cursor-pointer transition-all font-sans ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-3 py-2 mt-0.5 border-b border-b-[#2d1b4e]/50 cursor-pointer transition-all font-sans ${
 				isFocused
 					? "sidebar-pane-focused text-[#ffffff] bg-gradient-to-r from-[#7b2fff]/30 to-transparent border-l-2 border-l-[#ff71ce]"
 					: "bg-transparent text-[#ff9de2] hover:text-[#f0d0ff] hover:bg-[#100024] border-l-2 border-l-transparent"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="text-[12px] text-[#01cdfe] animate-spin shrink-0">★</span>
-			)}
-			{agentStatus === "attention" && (
-				<span className="text-[12px] text-[#ff2d95] animate-pulse shrink-0">!</span>
-			)}
-			<span className="text-[11px] font-semibold truncate shrink uppercase">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right font-mono opacity-80">{title}</span>
+			<span className="text-[11px] font-semibold truncate uppercase">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#ff9de2]">{label}</span>
 			)}
 		</button>
 	);
@@ -445,6 +459,7 @@ export function VaporwaveEntry({
 // --- Ocean ---
 export function OceanHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed: _isCollapsed,
 	attentionCount,
@@ -458,7 +473,7 @@ export function OceanHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-2 text-left cursor-pointer rounded-t-2xl transition-all duration-500 ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer rounded-t-2xl transition-all duration-500 ${
 				isActive
 					? "text-[#d0eff8] bg-[#0070a0]/30 shadow-[inset_0_0_12px_rgba(0,200,255,0.2)]"
 					: "bg-transparent text-[#2890b8] hover:text-[#a0d8e8] hover:bg-[#051218]"
@@ -486,8 +501,16 @@ export function OceanHeader({
 						className="sidebar-header bg-[#020b14] border border-[#00c8ff] rounded-xl text-[#d0eff8] text-[11px] py-px px-2 outline-none flex-1 min-w-0"
 					/>
 				) : (
-					<span className="sidebar-header text-[12px] font-medium truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-medium truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#2890b8] truncate min-w-0 font-mono opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -506,7 +529,7 @@ export function OceanHeader({
 export function OceanEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -518,21 +541,15 @@ export function OceanEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-8 pr-3 py-2 border-b border-b-[#0a2838]/30 cursor-pointer rounded-xl transition-all duration-300 relative ${
+			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-4 pr-3 py-2 border-b border-b-[#0a2838]/50 cursor-pointer rounded-xl transition-all duration-300 ${
 				isFocused
 					? "sidebar-pane-focused text-[#b0d8e8] bg-[#0a2838]"
 					: "bg-transparent text-[#44d8f0] hover:text-[#b0d8e8] hover:bg-[#051218]"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="w-1.5 h-1.5 rounded-full bg-[#00c8ff] animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] absolute left-4 shrink-0" />
-			)}
-			{agentStatus === "attention" && (
-				<span className="w-1.5 h-1.5 rounded-full bg-[#ff6b6b] animate-pulse absolute left-4 shrink-0" />
-			)}
-			<span className="text-[11px] truncate shrink">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right opacity-70">{title}</span>
+			<span className="text-[11px] truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#44d8f0]">{label}</span>
 			)}
 		</button>
 	);
@@ -541,6 +558,7 @@ export function OceanEntry({
 // --- Sunset ---
 export function SunsetHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed: _isCollapsed,
 	attentionCount,
@@ -554,7 +572,7 @@ export function SunsetHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-2 text-left cursor-pointer border-none transition-all border-l-4 ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer border-none transition-all border-l-4 ${
 				isActive
 					? "text-[#fff0d8] bg-gradient-to-r from-[#e04028]/20 to-transparent border-[#e8a040]"
 					: "bg-transparent text-[#d04830] border-transparent hover:text-[#f0d8b0] hover:bg-[#180c0a]"
@@ -576,8 +594,16 @@ export function SunsetHeader({
 						className="sidebar-header bg-[#110808] border border-[#e8a040] text-[#fff0d8] text-[11px] py-px px-1 outline-none flex-1 min-w-0"
 					/>
 				) : (
-					<span className="sidebar-header text-[12px] font-bold tracking-wide truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-bold tracking-wide truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#d04830] truncate min-w-0 font-mono opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -596,7 +622,7 @@ export function SunsetHeader({
 export function SunsetEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -608,21 +634,15 @@ export function SunsetEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-full text-left pl-7 pr-3 py-1.5 border-b border-b-[#9a4530]/15 cursor-pointer transition-all ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full text-left pl-4 pr-3 py-1.5 mt-0.5 border-b border-b-[#9a4530]/30 cursor-pointer transition-all ${
 				isFocused
 					? "sidebar-pane-focused text-[#f0d0a0] bg-[#301810]"
 					: "bg-transparent text-[#e87858] hover:text-[#f0d8b0] hover:bg-[#180c0a]"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="w-6 h-0.5 bg-[#e8a040] animate-pulse shrink-0 rounded-full" />
-			)}
-			{agentStatus === "attention" && (
-				<span className="w-6 h-0.5 bg-[#e04028] animate-pulse shrink-0 rounded-full" />
-			)}
-			<span className="text-[11px] font-medium truncate shrink">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right font-mono opacity-80">{title}</span>
+			<span className="text-[11px] font-medium truncate">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#e87858]">{label}</span>
 			)}
 		</button>
 	);
@@ -631,6 +651,7 @@ export function SunsetEntry({
 // --- Arctic ---
 export function ArcticHeader({
 	name,
+	cwd,
 	isActive,
 	isCollapsed,
 	attentionCount,
@@ -644,7 +665,7 @@ export function ArcticHeader({
 			type="button"
 			onClick={onClick}
 			onContextMenu={onContextMenu}
-			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 px-3 py-2 text-left cursor-pointer rounded-t-lg transition-all backdrop-blur-md ${
+			className={`sidebar-item flex flex-col gap-0.5 w-full px-3 py-3.5 text-left cursor-pointer rounded-t-lg transition-all backdrop-blur-md ${
 				isActive
 					? "text-[#f0f8ff] bg-[#1e3550]/80 shadow-sm border-b border-[#48c8e0]/30"
 					: "bg-transparent text-[#78b8d0] border-b border-transparent hover:text-[#c8e4f0] hover:bg-[#1e3550]/40"
@@ -674,8 +695,16 @@ export function ArcticHeader({
 						className="sidebar-header bg-[#050d18] border border-[#a0e0f8] rounded text-[#f0f8ff] text-[11px] py-px px-1 outline-none flex-1 min-w-0"
 					/>
 				) : (
-					<span className="sidebar-header text-[11px] font-medium uppercase tracking-widest truncate flex-1 min-w-0">
+					<span className="sidebar-header text-[13px] font-medium uppercase tracking-widest truncate flex-1 min-w-0">
 						{name}
+					</span>
+				)}
+				{!isEditing && cwd && (
+					<span
+						className="text-[9px] text-[#78b8d0] truncate min-w-0 font-mono opacity-60"
+						title={cwd}
+					>
+						{cwd}
 					</span>
 				)}
 				{attentionCount > 0 && (
@@ -694,7 +723,7 @@ export function ArcticHeader({
 export function ArcticEntry({
 	label,
 	title,
-	agentStatus,
+	agentStatus: _agentStatus,
 	isFocused,
 	onClick,
 	onContextMenu,
@@ -706,285 +735,225 @@ export function ArcticEntry({
 			onClick={onClick}
 			onContextMenu={onContextMenu}
 			data-pane-id={paneId}
-			className={`sidebar-item flex items-center gap-1.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-7 pr-3 py-2 border-b border-b-[#1e3550]/20 cursor-pointer rounded-md transition-all ${
+			className={`sidebar-item flex flex-col gap-0.5 w-[calc(100%-8px)] mx-1 mt-1 text-left pl-4 pr-3 py-2 border-b border-b-[#1e3550]/40 cursor-pointer rounded-md transition-all ${
 				isFocused
 					? "sidebar-pane-focused text-[#f0f8ff] bg-[#1e3550]/50"
 					: "bg-transparent text-[#68d8ee] hover:text-[#c8e4f0] hover:bg-[#1e3550]/20"
 			}`}
 		>
-			{agentStatus === "active" && (
-				<span className="w-1.5 h-1.5 bg-[#70e8cc] rotate-45 animate-pulse shrink-0" />
-			)}
-			{agentStatus === "attention" && (
-				<span className="w-1.5 h-1.5 bg-[#ff6e6e] rotate-45 animate-pulse shrink-0" />
-			)}
-			<span className="text-[11px] truncate tracking-wide shrink">{label}</span>
-			{agentStatus !== "idle" && title && (
-				<span className="text-[9px] truncate flex-1 text-right font-mono opacity-60">{title}</span>
+			<span className="text-[11px] truncate tracking-wide">{title || label}</span>
+			{title && (
+				<span className="text-[9px] truncate pl-4 opacity-60 text-[#68d8ee]">{label}</span>
 			)}
 		</button>
 	);
 }
 
-export function MatrixGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function MatrixGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-[#020802] border-t border-b border-[#00ff41]/15 px-3 py-1">
-			{cwd && (
-				<div className="text-[9px] text-[#006622] truncate font-mono uppercase" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<span className="text-[9px] text-[#00ff41] font-mono uppercase truncate min-w-0">
-							&gt; {branch}
-						</span>
-					)}
-					{pr && (
-						<span className="text-[9px] font-mono uppercase border border-[#00ff41]/40 px-1 shrink-0">
-							[PR:{pr.number}]
-						</span>
-					)}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#010401]/90 px-3 py-1">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<span className="text-[9px] text-[#00ff41] font-mono uppercase italic opacity-80 truncate min-w-0">
+						&gt; {branch}
+					</span>
+				)}
+				{pr && (
+					<span className="text-[9px] font-mono uppercase border border-[#00ff41]/40 px-1 shrink-0">
+						[PR:{pr.number}]
+					</span>
+				)}
+			</div>
 		</div>
 	);
 }
 
-export function CyberpunkGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function CyberpunkGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
 		<div
-			className="bg-[#130228]/80 border-t border-[#ff2a6d]/30 px-4 py-1.5"
+			className="mt-0.5 mb-1.5 bg-[#08011a]/90 px-4 py-1.5"
 			style={{
 				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%)",
 			}}
 		>
-			{cwd && (
-				<div className="text-[9px] text-[#b967ff]/60 font-mono uppercase truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<span className="text-[9px] text-[#05d9e8] font-bold font-mono uppercase truncate min-w-0">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<span className="text-[9px] text-[#05d9e8] font-bold font-mono uppercase italic opacity-80 truncate min-w-0">
+						// {branch}
+					</span>
+				)}
+				{pr && (
+					<span className="text-[9px] bg-[#fef08a] text-[#0d0221] font-bold px-1 shrink-0">
+						#{pr.number}
+					</span>
+				)}
+			</div>
+		</div>
+	);
+}
+
+export function SolanaGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
+	return (
+		<div className="mt-0.5 mb-1.5 bg-[#06060f]/80 px-5 py-2">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<div className="flex items-center gap-1 min-w-0">
+						<svg
+							width="8"
+							height="8"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="text-[#33e6c0] shrink-0"
+						>
+							<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+							<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
+						</svg>
+						<span className="text-[10px] text-[#33e6c0] font-medium italic opacity-80 truncate">
 							{branch}
 						</span>
-					)}
-					{pr && (
-						<span className="text-[9px] bg-[#fef08a] text-[#0d0221] font-bold px-1 shrink-0">
-							#{pr.number}
-						</span>
-					)}
-				</div>
-			)}
+					</div>
+				)}
+				{pr && (
+					<span className="text-[9px] bg-[#9945ff]/20 text-[#c77dff] rounded-md font-bold px-1.5 py-0.5 shrink-0">
+						#{pr.number}
+					</span>
+				)}
+			</div>
 		</div>
 	);
 }
 
-export function SolanaGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function AmberGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-gradient-to-r from-[#9945ff]/8 to-[#14f195]/5 px-5 py-2">
-			{cwd && (
-				<div className="text-[10px] text-[#b380ff]/50 truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="text-[#33e6c0] shrink-0"
-							>
-								<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
-								<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
-							</svg>
-							<span className="text-[10px] text-[#33e6c0] font-medium truncate">{branch}</span>
-						</div>
-					)}
-					{pr && (
-						<span className="text-[9px] bg-[#9945ff]/20 text-[#c77dff] rounded-md font-bold px-1.5 py-0.5 shrink-0">
-							#{pr.number}
-						</span>
-					)}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#060400]/80 px-3 py-1">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<span className="text-[9px] text-[#ffb000] font-mono font-bold uppercase italic opacity-80 truncate min-w-0">
+						[{branch}]
+					</span>
+				)}
+				{pr && (
+					<span className="text-[9px] text-[#ffb000] font-mono uppercase shrink-0">
+						PR:{pr.number}
+					</span>
+				)}
+			</div>
 		</div>
 	);
 }
 
-export function AmberGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function VaporwaveGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-[#0c0800]/60 border-t border-b border-[#5c3d00]/40 px-3 py-1">
-			{cwd && (
-				<div className="text-[9px] text-[#b37a00]/70 truncate font-mono uppercase" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<span className="text-[9px] text-[#ffb000] font-mono font-bold uppercase truncate min-w-0">
-							[{branch}]
-						</span>
-					)}
-					{pr && (
-						<span className="text-[9px] text-[#ffb000] font-mono uppercase shrink-0">
-							PR:{pr.number}
-						</span>
-					)}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#06000d]/80 px-4 py-1.5">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<div className="flex items-center gap-1 min-w-0">
+						<svg
+							width="8"
+							height="8"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="text-[#05ffa1] shrink-0"
+						>
+							<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+							<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
+						</svg>
+						<span className="text-[9px] text-[#05ffa1] italic opacity-80 truncate">{branch}</span>
+					</div>
+				)}
+				{pr && (
+					<span className="text-[9px] bg-[#01cdfe]/15 text-[#01cdfe] font-bold px-1.5 py-0.5 shrink-0">
+						#{pr.number}
+					</span>
+				)}
+			</div>
 		</div>
 	);
 }
 
-export function VaporwaveGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function OceanGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-gradient-to-r from-[#100024]/60 to-[#220050]/40 border-t border-[#01cdfe]/15 px-4 py-1.5">
-			{cwd && (
-				<div className="text-[9px] text-[#a855f7]/60 font-mono truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="text-[#05ffa1] shrink-0"
-							>
-								<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
-								<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
-							</svg>
-							<span className="text-[9px] text-[#05ffa1] italic truncate">{branch}</span>
-						</div>
-					)}
-					{pr && (
-						<span className="text-[9px] bg-[#01cdfe]/15 text-[#01cdfe] font-bold px-1.5 py-0.5 shrink-0">
-							#{pr.number}
-						</span>
-					)}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#010509]/80 px-4 py-2">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<div className="flex items-center gap-1 min-w-0">
+						<svg
+							width="8"
+							height="8"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="text-[#4dd8e0] shrink-0"
+						>
+							<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+							<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
+						</svg>
+						<span className="text-[10px] text-[#4dd8e0] italic opacity-80 truncate">{branch}</span>
+					</div>
+				)}
+				{pr && (
+					<span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 rounded-sm px-1.5 py-0.5 shrink-0">
+						#{pr.number}
+					</span>
+				)}
+			</div>
 		</div>
 	);
 }
 
-export function OceanGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function SunsetGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-[#020b14]/60 border-t border-[#0a2838]/60 px-4 py-2">
-			{cwd && (
-				<div className="text-[10px] text-[#2890b8]/50 truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="text-[#4dd8e0] shrink-0"
-							>
-								<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
-								<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
-							</svg>
-							<span className="text-[10px] text-[#4dd8e0] truncate">{branch}</span>
-						</div>
-					)}
-					{pr && (
-						<span className="text-[9px] text-[#00e5b0] bg-[#00e5b0]/10 rounded-sm px-1.5 py-0.5 shrink-0">
-							#{pr.number}
-						</span>
-					)}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#0a0404]/80 px-4 py-1.5">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<div className="flex items-center gap-1 min-w-0">
+						<svg
+							width="8"
+							height="8"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="text-[#f0b048] shrink-0"
+						>
+							<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+							<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
+						</svg>
+						<span className="text-[10px] text-[#f0b048] italic opacity-80 truncate">{branch}</span>
+					</div>
+				)}
+				{pr && <span className="text-[9px] text-[#ffc040] font-bold shrink-0">#{pr.number}</span>}
+			</div>
 		</div>
 	);
 }
 
-export function SunsetGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
+export function ArcticGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
+	if (!branch && !pr) return null;
 	return (
-		<div className="bg-gradient-to-r from-[#e04028]/8 to-transparent border-t border-[#9a4530]/30 px-4 py-1.5">
-			{cwd && (
-				<div className="text-[10px] text-[#d04830]/50 font-mono truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="text-[#f0b048] shrink-0"
-							>
-								<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
-								<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
-							</svg>
-							<span className="text-[10px] text-[#f0b048] truncate">{branch}</span>
-						</div>
-					)}
-					{pr && <span className="text-[9px] text-[#ffc040] font-bold shrink-0">#{pr.number}</span>}
-				</div>
-			)}
-		</div>
-	);
-}
-
-export function ArcticGitInfo({ cwd, branch, pr }: BaseWorkspaceGitInfoProps) {
-	if (!cwd && !branch && !pr) return null;
-	return (
-		<div className="bg-[#050d18]/40 backdrop-blur-sm border-t border-[#1e3550]/40 px-4 py-2">
-			{cwd && (
-				<div className="text-[10px] text-[#78b8d0]/40 font-mono truncate" title={cwd}>
-					{cwd}
-				</div>
-			)}
-			{(branch || pr) && (
-				<div className="flex items-center gap-2">
-					{branch && (
-						<div className="flex items-center gap-1 min-w-0">
-							<svg
-								width="8"
-								height="8"
-								viewBox="0 0 16 16"
-								fill="currentColor"
-								className="text-[#a0e0f8] shrink-0"
-							>
-								<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
-								<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
-							</svg>
-							<span className="text-[10px] text-[#a0e0f8] truncate">{branch}</span>
-						</div>
-					)}
-					{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">#{pr.number}</span>}
-				</div>
-			)}
+		<div className="mt-0.5 mb-1.5 bg-[#020810]/70 backdrop-blur-sm px-4 py-2">
+			<div className="flex items-center gap-2">
+				{branch && (
+					<div className="flex items-center gap-1 min-w-0">
+						<svg
+							width="8"
+							height="8"
+							viewBox="0 0 16 16"
+							fill="currentColor"
+							className="text-[#a0e0f8] shrink-0"
+						>
+							<path d="M11.5 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM9 5.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0zM4.5 8a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM2 10.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0z" />
+							<path d="M4.5 7.5A2.5 2.5 0 0 1 7 5h1V4H7A3.5 3.5 0 0 0 3.5 7.5v2h1v-2z" />
+						</svg>
+						<span className="text-[10px] text-[#a0e0f8] italic opacity-80 truncate">{branch}</span>
+					</div>
+				)}
+				{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">#{pr.number}</span>}
+			</div>
 		</div>
 	);
 }

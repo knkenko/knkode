@@ -10,6 +10,8 @@ import type { AgentStatus, PrInfo } from "../../shared/types";
 // Base props for visual rendering
 export interface BaseWorkspaceHeaderProps {
 	name: string;
+	/** Shortened CWD path for the workspace (displayed inline after name). */
+	cwd: string | null;
 	isActive: boolean;
 	isCollapsed: boolean;
 	/** Number of panes in this workspace that have attention status. Badge shown when > 0. */
@@ -57,7 +59,6 @@ export interface CollapsedTokens {
 }
 
 export interface BaseWorkspaceGitInfoProps {
-	cwd: string | null;
 	branch: string | null;
 	pr: PrInfo | null;
 }
