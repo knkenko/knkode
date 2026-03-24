@@ -16,7 +16,6 @@ import {
 	type PaneRenameDetail,
 	type PaneScrollDetail,
 	type PaneTheme,
-	type PrInfo,
 } from "../shared/types";
 import { useStore } from "../store";
 import { shortenPath } from "../utils/path";
@@ -55,10 +54,6 @@ interface PaneProps {
 	onSplitVertical: (paneId: string) => void;
 	onClose: (paneId: string) => void;
 	canClose: boolean;
-	/** Current git branch for this pane, or null if unavailable. */
-	branch: string | null;
-	/** Current PR info for this pane's branch, or null if no PR. */
-	pr: PrInfo | null;
 	isFocused: boolean;
 	onFocus: (paneId: string) => void;
 }
@@ -73,8 +68,6 @@ export const Pane = memo(function Pane({
 	onSplitVertical,
 	onClose,
 	canClose,
-	branch,
-	pr,
 	isFocused,
 	onFocus,
 }: PaneProps) {
@@ -88,6 +81,8 @@ export const Pane = memo(function Pane({
 	const [grid, setGrid] = useState<GridSnapshot | null>(null);
 	const [ptyError, setPtyError] = useState(false);
 	const homeDir = useStore((s) => s.homeDir);
+	const branch = useStore((s) => s.paneBranches[paneId] ?? null);
+	const pr = useStore((s) => s.panePrs[paneId] ?? null);
 	const agentStatus = useStore((s) => s.paneAgentStatuses[paneId] ?? "idle");
 
 	// --- Scrollback state ---

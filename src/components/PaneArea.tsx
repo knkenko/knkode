@@ -17,8 +17,6 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 	const updateNodeSizes = useStore((s) => s.updateNodeSizes);
 	const focusedPaneId = useStore((s) => s.focusedPaneId);
 	const setFocusedPane = useStore((s) => s.setFocusedPane);
-	const paneBranches = useStore((s) => s.paneBranches);
-	const panePrs = useStore((s) => s.panePrs);
 	const paneCount = Object.keys(workspace.panes).length;
 
 	const handleUpdateConfig = useCallback(
@@ -76,8 +74,6 @@ export function PaneArea({ workspace }: PaneAreaProps) {
 					onSplitVertical={handleSplitVertical}
 					onClose={handleClose}
 					canClose={paneCount > 1}
-					branch={paneBranches[node.paneId] ?? null}
-					pr={panePrs[node.paneId] ?? null}
 					isFocused={focusedPaneId === node.paneId}
 					onFocus={setFocusedPane}
 				/>
