@@ -2220,6 +2220,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs",
  "image",
+ "libc",
  "portable-pty",
  "regex",
  "serde",

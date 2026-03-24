@@ -32,32 +32,49 @@ impl Drop for WinHandle {
     }
 }
 
-/// Detect the CWD of a child process by parsing `lsof -p PID -Fn` output.
-/// Scans for the `fcwd` file descriptor line, then reads the `n/path` line after it.
-/// Does not need PATH augmentation — `lsof` lives in `/usr/sbin` which is always
-/// in the default PATH, even for Dock/Spotlight-launched apps.
+/// Detect the CWD of a child process via `proc_pidinfo(PROC_PIDVNODEPATHINFO)`.
+/// Single kernel syscall — replaces the previous `lsof` fork+exec+parse which
+/// spawned a full subprocess every poll cycle per pane.
 #[cfg(target_os = "macos")]
 fn detect_cwd(pid: u32) -> Option<String> {
-    use std::process::Command;
-    let output = Command::new("lsof")
-        .args(["-p", &pid.to_string(), "-Fn"])
-        .stderr(std::process::Stdio::null())
-        .output()
-        .ok()?;
-    if !output.status.success() {
+    use std::ffi::CStr;
+    use std::mem::MaybeUninit;
+
+    // PROC_PIDVNODEPATHINFO flavor — fills proc_vnodepathinfo struct
+    const PROC_PIDVNODEPATHINFO: libc::c_int = 9;
+
+    // proc_vnodepathinfo contains two vnode_info_path structs (cdir + rdir).
+    // vnode_info_path = vnode_info (152 bytes) + path[MAXPATHLEN] (1024 bytes) = 1176 bytes.
+    // proc_vnodepathinfo = pvi_cdir (1176) + pvi_rdir (1176) = 2352 bytes.
+    // pvi_cdir.vip_path starts at offset 152 within the first vnode_info_path.
+    const VNODE_INFO_SIZE: usize = 152;
+    const VIP_PATH_OFFSET: usize = VNODE_INFO_SIZE; // path starts after vnode_info
+    const VNODEPATHINFO_SIZE: usize = 2352;
+
+    let mut buf = MaybeUninit::<[u8; VNODEPATHINFO_SIZE]>::uninit();
+    let ret = unsafe {
+        libc::proc_pidinfo(
+            pid as libc::c_int,
+            PROC_PIDVNODEPATHINFO,
+            0,
+            buf.as_mut_ptr() as *mut libc::c_void,
+            VNODEPATHINFO_SIZE as libc::c_int,
+        )
+    };
+
+    if ret <= 0 {
         return None;
     }
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut found_cwd = false;
-    for line in stdout.lines() {
-        if found_cwd {
-            return line.strip_prefix('n').map(|path| path.to_string());
-        }
-        if line == "fcwd" {
-            found_cwd = true;
-        }
+
+    let buf = unsafe { buf.assume_init() };
+    // pvi_cdir.vip_path is a MAXPATHLEN (1024) C string at offset VIP_PATH_OFFSET
+    let path_bytes = &buf[VIP_PATH_OFFSET..VIP_PATH_OFFSET + libc::PATH_MAX as usize];
+    let cstr = CStr::from_bytes_until_nul(path_bytes).ok()?;
+    let path = cstr.to_str().ok()?;
+    if path.is_empty() {
+        return None;
     }
-    None
+    Some(path.to_string())
 }
 
 /// Detect the CWD of a child process on Linux via `/proc/<pid>/cwd` symlink.
