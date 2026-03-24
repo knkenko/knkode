@@ -7,7 +7,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 
@@ -689,24 +689,34 @@ impl PtyManager {
         );
         eprintln!("[pty] Terminal state created for {id}");
 
-        // Shared flags between reader and flush threads.
+        // Shared state between reader and flush threads.
         // `dirty`: set when terminal state advances but no snapshot was emitted (throttled).
         // `alive`: cleared when the reader exits so the flush thread can stop.
+        // `flush_cond`: wakes the flush thread immediately when data arrives, replacing
+        // the previous 16ms sleep-poll that caused ~60 idle wakeups/sec per session.
         let dirty = Arc::new(AtomicBool::new(false));
         let alive = Arc::new(AtomicBool::new(true));
+        let flush_cond = Arc::new((Mutex::new(false), Condvar::new()));
 
         // Trailing-edge flush thread: ensures the screen always shows the latest
         // state after a data burst ends. Without this, the last chunk in a burst
         // gets throttled and the reader blocks on read(), leaving the screen stale.
+        // Uses condvar instead of sleep-poll — zero wakeups when idle.
         {
             let dirty_flush = Arc::clone(&dirty);
             let alive_flush = Arc::clone(&alive);
+            let cond = Arc::clone(&flush_cond);
             let term_state = Arc::clone(&self.terminal_state);
             let id_flush = id.clone();
             let app_flush = app.clone();
             std::thread::spawn(move || {
+                let (lock, cv) = &*cond;
                 while alive_flush.load(Ordering::Relaxed) {
-                    std::thread::sleep(RENDER_INTERVAL);
+                    // Wait until notified by reader or timeout — zero CPU when idle
+                    let guard = lock.lock().unwrap_or_else(|e| e.into_inner());
+                    let _ = cv
+                        .wait_timeout(guard, RENDER_INTERVAL)
+                        .unwrap_or_else(|e| e.into_inner());
                     if dirty_flush.swap(false, Ordering::AcqRel) {
                         emit_snapshot(&app_flush, &term_state, &id_flush);
                     }
@@ -768,6 +778,8 @@ impl PtyManager {
                             last_emit = Instant::now();
                         } else {
                             dirty.store(true, Ordering::Release);
+                            // Wake flush thread so it emits after RENDER_INTERVAL
+                            flush_cond.1.notify_one();
                         }
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
