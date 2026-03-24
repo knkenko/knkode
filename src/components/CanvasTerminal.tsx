@@ -1130,13 +1130,30 @@ export function CanvasTerminal({
 		[writePaste],
 	);
 
+	/** Attach drag listeners on window (mousemove + mouseup), cleaning up any previous ones.
+	 *  Returns the listener pair so callers can reference them if needed. */
+	const installDragListeners = useCallback(
+		(move: (e: MouseEvent) => void, up: (e: MouseEvent) => void) => {
+			const prev = dragListenersRef.current;
+			if (prev) {
+				window.removeEventListener("mousemove", prev.move);
+				window.removeEventListener("mouseup", prev.up);
+			}
+			dragListenersRef.current = { move, up };
+			window.addEventListener("mousemove", move);
+			window.addEventListener("mouseup", up);
+		},
+		[],
+	);
+
 	/** Start selection on left-click; track via window listeners until mouseup.
 	 *  Supports single-click (char), double-click (word), triple-click (line),
 	 *  and shift+click (extend). Drag granularity matches the click mode.
 	 *  Caches the canvas rect for the duration of the drag to avoid layout reflows.
 	 *  RAF-throttles redraws so high-frequency trackpad events don't saturate the main thread.
-	 *  When the app has grabbed the mouse (and Shift is not held), forwards mouse
-	 *  events as SGR sequences instead of handling selection. */
+	 *  When the app has grabbed the mouse (and Shift is not held), forwards left-button
+	 *  events as SGR sequences instead of handling selection. Right/middle-click forwarding
+	 *  is not yet implemented (v1 limitation). */
 	const handleMouseDown = useCallback(
 		(e: React.MouseEvent) => {
 			if (e.button !== 0) return;
@@ -1149,42 +1166,60 @@ export function CanvasTerminal({
 			// Shift bypasses forwarding for text selection (standard terminal convention).
 			if (snap.isMouseGrabbed && !e.shiftKey) {
 				e.preventDefault();
-				const col = cell.col + 1;
-				const row = cell.row + 1;
-				onWrite(sgrMousePress(e.button, col, row, e));
+				const seq = sgrMousePress(e.button, cell.col, cell.row, e);
+				if (seq) onWrite(seq);
+
+				// Cache rect and last-known cell for the drag to avoid per-move layout reflows
+				const canvas = canvasRef.current;
+				const cachedRect = canvas?.getBoundingClientRect();
+				const cachedDpr = dprRef.current;
+				let lastCol = cell.col;
+				let lastRow = cell.row;
+
+				const cellAtCached = (
+					clientX: number,
+					clientY: number,
+				): { col: number; row: number } | null => {
+					if (!cachedRect) return null;
+					const { width: cellW, height: cellH } = cellMetrics.current;
+					if (cellW === 0 || cellH === 0) return null;
+					const s = gridRef.current;
+					return cellFromRect(
+						cachedRect,
+						cachedDpr,
+						clientX,
+						clientY,
+						cellW,
+						cellH,
+						s ? s.cols - 1 : 0,
+						s ? s.totalRows - 1 : 0,
+					);
+				};
 
 				const onMove = (ev: MouseEvent) => {
-					const moveCell = cellAtPixel(ev.clientX, ev.clientY);
+					const moveCell = cellAtCached(ev.clientX, ev.clientY);
 					if (!moveCell) return;
-					onWrite(
-						sgrMouseMotion(
-							ev.buttons === 1 ? 0 : ev.button,
-							moveCell.col + 1,
-							moveCell.row + 1,
-							ev,
-						),
-					);
+					lastCol = moveCell.col;
+					lastRow = moveCell.row;
+					// Left-button only for v1 — always pass button 0 for motion
+					const motionSeq = sgrMouseMotion(0, moveCell.col, moveCell.row, ev);
+					if (motionSeq) onWrite(motionSeq);
 				};
 
 				const onUp = (ev: MouseEvent) => {
 					window.removeEventListener("mousemove", onMove);
 					window.removeEventListener("mouseup", onUp);
 					dragListenersRef.current = null;
-					const upCell = cellAtPixel(ev.clientX, ev.clientY);
-					if (upCell) {
-						onWrite(sgrMouseRelease(ev.button, upCell.col + 1, upCell.row + 1, ev));
-					}
+					// Use last known position if pointer exited canvas, so TUI app
+					// receives a release and doesn't get stuck in a drag state
+					const upCell = cellAtCached(ev.clientX, ev.clientY);
+					const col = upCell ? upCell.col : lastCol;
+					const row = upCell ? upCell.row : lastRow;
+					const releaseSeq = sgrMouseRelease(ev.button, col, row, ev);
+					if (releaseSeq) onWrite(releaseSeq);
 				};
 
-				// Clean up any previous drag listeners (defensive)
-				const prev = dragListenersRef.current;
-				if (prev) {
-					window.removeEventListener("mousemove", prev.move);
-					window.removeEventListener("mouseup", prev.up);
-				}
-				dragListenersRef.current = { move: onMove, up: onUp };
-				window.addEventListener("mousemove", onMove);
-				window.addEventListener("mouseup", onUp);
+				installDragListeners(onMove, onUp);
 				return;
 			}
 
@@ -1349,18 +1384,9 @@ export function CanvasTerminal({
 				drawRef.current();
 			};
 
-			// Clean up any previous drag listeners (defensive)
-			const prev = dragListenersRef.current;
-			if (prev) {
-				window.removeEventListener("mousemove", prev.move);
-				window.removeEventListener("mouseup", prev.up);
-			}
-
-			dragListenersRef.current = { move: onMove, up: onUp };
-			window.addEventListener("mousemove", onMove);
-			window.addEventListener("mouseup", onUp);
+			installDragListeners(onMove, onUp);
 		},
-		[cellAtPixel, onWrite],
+		[cellAtPixel, onWrite, installDragListeners],
 	);
 
 	/** Clear link hover state and redraw if needed. */
