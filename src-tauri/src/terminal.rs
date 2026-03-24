@@ -749,15 +749,15 @@ impl TerminalState {
         let mut frame_images: HashMap<String, ImageSnapshot> = HashMap::new();
         let mut frame_hex_cache: HashMap<[u8; 32], String> = HashMap::new();
 
-        // Color interning table — resolves each unique (ColorAttribute, is_fg) pair once,
-        // then clones the cached RGB string for all cells sharing that color.
-        // Typical terminals have 5-20 unique colors vs ~3840 cells (80×48).
+        // Color interning table — resolves each unique (ColorAttribute, use_fg_resolver) pair
+        // once, then clones the cached RGB string for all cells sharing that color.
+        // Typical terminals have 5-20 unique colors vs ~1920 cells (80×24).
         let mut color_cache: HashMap<(ColorAttribute, bool), String> = HashMap::new();
-        let mut intern_color = |attr: ColorAttribute, is_fg: bool| -> String {
+        let mut intern_color = |attr: ColorAttribute, use_fg_resolver: bool| -> String {
             color_cache
-                .entry((attr, is_fg))
+                .entry((attr, use_fg_resolver))
                 .or_insert_with(|| {
-                    if is_fg {
+                    if use_fg_resolver {
                         palette.resolve_fg(attr).to_rgb_string()
                     } else {
                         palette.resolve_bg(attr).to_rgb_string()
