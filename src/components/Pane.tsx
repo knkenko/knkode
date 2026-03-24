@@ -202,16 +202,29 @@ export const Pane = memo(function Pane({
 	const handleScrollbarPointerDown = useCallback(
 		(e: React.PointerEvent<HTMLDivElement>) => {
 			const track = scrollbarTrackRef.current;
-			if (!track) return;
+			if (!track) {
+				console.warn(`[pane] scrollbar track ref missing for ${paneId}`);
+				return;
+			}
 			e.preventDefault();
 			e.stopPropagation();
 
-			// Cache rect once — track is absolutely positioned and doesn't move during drag
 			const rect = track.getBoundingClientRect();
-			if (rect.height <= 0) return;
+			if (rect.height <= 0) {
+				console.warn(`[pane] scrollbar track has zero height for ${paneId}`);
+				return;
+			}
 
+			// Capture pointer so touch drags aren't hijacked by the browser
+			track.setPointerCapture(e.pointerId);
+			const pointerId = e.pointerId;
+
+			// Re-read rect each call — window may resize mid-drag; cost is
+			// negligible vs. the IPC call that follows.
 			const jumpToY = (clientY: number) => {
-				const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+				const r = track.getBoundingClientRect();
+				if (r.height <= 0) return;
+				const ratio = Math.max(0, Math.min(1, (clientY - r.top) / r.height));
 				// ratio 0 = top of scrollback, ratio 1 = bottom (live viewport)
 				const max = maxScrollRef.current;
 				const newOffset = Math.round(max * (1 - ratio));
@@ -239,6 +252,7 @@ export const Pane = memo(function Pane({
 			};
 			const onUp = () => {
 				if (dragRafId) cancelAnimationFrame(dragRafId);
+				track.releasePointerCapture(pointerId);
 				document.removeEventListener("pointermove", onMove);
 				document.removeEventListener("pointerup", onUp);
 				scrollDragCleanupRef.current = null;
@@ -255,11 +269,12 @@ export const Pane = memo(function Pane({
 			document.addEventListener("pointerup", onUp);
 			scrollDragCleanupRef.current = () => {
 				if (dragRafId) cancelAnimationFrame(dragRafId);
+				track.releasePointerCapture(pointerId);
 				document.removeEventListener("pointermove", onMove);
 				document.removeEventListener("pointerup", onUp);
 			};
 		},
-		[applyScrollOffset],
+		[applyScrollOffset, paneId],
 	);
 
 	// Cleanup scrollbar drag listeners on unmount
@@ -513,21 +528,22 @@ export const Pane = memo(function Pane({
 							paneId={paneId}
 							accentColor={variantTheme.accent}
 						/>
-						{/* Scrollbar track — themed, fades in/out, supports click-and-drag positioning when visible */}
+						{/* Scrollbar track — themed, fades in/out, supports click-and-drag positioning when visible.
+						    Wide hit area (w-5) for touch; visible thumb stays w-1 via pointer-events-none. */}
 						{hasScrollback && (
 							<div
 								ref={scrollbarTrackRef}
 								onPointerDown={handleScrollbarPointerDown}
-								className={`absolute right-2 top-2 bottom-2 w-2 z-20 transition-opacity duration-500 ${
+								className={`absolute right-0 top-2 bottom-2 w-5 z-20 touch-none transition-opacity duration-500 ${
 									scrollbarVisible
 										? "pointer-events-auto cursor-pointer"
 										: "pointer-events-none"
 								}`}
 								style={{ opacity: scrollbarVisible ? 1 : 0 }}
 							>
-								{/* pointer-events-none ensures clicks fall through to the track for drag handling */}
+								{/* pointer-events-none on thumb lets pointerdown events reach the track for drag handling */}
 								<div
-									className="absolute right-0 w-1 rounded-full pointer-events-none"
+									className="absolute right-2 w-1 rounded-full pointer-events-none"
 									style={{
 										top: `${scrollThumbTop}%`,
 										height: `${scrollThumbHeight}%`,
