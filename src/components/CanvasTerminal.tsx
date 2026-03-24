@@ -71,7 +71,7 @@ const CURSOR_HOLD_MS = 500;
 const CURSOR_MAX_OPACITY = 0.7;
 const CURSOR_MIN_OPACITY = 0.0;
 const CURSOR_STATIC_OPACITY = 0.5;
-/** Stop blinking and show static cursor after this idle duration (ms). */
+/** Stop blinking after this elapsed time since blink phase started (ms). */
 const CURSOR_IDLE_TIMEOUT_MS = 5000;
 const RESIZE_DEBOUNCE_MS = 100;
 /** Bar cursor width as fraction of cell width. */
@@ -465,6 +465,7 @@ export function CanvasTerminal({
 	const onScrollRef = useRef(onScroll);
 	const cursorStyleRef = useRef(cursorStyle);
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+	const blinkTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const isFocusedRef = useRef(isFocused);
 	const imageCacheRef = useRef<TerminalImageCache>(null!);
 	if (!imageCacheRef.current) imageCacheRef.current = new TerminalImageCache();
@@ -1002,7 +1003,6 @@ export function CanvasTerminal({
 	// BLINK: RAF-driven cosine animation for up to 5s.
 	// IDLE: static cursor, zero wakeups. Any keystroke/grid change resets to HOLD.
 	// TUI DECSCUSR blink requests are ignored; user's setting always wins.
-	const blinkTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: grid in deps resets blink on new output (keystroke → cursor fully visible)
 	useEffect(() => {
 		if (!isFocused) {
