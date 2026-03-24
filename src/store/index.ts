@@ -246,8 +246,9 @@ export const useStore = create<StoreState>((set, get) => ({
 			let appState: AppState = {
 				...loadedAppState,
 				sidebarCollapsed: (loadedAppState as Partial<AppState>).sidebarCollapsed ?? false,
-				collapsedWorkspaceIds:
-					(loadedAppState as Partial<AppState>).collapsedWorkspaceIds ?? [],
+				collapsedWorkspaceIds: (
+					(loadedAppState as Partial<AppState>).collapsedWorkspaceIds ?? []
+				).filter((id): id is string => typeof id === "string"),
 			};
 
 			// If no workspaces exist, create a default one
