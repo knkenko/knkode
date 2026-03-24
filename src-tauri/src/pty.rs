@@ -249,7 +249,7 @@ fn detect_cwd(_pid: u32) -> Option<String> {
 /// Returns a map from PID to `true` (foreground child running) / `false` (idle).
 /// PIDs where detection fails (exited, not found) are omitted.
 #[cfg(target_os = "macos")]
-fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
+fn check_foreground_all(pids: &[(String, u32)]) -> HashMap<u32, bool> {
     if pids.is_empty() {
         return HashMap::new();
     }
@@ -265,13 +265,16 @@ fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
 
 /// Check if a single process has a foreground child via sysctl(KERN_PROC_PID).
 ///
-/// kinfo_proc layout (stable across macOS versions):
+/// kinfo_proc layout (verified via offsetof() on arm64 macOS):
 ///   kp_proc  (extern_proc) at offset 0
-///   kp_eproc (eproc)       at offset 492 (on arm64/x86_64)
-///     e_pgid  at eproc offset +136 (pid_t, 4 bytes)
-///     e_tpgid at eproc offset +140 (pid_t, 4 bytes)
+///   kp_eproc (eproc)       at offset 296
+///     e_pgid  at absolute offset 564 (pid_t, 4 bytes)
+///     e_tpgid at absolute offset 576 (pid_t, 4 bytes)
 ///
 /// If e_tpgid != e_pgid, another process group is in the foreground.
+///
+/// Note: offsets are verified on arm64. On x86_64 they may differ due to
+/// alignment — if this crate is built for x86_64, verify with offsetof().
 #[cfg(target_os = "macos")]
 fn check_foreground_sysctl(pid: u32) -> Option<bool> {
     use std::mem::MaybeUninit;
@@ -282,12 +285,8 @@ fn check_foreground_sysctl(pid: u32) -> Option<bool> {
     const E_PGID_OFFSET: usize = 564;
     const E_TPGID_OFFSET: usize = 576;
 
-    let mut mib: [libc::c_int; 4] = [
-        libc::CTL_KERN,
-        libc::KERN_PROC,
-        libc::KERN_PROC_PID,
-        pid as libc::c_int,
-    ];
+    let pid = i32::try_from(pid).ok()?;
+    let mut mib: [libc::c_int; 4] = [libc::CTL_KERN, libc::KERN_PROC, libc::KERN_PROC_PID, pid];
     let mut buf = MaybeUninit::<[u8; KINFO_PROC_SIZE]>::uninit();
     let mut size: libc::size_t = KINFO_PROC_SIZE;
 
@@ -325,7 +324,7 @@ fn check_foreground_sysctl(pid: u32) -> Option<bool> {
 /// Compares field 5 (pgrp) against field 8 (tpgid): if tpgid != pgrp,
 /// another process group owns the terminal foreground.
 #[cfg(target_os = "linux")]
-fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
+fn check_foreground_all(pids: &[(String, u32)]) -> HashMap<u32, bool> {
     let mut result = HashMap::with_capacity(pids.len());
     for &(_, pid) in pids {
         if let Some(has_child) = check_foreground_single_linux(pid) {
@@ -356,7 +355,7 @@ fn check_foreground_single_linux(pid: u32) -> Option<bool> {
 /// Note: Windows reuses PIDs aggressively. If a shell exits and its PID is
 /// reassigned, stale `th32ParentProcessID` entries may cause brief false positives.
 #[cfg(target_os = "windows")]
-fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
+fn check_foreground_all(pids: &[(String, u32)]) -> HashMap<u32, bool> {
     use winapi::um::handleapi::INVALID_HANDLE_VALUE;
     use winapi::um::tlhelp32::{
         CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
@@ -412,7 +411,7 @@ fn check_foreground_batch(pids: &[(String, u32)]) -> HashMap<u32, bool> {
 
 /// Unsupported platform — foreground detection unavailable.
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn check_foreground_batch(_pids: &[(String, u32)]) -> HashMap<u32, bool> {
+fn check_foreground_all(_pids: &[(String, u32)]) -> HashMap<u32, bool> {
     HashMap::new()
 }
 
@@ -997,7 +996,7 @@ impl PtyManager {
                 .collect()
         };
 
-        let by_pid = check_foreground_batch(&pids);
+        let by_pid = check_foreground_all(&pids);
 
         // Map back from PID-keyed results to pane-ID-keyed results
         let mut result = HashMap::with_capacity(by_pid.len());
