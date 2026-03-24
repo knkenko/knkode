@@ -63,8 +63,12 @@ export interface BaseWorkspaceGitInfoProps {
 	pr: PrInfo | null;
 }
 
-export interface BaseAddPaneButtonProps {
-	onClick: () => void;
+/** Styling tokens for the themed "Add Pane" button rendered below subgroup entries.
+ *  The shared `AddPaneButton` component in ThemeRegistry renders a button from these tokens. */
+export interface AddPaneButtonTokens {
+	className: string;
+	style?: CSSProperties;
+	label: string;
 }
 
 /** Position of a pane within its subgroup's bracket connector.
@@ -84,5 +88,5 @@ export interface ThemeVariantConfig {
 	Header: ComponentType<BaseWorkspaceHeaderProps>;
 	Entry: ComponentType<BasePaneEntryProps>;
 	GitInfo: ComponentType<BaseWorkspaceGitInfoProps>;
-	AddPaneButton: ComponentType<BaseAddPaneButtonProps>;
+	addPaneButton: AddPaneButtonTokens;
 }

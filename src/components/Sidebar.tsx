@@ -330,6 +330,7 @@ export function Sidebar({
 														);
 													})}
 												</div>
+												{/* "New Pane" creates a new subgroup (solo pane); subgroup splitting comes later */}
 												<AddPaneButtonVariant
 													preset={activePreset}
 													onClick={() => addSubgroup(ws.id)}
