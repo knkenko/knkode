@@ -293,8 +293,6 @@ export const Pane = memo(function Pane({
 
 	// RAF-throttled scroll handler — accumulates fractional deltas from trackpad,
 	// rounds to integer offset, and coalesces into one IPC call per frame.
-	// When there's no scrollback (alt-buffer, e.g. Gemini TUI), wheel events are
-	// forwarded to the running application as arrow key sequences.
 	const handleScroll = useCallback(
 		(deltaLines: number) => {
 			pendingScrollDelta.current += deltaLines;
@@ -305,19 +303,13 @@ export const Pane = memo(function Pane({
 				const totalDelta = pendingScrollDelta.current;
 				pendingScrollDelta.current = 0;
 
-				// Alt-buffer (no scrollback): forward wheel as arrow keys to the app
+				// No scrollback (alt-buffer): nothing to scroll — just clear any stale flag
 				if (maxScrollRef.current === 0) {
 					if (isScrolledRef.current) scrollToBottom();
-					const count = Math.round(Math.abs(totalDelta));
-					if (count === 0) return;
-					const key = totalDelta > 0 ? "\x1b[A" : "\x1b[B";
-					window.api.writePty(paneId, key.repeat(count)).catch((err: unknown) => {
-						console.error(`[pane] writePty (scroll) failed for ${paneId}:`, err);
-					});
 					return;
 				}
 
-				// Normal scrollback mode — show scrollbar
+				// Show scrollbar, auto-hide after inactivity
 				setScrollbarVisible(true);
 				if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
 				scrollbarTimerRef.current = setTimeout(
@@ -325,7 +317,7 @@ export const Pane = memo(function Pane({
 					SCROLLBAR_HIDE_DELAY_MS,
 				);
 
-				// Mark scrolled-up immediately so the render RAF won't push new output
+				// Mark scrolled-up so the render RAF won't push new output
 				if (totalDelta > 0) isScrolledRef.current = true;
 
 				const rawOffset = scrollOffsetRef.current + totalDelta;
@@ -337,7 +329,7 @@ export const Pane = memo(function Pane({
 				applyScrollOffset(newOffset);
 			});
 		},
-		[applyScrollOffset, scrollToBottom, paneId],
+		[applyScrollOffset, scrollToBottom],
 	);
 
 	// Listen for Mod+Up/Down scroll shortcuts dispatched by useKeyboardShortcuts
