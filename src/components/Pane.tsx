@@ -6,11 +6,10 @@ import { usePaneDragDrop } from "../hooks/usePaneDragDrop";
 import { ZONE_STYLES } from "../lib/pane-drag-utils";
 import { SCROLLBAR_HIDE_DELAY_MS, type ScreenPosition } from "../lib/ui-constants";
 import {
+	clampFontSize,
 	effectMul,
 	type GridSnapshot,
-	MAX_FONT_SIZE,
 	MAX_UNFOCUSED_DIM,
-	MIN_FONT_SIZE,
 	PANE_RENAME_EVENT,
 	PANE_SCROLL_EVENT,
 	type PaneConfig,
@@ -325,9 +324,8 @@ export const Pane = memo(function Pane({
 
 	const handleFontSizeChange = useCallback(
 		(newSize: number) => {
-			const clamped = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newSize));
 			onUpdateConfig(paneId, {
-				themeOverride: { ...config.themeOverride, fontSize: clamped },
+				themeOverride: { ...(config.themeOverride ?? {}), fontSize: clampFontSize(newSize) },
 			});
 		},
 		[paneId, config.themeOverride, onUpdateConfig],

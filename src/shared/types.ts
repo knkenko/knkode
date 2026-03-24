@@ -53,6 +53,13 @@ export const DEFAULT_FONT_SIZE = 14;
 export const MIN_FONT_SIZE = 8;
 export const MAX_FONT_SIZE = 32;
 
+/** Clamp a font size to the valid range [MIN_FONT_SIZE, MAX_FONT_SIZE].
+ *  Returns DEFAULT_FONT_SIZE if the input is NaN or non-finite. */
+export function clampFontSize(size: number): number {
+	if (!Number.isFinite(size)) return DEFAULT_FONT_SIZE;
+	return Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, size));
+}
+
 export const DEFAULT_BACKGROUND = "#1e1e1e";
 export const DEFAULT_FOREGROUND = "#e0e0e0";
 export const DEFAULT_CURSOR_COLOR = "#c0c0c0";

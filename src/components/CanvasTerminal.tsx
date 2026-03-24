@@ -17,12 +17,11 @@ import type {
 	SelectionRange,
 } from "../shared/types";
 import {
+	clampFontSize,
 	DEFAULT_BACKGROUND,
 	DEFAULT_CURSOR_COLOR,
 	DEFAULT_FONT_SIZE,
 	DEFAULT_LINE_HEIGHT,
-	MAX_FONT_SIZE,
-	MIN_FONT_SIZE,
 } from "../shared/types";
 import { isMac, isModKeyHeld } from "../utils/platform";
 
@@ -46,7 +45,7 @@ export interface CanvasTerminalProps {
 	readonly paneId: string;
 	/** Theme accent color for link hover highlight. Falls back to cursorColor prop. */
 	readonly accentColor?: string;
-	/** Callback when Cmd/Ctrl+Scroll changes font size. Receives the new clamped size. */
+	/** Callback when Cmd/Ctrl+Scroll changes font size. Receives the requested new size. */
 	readonly onFontSizeChange?: (newSize: number) => void;
 }
 
@@ -883,12 +882,14 @@ export function CanvasTerminal({
 			const snap = gridRef.current;
 			const dpr = dprRef.current;
 
-			// Cmd/Ctrl + Scroll → zoom font size (takes priority over all other paths)
+			// Cmd/Ctrl + Scroll → zoom font size (takes priority over all other paths,
+			// including SGR mouse grab — Cmd is explicit user intent to zoom)
 			if (isModKeyHeld(e) && e.deltaY !== 0 && onFontSizeChangeRef.current) {
 				e.preventDefault();
 				const current = fontSizeRef.current;
+				// scroll-down (deltaY > 0) = zoom out, scroll-up = zoom in
 				const step = e.deltaY > 0 ? -1 : 1;
-				const next = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, current + step));
+				const next = clampFontSize(current + step);
 				if (next !== current) onFontSizeChangeRef.current(next);
 				return;
 			}

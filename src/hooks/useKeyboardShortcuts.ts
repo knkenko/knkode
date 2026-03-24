@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
-	MAX_FONT_SIZE,
-	MIN_FONT_SIZE,
+	clampFontSize,
+	DEFAULT_FONT_SIZE,
 	PANE_SCROLL_EVENT,
 	type PaneScrollDetail,
 } from "../shared/types";
@@ -175,12 +175,13 @@ export function useKeyboardShortcuts({ toggleSettings, toggleHotkeys }: Shortcut
 						themeOverride: Object.keys(rest).length > 0 ? rest : null,
 					});
 				} else {
-					const currentSize = paneConfig.themeOverride?.fontSize ?? activeWs.theme.fontSize;
+					const currentSize =
+						paneConfig.themeOverride?.fontSize ?? activeWs.theme.fontSize ?? DEFAULT_FONT_SIZE;
 					const step = e.key === "-" ? -1 : 1;
-					const next = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, currentSize + step));
+					const next = clampFontSize(currentSize + step);
 					if (next !== currentSize) {
 						state.updatePaneConfig(activeWs.id, resolvedFocusId, {
-							themeOverride: { ...paneConfig.themeOverride, fontSize: next },
+							themeOverride: { ...(paneConfig.themeOverride ?? {}), fontSize: next },
 						});
 					}
 				}
