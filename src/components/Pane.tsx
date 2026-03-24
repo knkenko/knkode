@@ -92,6 +92,7 @@ export const Pane = memo(function Pane({
 	const scrollRafId = useRef(0);
 	const [scrollbarVisible, setScrollbarVisible] = useState(false);
 	const scrollbarTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+	const scrollbarTrackRef = useRef<HTMLDivElement>(null);
 
 	const { isDragging, dropZone, outerRef, handleHeaderPointerDown } = usePaneDragDrop({
 		paneId,
@@ -167,6 +168,54 @@ export const Pane = memo(function Pane({
 		window.api.scrollTerminal(paneId, max).then(setGrid).catch(console.error);
 	}, [paneId]);
 
+	// Scrollbar drag — convert pointer Y within the track to a scroll offset
+	const handleScrollbarPointerDown = useCallback(
+		(e: React.PointerEvent) => {
+			const track = scrollbarTrackRef.current;
+			if (!track) return;
+			e.preventDefault();
+			e.stopPropagation();
+			(e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+			const jumpToY = (clientY: number) => {
+				const rect = track.getBoundingClientRect();
+				const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+				// ratio 0 = top of scrollback, ratio 1 = bottom (live viewport)
+				const max = maxScrollRef.current;
+				const newOffset = Math.round(max * (1 - ratio));
+				scrollOffsetRef.current = newOffset;
+				isScrolledRef.current = newOffset > 0;
+
+				setScrollbarVisible(true);
+				if (scrollbarTimerRef.current) clearTimeout(scrollbarTimerRef.current);
+
+				if (newOffset === 0) {
+					scrollToBottom();
+				} else {
+					window.api
+						.scrollTerminal(paneId, newOffset)
+						.then((snapshot) => {
+							maxScrollRef.current = snapshot.scrollbackRows;
+							if (scrollOffsetRef.current > 0) setGrid(snapshot);
+						})
+						.catch(console.error);
+				}
+			};
+
+			jumpToY(e.clientY);
+
+			const onMove = (ev: PointerEvent) => jumpToY(ev.clientY);
+			const onUp = () => {
+				document.removeEventListener("pointermove", onMove);
+				document.removeEventListener("pointerup", onUp);
+				scrollbarTimerRef.current = setTimeout(() => setScrollbarVisible(false), 2000);
+			};
+			document.addEventListener("pointermove", onMove);
+			document.addEventListener("pointerup", onUp);
+		},
+		[paneId, scrollToBottom],
+	);
+
 	const handleWrite = useCallback(
 		(data: string) => {
 			// Auto-scroll to bottom on user input
@@ -215,7 +264,11 @@ export const Pane = memo(function Pane({
 
 				const rawOffset = scrollOffsetRef.current + totalDelta;
 				const newOffset = Math.max(0, Math.min(maxScrollRef.current, Math.round(rawOffset)));
-				if (newOffset === scrollOffsetRef.current) return;
+				if (newOffset === scrollOffsetRef.current) {
+					// Reset scroll flag when clamped to bottom (e.g. alt-buffer with no scrollback)
+					if (newOffset === 0) isScrolledRef.current = false;
+					return;
+				}
 				scrollOffsetRef.current = newOffset;
 				isScrolledRef.current = newOffset > 0;
 
@@ -425,11 +478,13 @@ export const Pane = memo(function Pane({
 						{/* Scrollbar — themed track, fades in on scroll, fades out after 2s */}
 						{hasScrollback && (
 							<div
-								className="absolute right-2 top-2 bottom-2 w-2 z-20 pointer-events-none transition-opacity duration-500"
+								ref={scrollbarTrackRef}
+								onPointerDown={handleScrollbarPointerDown}
+								className={`absolute right-2 top-2 bottom-2 w-2 z-20 transition-opacity duration-500 ${scrollbarVisible ? "cursor-pointer" : "pointer-events-none"}`}
 								style={{ opacity: scrollbarVisible ? 1 : 0 }}
 							>
 								<div
-									className="absolute right-0 w-1 rounded-full"
+									className="absolute right-0 w-1 rounded-full pointer-events-none"
 									style={{
 										top: `${scrollThumbTop}%`,
 										height: `${scrollThumbHeight}%`,
