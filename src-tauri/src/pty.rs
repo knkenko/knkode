@@ -731,11 +731,11 @@ impl PtyManager {
         // Shared state between reader and flush threads.
         // `dirty`: set when terminal state advances but no snapshot was emitted (throttled).
         // `alive`: cleared when the reader exits so the flush thread can stop.
-        // `flush_cond`: wakes the flush thread immediately when data arrives, replacing
+        // `flush_cond`: wakes the flush thread when throttled data is pending, replacing
         // the previous 16ms sleep-poll that caused ~60 idle wakeups/sec per session.
         let dirty = Arc::new(AtomicBool::new(false));
         let alive = Arc::new(AtomicBool::new(true));
-        let flush_cond = Arc::new((Mutex::new(false), Condvar::new()));
+        let flush_cond = Arc::new((Mutex::new(()), Condvar::new()));
 
         // Trailing-edge flush thread: ensures the screen always shows the latest
         // state after a data burst ends. Without this, the last chunk in a burst
@@ -751,8 +751,12 @@ impl PtyManager {
             std::thread::spawn(move || {
                 let (lock, cv) = &*cond;
                 while alive_flush.load(Ordering::Relaxed) {
-                    // Wait until notified by reader or timeout — zero CPU when idle
-                    let guard = lock.lock().unwrap_or_else(|e| e.into_inner());
+                    // Wait until notified by reader or timeout — zero CPU when idle.
+                    // Mutex exists only to satisfy condvar API; the bool is in `dirty`.
+                    let guard = lock.lock().unwrap_or_else(|e| {
+                        eprintln!("[pty] flush condvar mutex poisoned, recovering");
+                        e.into_inner()
+                    });
                     let _ = cv
                         .wait_timeout(guard, RENDER_INTERVAL)
                         .unwrap_or_else(|e| e.into_inner());
@@ -773,6 +777,7 @@ impl PtyManager {
         let last_output_at = Arc::clone(&self.last_output_at);
         std::thread::spawn(move || {
             eprintln!("[pty] Reader thread started for {id_clone}");
+            let (_, cv) = &*flush_cond;
             let mut buf = [0u8; READ_BUFFER_SIZE];
             let mut last_emit = Instant::now() - RENDER_INTERVAL; // emit first frame immediately
             let mut total_bytes: usize = 0;
@@ -817,8 +822,8 @@ impl PtyManager {
                             last_emit = Instant::now();
                         } else {
                             dirty.store(true, Ordering::Release);
-                            // Wake flush thread so it emits after RENDER_INTERVAL
-                            flush_cond.1.notify_one();
+                            // Signal flush thread that dirty data is available
+                            cv.notify_one();
                         }
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -830,6 +835,8 @@ impl PtyManager {
             }
 
             alive.store(false, Ordering::Release);
+            // Wake flush thread so it exits immediately instead of waiting up to 16ms
+            cv.notify_one();
 
             // Always emit a final snapshot so the screen shows the complete output
             // (the last chunk may have been throttled).
