@@ -155,8 +155,8 @@ export function Sidebar({
 	const handlePaneClick = useCallback(
 		(workspaceId: string, paneId: string) => {
 			setActiveWorkspace(workspaceId);
-			// Switch to the subgroup containing the clicked pane
-			const ws = workspaces.find((w) => w.id === workspaceId);
+			// Switch to the subgroup containing the clicked pane (read imperatively to avoid deps)
+			const ws = useStore.getState().workspaces.find((w) => w.id === workspaceId);
 			if (ws) {
 				const sg = findSubgroupForPane(ws, paneId);
 				if (sg && sg.id !== ws.activeSubgroupId) {
@@ -165,7 +165,7 @@ export function Sidebar({
 			}
 			setFocusedPane(paneId);
 		},
-		[setActiveWorkspace, setActiveSubgroup, setFocusedPane, workspaces],
+		[setActiveWorkspace, setActiveSubgroup, setFocusedPane],
 	);
 
 	const showTransientError = useCallback((msg: string) => {

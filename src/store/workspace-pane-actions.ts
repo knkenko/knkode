@@ -21,9 +21,13 @@ import {
 	findSubgroupForPane,
 	getActiveSubgroup,
 	getPaneIdsInOrder,
+	makePaneConfig,
+	makeSingleSubgroup,
 	remapLayoutTree,
+	removePaneFromSubgroup,
 	removeLeafFromTree,
 	replaceLeafInTree,
+	updateSubgroupLayout,
 	updateSizesAtPath,
 } from "./layout-tree";
 
@@ -77,7 +81,7 @@ export function persistAppState(appState: AppState): void {
 }
 
 function customLayout(tree: LayoutNode): { type: "custom"; tree: LayoutNode } {
-	return { type: "custom" as const, tree };
+	return { type: "custom", tree };
 }
 
 /** Persist a partial PaneConfig update to disk without triggering a store re-render.
@@ -153,13 +157,11 @@ export function createWorkspacePaneSlice(
 	return {
 		createWorkspace: async (name: string, preset: LayoutPreset) => {
 			const { layout, panes } = createLayoutFromPreset(preset, get().homeDir);
-			const subgroupId = crypto.randomUUID();
 			const workspace: Workspace = {
 				id: crypto.randomUUID(),
 				name,
 				theme: defaultTheme(),
-				subgroups: [{ id: subgroupId, layout }],
-				activeSubgroupId: subgroupId,
+				...makeSingleSubgroup(layout),
 				panes,
 			};
 			await window.api.saveWorkspace(workspace);
@@ -230,12 +232,17 @@ export function createWorkspacePaneSlice(
 							: { type: "custom" as const, tree: remappedTree },
 				};
 			});
+			let newActiveSubgroupId = subgroupIdMap.get(source.activeSubgroupId);
+			if (!newActiveSubgroupId) {
+				console.error("[store] duplicateWorkspace: activeSubgroupId not found in subgroupIdMap");
+				newActiveSubgroupId = newSubgroups[0]?.id ?? "";
+			}
 			const workspace: Workspace = {
 				id: crypto.randomUUID(),
 				name: `${source.name} (copy)`,
 				theme: { ...source.theme },
 				subgroups: newSubgroups,
-				activeSubgroupId: subgroupIdMap.get(source.activeSubgroupId) ?? newSubgroups[0]!.id,
+				activeSubgroupId: newActiveSubgroupId,
 				panes: newPanes,
 			};
 			await window.api.saveWorkspace(workspace);
@@ -363,14 +370,14 @@ export function createWorkspacePaneSlice(
 			set((state) =>
 				withWorkspace(state, workspaceId, (workspace, st) => {
 					const sg = findSubgroupForPane(workspace, paneId);
-					if (!sg || !workspace.panes[paneId]) return null;
+					if (!sg) {
+						if (workspace.panes[paneId])
+							console.error("[store] splitPane: pane exists but not in any subgroup", paneId);
+						return null;
+					}
+					if (!workspace.panes[paneId]) return null;
 					const newPaneId = crypto.randomUUID();
-					const newPane: PaneConfig = {
-						label: "terminal",
-						cwd: workspace.panes[paneId]!.cwd,
-						startupCommand: null,
-						themeOverride: null,
-					};
+					const newPane = makePaneConfig("terminal", workspace.panes[paneId]!.cwd);
 					const newTree = replaceLeafInTree(sg.layout.tree, paneId, (leaf) => ({
 						direction,
 						size: leaf.size,
@@ -382,9 +389,7 @@ export function createWorkspacePaneSlice(
 					return {
 						updated: {
 							...workspace,
-							subgroups: workspace.subgroups.map((s) =>
-								s.id === sg.id ? { ...s, layout: customLayout(newTree) } : s,
-							),
+							subgroups: updateSubgroupLayout(workspace.subgroups, sg.id, customLayout(newTree)),
 							panes: { ...workspace.panes, [newPaneId]: newPane },
 						},
 						extra: { focusedPaneId: newPaneId, focusGeneration: st.focusGeneration + 1 },
@@ -396,36 +401,27 @@ export function createWorkspacePaneSlice(
 		closePane: (workspaceId: string, paneId: string) => {
 			const ws = get().workspaces.find((w) => w.id === workspaceId);
 			if (!ws || Object.keys(ws.panes).length <= 1) return;
-			get().killPtys([paneId]);
 
 			set((state) =>
 				withWorkspace(state, workspaceId, (workspace, st) => {
 					if (Object.keys(workspace.panes).length <= 1) return null;
 					const sg = findSubgroupForPane(workspace, paneId);
-					if (!sg) return null;
+					if (!sg) {
+						console.error("[store] closePane: pane not in any subgroup", paneId);
+						return null;
+					}
 					const newTree = removeLeafFromTree(sg.layout.tree, paneId);
 					const { [paneId]: _, ...remainingPanes } = workspace.panes;
+					const { subgroups, activeSubgroupId } = removePaneFromSubgroup(workspace, sg, newTree);
 
-					let newSubgroups: readonly SubgroupConfig[];
-					let newActiveSubgroupId = workspace.activeSubgroupId;
-
-					if (!newTree) {
-						// Last pane in subgroup — remove the subgroup
-						newSubgroups = workspace.subgroups.filter((s) => s.id !== sg.id);
-						if (newActiveSubgroupId === sg.id && newSubgroups.length > 0) {
-							newActiveSubgroupId = newSubgroups[0]!.id;
-						}
-					} else {
-						newSubgroups = workspace.subgroups.map((s) =>
-							s.id === sg.id ? { ...s, layout: customLayout(newTree) } : s,
-						);
-					}
+					// Kill PTY after state update is confirmed
+					get().killPtys([paneId]);
 
 					return {
 						updated: {
 							...workspace,
-							subgroups: newSubgroups,
-							activeSubgroupId: newActiveSubgroupId,
+							subgroups,
+							activeSubgroupId,
 							panes: remainingPanes,
 						},
 						extra: {
@@ -475,20 +471,8 @@ export function createWorkspacePaneSlice(
 				}
 				const newSourceTree = removeLeafFromTree(sourceSg.layout.tree, paneId);
 				const { [paneId]: _, ...remainingPanes } = fromWs.panes;
-
-				let newSourceSubgroups: readonly SubgroupConfig[];
-				let newSourceActiveId = fromWs.activeSubgroupId;
-				if (!newSourceTree) {
-					// Last pane in subgroup — remove subgroup
-					newSourceSubgroups = fromWs.subgroups.filter((s) => s.id !== sourceSg.id);
-					if (newSourceActiveId === sourceSg.id && newSourceSubgroups.length > 0) {
-						newSourceActiveId = newSourceSubgroups[0]!.id;
-					}
-				} else {
-					newSourceSubgroups = fromWs.subgroups.map((s) =>
-						s.id === sourceSg.id ? { ...s, layout: customLayout(newSourceTree) } : s,
-					);
-				}
+				const { subgroups: newSourceSubgroups, activeSubgroupId: newSourceActiveId } =
+					removePaneFromSubgroup(fromWs, sourceSg, newSourceTree);
 				const updatedFrom: Workspace = {
 					...fromWs,
 					subgroups: newSourceSubgroups,
@@ -551,21 +535,26 @@ export function createWorkspacePaneSlice(
 						console.error("[store] swapPanes: pane not found", { paneIdA, paneIdB, workspaceId });
 						return null;
 					}
+					// Both panes must be in the same subgroup to avoid cross-subgroup corruption
+					const sgA = findSubgroupForPane(workspace, paneIdA);
+					const sgB = findSubgroupForPane(workspace, paneIdB);
+					if (!sgA || !sgB || sgA.id !== sgB.id) {
+						console.error("[store] swapPanes: panes must be in the same subgroup", {
+							paneIdA,
+							paneIdB,
+						});
+						return null;
+					}
 					const swapMap = new Map([
 						[paneIdA, paneIdB],
 						[paneIdB, paneIdA],
 					]);
-					// Swap within whichever subgroup(s) contain these panes
-					const newSubgroups = workspace.subgroups.map((sg) => {
-						const ids = getPaneIdsInOrder(sg.layout.tree);
-						if (!ids.includes(paneIdA) && !ids.includes(paneIdB)) return sg;
-						return {
-							...sg,
-							layout: customLayout(remapLayoutTree(sg.layout.tree, (id) => swapMap.get(id) ?? id)),
-						};
-					});
+					const newTree = remapLayoutTree(sgA.layout.tree, (id) => swapMap.get(id) ?? id);
 					return {
-						updated: { ...workspace, subgroups: newSubgroups },
+						updated: {
+							...workspace,
+							subgroups: updateSubgroupLayout(workspace.subgroups, sgA.id, customLayout(newTree)),
+						},
 					};
 				}),
 			);
@@ -590,7 +579,21 @@ export function createWorkspacePaneSlice(
 					}
 					// Both panes must be in the same subgroup for position moves
 					const sg = findSubgroupForPane(workspace, targetPaneId);
-					if (!sg) return null;
+					if (!sg) {
+						console.error("[store] movePaneToPosition: target pane not in any subgroup", {
+							targetPaneId,
+							workspaceId,
+						});
+						return null;
+					}
+					const sourceSg = findSubgroupForPane(workspace, sourcePaneId);
+					if (!sourceSg || sourceSg.id !== sg.id) {
+						console.error("[store] movePaneToPosition: panes must be in the same subgroup", {
+							sourcePaneId,
+							targetPaneId,
+						});
+						return null;
+					}
 					const treeWithoutSource = removeLeafFromTree(sg.layout.tree, sourcePaneId);
 					if (!treeWithoutSource) {
 						console.error("[store] movePaneToPosition: removeLeafFromTree returned null", {
@@ -614,9 +617,7 @@ export function createWorkspacePaneSlice(
 					return {
 						updated: {
 							...workspace,
-							subgroups: workspace.subgroups.map((s) =>
-								s.id === sg.id ? { ...s, layout: customLayout(newTree) } : s,
-							),
+							subgroups: updateSubgroupLayout(workspace.subgroups, sg.id, customLayout(newTree)),
 						},
 						extra: { focusedPaneId: sourcePaneId, focusGeneration: st.focusGeneration + 1 },
 					};
@@ -706,9 +707,7 @@ export function createWorkspacePaneSlice(
 					return {
 						updated: {
 							...workspace,
-							subgroups: workspace.subgroups.map((s) =>
-								s.id === sg.id ? { ...s, layout: customLayout(newTree) } : s,
-							),
+							subgroups: updateSubgroupLayout(workspace.subgroups, sg.id, customLayout(newTree)),
 						},
 					};
 				}),
@@ -720,13 +719,7 @@ export function createWorkspacePaneSlice(
 				withWorkspace(state, workspaceId, (workspace, st) => {
 					const newPaneId = crypto.randomUUID();
 					const newSgId = crypto.randomUUID();
-					const firstPaneCwd = Object.values(workspace.panes)[0]?.cwd ?? st.homeDir;
-					const newPane: PaneConfig = {
-						label: "terminal",
-						cwd: firstPaneCwd,
-						startupCommand: null,
-						themeOverride: null,
-					};
+					const cwd = Object.values(workspace.panes)[0]?.cwd ?? st.homeDir;
 					const newSubgroup: SubgroupConfig = {
 						id: newSgId,
 						layout: customLayout({ paneId: newPaneId, size: 100 }),
@@ -736,7 +729,7 @@ export function createWorkspacePaneSlice(
 							...workspace,
 							subgroups: [...workspace.subgroups, newSubgroup],
 							activeSubgroupId: newSgId,
-							panes: { ...workspace.panes, [newPaneId]: newPane },
+							panes: { ...workspace.panes, [newPaneId]: makePaneConfig("terminal", cwd) },
 						},
 						extra: { focusedPaneId: newPaneId, focusGeneration: st.focusGeneration + 1 },
 					};
@@ -764,8 +757,11 @@ export function createWorkspacePaneSlice(
 				withWorkspace(state, workspaceId, (workspace, st) => {
 					if (workspace.subgroups.length < 2) return null;
 					const idx = workspace.subgroups.findIndex((sg) => sg.id === workspace.activeSubgroupId);
-					const nextIdx =
-						(idx + direction + workspace.subgroups.length) % workspace.subgroups.length;
+					if (idx === -1) {
+						console.error("[store] cycleSubgroup: activeSubgroupId not found in subgroups");
+						return null;
+					}
+					const nextIdx = (idx + direction + workspace.subgroups.length) % workspace.subgroups.length;
 					const nextSg = workspace.subgroups[nextIdx];
 					if (!nextSg) return null;
 					const firstPaneId = getPaneIdsInOrder(nextSg.layout.tree)[0] ?? null;

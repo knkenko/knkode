@@ -10,7 +10,7 @@ import type {
 	SplitDirection,
 	Workspace,
 } from "../shared/types";
-import { createLayoutFromPreset } from "./layout-tree";
+import { createLayoutFromPreset, makeSingleSubgroup } from "./layout-tree";
 import { createSnippetSlice } from "./snippet-actions";
 import { createWorkspacePaneSlice, defaultTheme, persistAppState } from "./workspace-pane-actions";
 
@@ -73,13 +73,14 @@ interface StoreState {
 	reorderWorkspaceTabs: (fromIndex: number, toIndex: number) => void;
 	splitPane: (workspaceId: string, paneId: string, direction: SplitDirection) => void;
 	closePane: (workspaceId: string, paneId: string) => void;
-	/** Move a pane from one workspace to another. PTY stays alive. */
+	/** Move a pane from one workspace to another. PTY stays alive.
+	 *  The moved pane becomes a new solo subgroup in the destination workspace. */
 	movePaneToWorkspace: (fromWsId: string, paneId: string, toWsId: string) => void;
-	/** Swap two panes' positions within a workspace layout tree.
-	 *  Only swaps leaf paneId values; pane configs and PTYs are untouched. */
+	/** Swap two panes' positions within the same subgroup's layout tree.
+	 *  Both panes must be in the same subgroup. PTYs and pane configs are untouched. */
 	swapPanes: (workspaceId: string, paneIdA: string, paneIdB: string) => void;
 	/** Move a pane to a position (left/right/top/bottom) relative to another pane.
-	 *  Both panes must belong to the given workspace. Restructures the layout tree
+	 *  Both panes must be in the same subgroup. Restructures the subgroup's layout tree
 	 *  by removing the source and inserting it as a new split alongside the target.
 	 *  PTYs and pane configs stay alive. */
 	movePaneToPosition: (
@@ -98,10 +99,10 @@ interface StoreState {
 	updatePaneAgentStatus: (paneId: string, status: AgentStatus) => void;
 	/** Update terminal title for a pane (from OSC 1/2 escape sequences). */
 	updatePaneTitle: (paneId: string, title: string) => void;
-	/** Persist pixel sizes as percentages at a given tree path.
+	/** Persist pixel sizes as percentages at a given tree path within the active subgroup.
 	 *  `path` is an array of child indices from the root to the target branch node.
 	 *  An empty array `[]` targets the root node itself.
-	 *  Also transitions the workspace layout type from 'preset' to 'custom'. */
+	 *  Also transitions the active subgroup's layout type from 'preset' to 'custom'. */
 	updateNodeSizes: (workspaceId: string, path: number[], pixelSizes: number[]) => void;
 	/** Add a new solo pane subgroup to a workspace and set it active. */
 	addSubgroup: (workspaceId: string) => void;
@@ -247,26 +248,32 @@ export const useStore = create<StoreState>((set, get) => ({
 
 			// Migrate workspaces from single `layout` to `subgroups` array.
 			// Configs saved before subgroups was added will have `layout` but no `subgroups`.
+			interface LegacyWorkspace {
+				layout?: { type: string; tree: unknown; preset?: string };
+			}
+			const migrationPromises: Promise<void>[] = [];
 			let workspaces = loadedWorkspaces.map((ws) => {
-				if (ws.subgroups) return ws;
-				const legacy = ws as unknown as {
-					layout?: { type: string; tree: unknown; preset?: string };
-				};
-				if (!legacy.layout) return ws;
-				const sgId = crypto.randomUUID();
+				if (Array.isArray(ws.subgroups) && ws.subgroups.length > 0) return ws;
+				const legacy = ws as unknown as LegacyWorkspace;
+				if (!legacy.layout || typeof legacy.layout.type !== "string" || !legacy.layout.tree)
+					return ws;
 				const migrated: Workspace = {
 					id: ws.id,
 					name: ws.name,
 					theme: ws.theme,
-					subgroups: [{ id: sgId, layout: legacy.layout as Workspace["subgroups"][0]["layout"] }],
-					activeSubgroupId: sgId,
+					...makeSingleSubgroup(legacy.layout as Workspace["subgroups"][0]["layout"]),
 					panes: ws.panes,
 				};
-				window.api.saveWorkspace(migrated).catch((err) => {
-					console.warn("[store] Failed to persist subgroup migration:", err);
-				});
+				migrationPromises.push(
+					window.api.saveWorkspace(migrated).catch((err) => {
+						console.error("[store] Failed to persist subgroup migration:", err);
+					}),
+				);
 				return migrated;
 			});
+			if (migrationPromises.length > 0) {
+				await Promise.all(migrationPromises);
+			}
 			// Backfill sidebarCollapsed for configs saved before sidebar was added.
 			// The ?? is intentional: loadedAppState comes from JSON and may lack this field
 			// even though the AppState type requires it. Remove once all users have migrated.
@@ -281,13 +288,11 @@ export const useStore = create<StoreState>((set, get) => ({
 			// If no workspaces exist, create a default one
 			if (workspaces.length === 0) {
 				const { layout, panes } = createLayoutFromPreset("single", homeDir);
-				const sgId = crypto.randomUUID();
 				const defaultWorkspace: Workspace = {
 					id: crypto.randomUUID(),
 					name: "Default",
 					theme: defaultTheme(),
-					subgroups: [{ id: sgId, layout }],
-					activeSubgroupId: sgId,
+					...makeSingleSubgroup(layout),
 					panes,
 				};
 				workspaces = [...workspaces, defaultWorkspace];
@@ -363,4 +368,6 @@ export {
 	getAllPaneIds,
 	getFirstPaneId,
 	getPaneIdsInOrder,
+	makeSingleSubgroup,
+	updateSubgroupLayout,
 } from "./layout-tree";

@@ -18,7 +18,7 @@ import {
 	type PaneTheme,
 	type Workspace,
 } from "../shared/types";
-import { applyPresetWithRemap, getActiveSubgroup, useStore } from "../store";
+import { applyPresetWithRemap, getActiveSubgroup, updateSubgroupLayout, useStore } from "../store";
 import { AboutTabPanel } from "./AboutTabPanel";
 import { type EffectCategory, TerminalTabPanel } from "./TerminalTabPanel";
 import { WorkspaceTabPanel } from "./WorkspaceTabPanel";
@@ -180,8 +180,8 @@ export function SettingsPanel({
 	const [state, dispatch] = useReducer(settingsReducer, workspace, initState);
 
 	const dialogRef = useRef<HTMLDivElement>(null);
-	const activeSg = getActiveSubgroup(workspace);
-	const currentPreset = activeSg.layout.type === "preset" ? activeSg.layout.preset : null;
+	const activeSubgroup = getActiveSubgroup(workspace);
+	const currentPreset = activeSubgroup.layout.type === "preset" ? activeSubgroup.layout.preset : null;
 
 	const update = useCallback(
 		(patch: Partial<SettingsState>) => dispatch({ type: "UPDATE", patch }),
@@ -305,7 +305,7 @@ export function SettingsPanel({
 			}
 			persistWorkspace({
 				...latest,
-				subgroups: latest.subgroups.map((s) => (s.id === sg.id ? { ...s, layout } : s)),
+				subgroups: updateSubgroupLayout(latest.subgroups, sg.id, layout),
 				panes,
 			});
 		},

@@ -8,6 +8,11 @@ import type {
 } from "../shared/types";
 import { isLayoutBranch } from "../shared/types";
 
+/** Create a default PaneConfig with the given label and cwd. */
+export function makePaneConfig(label: string, cwd: string): PaneConfig {
+	return { label, cwd, startupCommand: null, themeOverride: null };
+}
+
 /** Remove a leaf from a layout tree by pane ID.
  *  If a branch is left with one child, collapse it upward
  *  (promote the child, preserving the parent's size).
@@ -116,28 +121,21 @@ export function createLayoutFromPreset(
 	layout: WorkspaceLayout;
 	panes: Record<string, PaneConfig>;
 } {
-	const makePaneConfig = (label: string): PaneConfig => ({
-		label,
-		cwd: homeDir,
-		startupCommand: null,
-		themeOverride: null,
-	});
-
 	const panes: Record<string, PaneConfig> = {};
 	let tree: LayoutNode;
 
 	switch (preset) {
 		case "single": {
 			const id = crypto.randomUUID();
-			panes[id] = makePaneConfig("terminal");
+			panes[id] = makePaneConfig("terminal", homeDir);
 			tree = { paneId: id, size: 100 };
 			break;
 		}
 		case "2-column": {
 			const left = crypto.randomUUID();
 			const right = crypto.randomUUID();
-			panes[left] = makePaneConfig("left");
-			panes[right] = makePaneConfig("right");
+			panes[left] = makePaneConfig("left", homeDir);
+			panes[right] = makePaneConfig("right", homeDir);
 			tree = {
 				direction: "horizontal",
 				size: 100,
@@ -151,8 +149,8 @@ export function createLayoutFromPreset(
 		case "2-row": {
 			const top = crypto.randomUUID();
 			const bottom = crypto.randomUUID();
-			panes[top] = makePaneConfig("top");
-			panes[bottom] = makePaneConfig("bottom");
+			panes[top] = makePaneConfig("top", homeDir);
+			panes[bottom] = makePaneConfig("bottom", homeDir);
 			tree = {
 				direction: "vertical",
 				size: 100,
@@ -167,9 +165,9 @@ export function createLayoutFromPreset(
 			const main = crypto.randomUUID();
 			const topRight = crypto.randomUUID();
 			const bottomRight = crypto.randomUUID();
-			panes[main] = makePaneConfig("main");
-			panes[topRight] = makePaneConfig("top-right");
-			panes[bottomRight] = makePaneConfig("bottom-right");
+			panes[main] = makePaneConfig("main", homeDir);
+			panes[topRight] = makePaneConfig("top-right", homeDir);
+			panes[bottomRight] = makePaneConfig("bottom-right", homeDir);
 			tree = {
 				direction: "horizontal",
 				size: 100,
@@ -191,9 +189,9 @@ export function createLayoutFromPreset(
 			const top = crypto.randomUUID();
 			const bottomLeft = crypto.randomUUID();
 			const bottomRight = crypto.randomUUID();
-			panes[top] = makePaneConfig("top");
-			panes[bottomLeft] = makePaneConfig("bottom-left");
-			panes[bottomRight] = makePaneConfig("bottom-right");
+			panes[top] = makePaneConfig("top", homeDir);
+			panes[bottomLeft] = makePaneConfig("bottom-left", homeDir);
+			panes[bottomRight] = makePaneConfig("bottom-right", homeDir);
 			tree = {
 				direction: "vertical",
 				size: 100,
@@ -216,10 +214,10 @@ export function createLayoutFromPreset(
 			const tr = crypto.randomUUID();
 			const bl = crypto.randomUUID();
 			const br = crypto.randomUUID();
-			panes[tl] = makePaneConfig("top-left");
-			panes[tr] = makePaneConfig("top-right");
-			panes[bl] = makePaneConfig("bottom-left");
-			panes[br] = makePaneConfig("bottom-right");
+			panes[tl] = makePaneConfig("top-left", homeDir);
+			panes[tr] = makePaneConfig("top-right", homeDir);
+			panes[bl] = makePaneConfig("bottom-left", homeDir);
+			panes[br] = makePaneConfig("bottom-right", homeDir);
 			tree = {
 				direction: "vertical",
 				size: 100,
@@ -312,23 +310,78 @@ export function applyPresetWithRemap(
 
 // ── Subgroup helpers ─────────────────────────────────────────
 
-/** Get the active subgroup for a workspace. Falls back to first subgroup. */
+/** Get the active subgroup for a workspace. Falls back to first subgroup.
+ *  Throws if `subgroups` is empty (invariant violation — every workspace must have at least one). */
 export function getActiveSubgroup(workspace: Workspace): SubgroupConfig {
-	return (
-		workspace.subgroups.find((sg) => sg.id === workspace.activeSubgroupId) ??
-		workspace.subgroups[0]!
-	);
+	const sg =
+		workspace.subgroups.find((s) => s.id === workspace.activeSubgroupId) ?? workspace.subgroups[0];
+	if (!sg) {
+		throw new Error(
+			`[layout] getActiveSubgroup: workspace "${workspace.id}" has no subgroups (corrupted state)`,
+		);
+	}
+	return sg;
 }
 
-/** Find which subgroup a pane belongs to by searching layout trees. */
+/** Find which subgroup a pane belongs to by searching layout trees.
+ *  Short-circuits on first match instead of collecting all IDs. */
 export function findSubgroupForPane(
 	workspace: Workspace,
 	paneId: string,
 ): SubgroupConfig | undefined {
-	return workspace.subgroups.find((sg) => getPaneIdsInOrder(sg.layout.tree).includes(paneId));
+	return workspace.subgroups.find((sg) => treeContainsPane(sg.layout.tree, paneId));
+}
+
+/** Check if a layout tree contains a pane ID (depth-first, short-circuits on match). */
+function treeContainsPane(node: LayoutNode, paneId: string): boolean {
+	if (!isLayoutBranch(node)) return node.paneId === paneId;
+	return node.children.some((child) => treeContainsPane(child, paneId));
 }
 
 /** Get all pane IDs across all subgroups in order (subgroup order, then depth-first within each). */
 export function getAllPaneIds(workspace: Workspace): string[] {
 	return workspace.subgroups.flatMap((sg) => getPaneIdsInOrder(sg.layout.tree));
+}
+
+/** Replace a single subgroup's layout within a subgroups array. */
+export function updateSubgroupLayout(
+	subgroups: readonly SubgroupConfig[],
+	sgId: string,
+	newLayout: WorkspaceLayout,
+): readonly SubgroupConfig[] {
+	return subgroups.map((s) => (s.id === sgId ? { ...s, layout: newLayout } : s));
+}
+
+/** Remove a pane from its subgroup. If the subgroup becomes empty, remove it and
+ *  update activeSubgroupId. Returns the new subgroups array and activeSubgroupId. */
+export function removePaneFromSubgroup(
+	workspace: Workspace,
+	sg: SubgroupConfig,
+	newTree: LayoutNode | null,
+): { subgroups: readonly SubgroupConfig[]; activeSubgroupId: string } {
+	if (!newTree) {
+		// Last pane in subgroup — remove the subgroup
+		const remaining = workspace.subgroups.filter((s) => s.id !== sg.id);
+		const activeSubgroupId =
+			workspace.activeSubgroupId === sg.id
+				? (remaining[0]?.id ?? workspace.activeSubgroupId)
+				: workspace.activeSubgroupId;
+		return { subgroups: remaining, activeSubgroupId };
+	}
+	return {
+		subgroups: updateSubgroupLayout(workspace.subgroups, sg.id, {
+			type: "custom",
+			tree: newTree,
+		}),
+		activeSubgroupId: workspace.activeSubgroupId,
+	};
+}
+
+/** Create a single-subgroup wrapper for a layout. */
+export function makeSingleSubgroup(layout: WorkspaceLayout): {
+	subgroups: readonly SubgroupConfig[];
+	activeSubgroupId: string;
+} {
+	const id = crypto.randomUUID();
+	return { subgroups: [{ id, layout }], activeSubgroupId: id };
 }
