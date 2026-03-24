@@ -45,7 +45,8 @@ interface StoreState {
 	/** Terminal title per pane (from terminal title escape sequences). Ephemeral runtime state.
 	 *  Values are never null — entries are deleted on pane removal via cleanPaneEphemeral. */
 	paneTitles: Record<string, string>;
-	/** Workspace IDs with collapsed sections in the sidebar. Ephemeral — not persisted.
+	/** In-memory mirror of `appState.collapsedWorkspaceIds` as a Set for O(1) lookup.
+	 *  Hydrated from AppState on init, kept in sync by `toggleSidebarSection`.
 	 *  IMPORTANT: Always create a new Set on mutation — Zustand uses reference equality. */
 	collapsedSidebarSections: ReadonlySet<string>;
 
