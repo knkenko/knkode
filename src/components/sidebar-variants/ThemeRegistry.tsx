@@ -1,6 +1,7 @@
-import { type ReactNode, memo } from "react";
+import { memo, type ReactNode } from "react";
 import type { ThemePresetName } from "../../data/theme-presets";
 import type {
+	BaseAddPaneButtonProps,
 	BasePaneEntryProps,
 	BaseWorkspaceGitInfoProps,
 	BaseWorkspaceHeaderProps,
@@ -10,53 +11,69 @@ import type {
 	ThemeVariantConfig,
 } from "./types";
 import {
+	CatppuccinAddPaneButton,
 	CatppuccinEntry,
 	CatppuccinGitInfo,
 	CatppuccinHeader,
+	DefaultDarkAddPaneButton,
 	DefaultDarkEntry,
 	DefaultDarkGitInfo,
 	DefaultDarkHeader,
+	DraculaAddPaneButton,
 	DraculaEntry,
 	DraculaGitInfo,
 	DraculaHeader,
+	EverforestAddPaneButton,
 	EverforestEntry,
 	EverforestGitInfo,
 	EverforestHeader,
+	GruvboxAddPaneButton,
 	GruvboxEntry,
 	GruvboxGitInfo,
 	GruvboxHeader,
+	MonokaiAddPaneButton,
 	MonokaiEntry,
 	MonokaiGitInfo,
 	MonokaiHeader,
+	NordAddPaneButton,
 	NordEntry,
 	NordGitInfo,
 	NordHeader,
+	TokyoNightAddPaneButton,
 	TokyoNightEntry,
 	TokyoNightGitInfo,
 	TokyoNightHeader,
 } from "./variants/ClassicThemes";
 import {
+	AmberAddPaneButton,
 	AmberEntry,
 	AmberGitInfo,
 	AmberHeader,
+	ArcticAddPaneButton,
 	ArcticEntry,
 	ArcticGitInfo,
 	ArcticHeader,
+	CyberpunkAddPaneButton,
 	CyberpunkEntry,
 	CyberpunkGitInfo,
 	CyberpunkHeader,
+	MatrixAddPaneButton,
 	MatrixEntry,
 	MatrixGitInfo,
 	MatrixHeader,
+	OceanAddPaneButton,
 	OceanEntry,
 	OceanGitInfo,
 	OceanHeader,
+	SolanaAddPaneButton,
 	SolanaEntry,
 	SolanaGitInfo,
 	SolanaHeader,
+	SunsetAddPaneButton,
 	SunsetEntry,
 	SunsetGitInfo,
 	SunsetHeader,
+	VaporwaveAddPaneButton,
 	VaporwaveEntry,
 	VaporwaveGitInfo,
 	VaporwaveHeader,
@@ -151,6 +168,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: DefaultDarkHeader,
 		Entry: DefaultDarkEntry,
 		GitInfo: DefaultDarkGitInfo,
+		AddPaneButton: DefaultDarkAddPaneButton,
 	},
 	Dracula: {
 		wrapper: {
@@ -170,6 +188,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: DraculaHeader,
 		Entry: DraculaEntry,
 		GitInfo: DraculaGitInfo,
+		AddPaneButton: DraculaAddPaneButton,
 	},
 	"Tokyo Night": {
 		wrapper: {
@@ -189,6 +208,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: TokyoNightHeader,
 		Entry: TokyoNightEntry,
 		GitInfo: TokyoNightGitInfo,
+		AddPaneButton: TokyoNightAddPaneButton,
 	},
 	Nord: {
 		wrapper: {
@@ -207,6 +227,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: NordHeader,
 		Entry: NordEntry,
 		GitInfo: NordGitInfo,
+		AddPaneButton: NordAddPaneButton,
 	},
 	Catppuccin: {
 		wrapper: {
@@ -226,6 +247,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: CatppuccinHeader,
 		Entry: CatppuccinEntry,
 		GitInfo: CatppuccinGitInfo,
+		AddPaneButton: CatppuccinAddPaneButton,
 	},
 	Gruvbox: {
 		wrapper: {
@@ -245,6 +267,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: GruvboxHeader,
 		Entry: GruvboxEntry,
 		GitInfo: GruvboxGitInfo,
+		AddPaneButton: GruvboxAddPaneButton,
 	},
 	Monokai: {
 		wrapper: {
@@ -264,6 +287,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: MonokaiHeader,
 		Entry: MonokaiEntry,
 		GitInfo: MonokaiGitInfo,
+		AddPaneButton: MonokaiAddPaneButton,
 	},
 	Everforest: {
 		wrapper: {
@@ -283,6 +307,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: EverforestHeader,
 		Entry: EverforestEntry,
 		GitInfo: EverforestGitInfo,
+		AddPaneButton: EverforestAddPaneButton,
 	},
 	Matrix: {
 		wrapper: {
@@ -301,6 +326,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: MatrixHeader,
 		Entry: MatrixEntry,
 		GitInfo: MatrixGitInfo,
+		AddPaneButton: MatrixAddPaneButton,
 	},
 	Cyberpunk: {
 		wrapper: {
@@ -323,6 +349,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: CyberpunkHeader,
 		Entry: CyberpunkEntry,
 		GitInfo: CyberpunkGitInfo,
+		AddPaneButton: CyberpunkAddPaneButton,
 	},
 	Solana: {
 		wrapper: {
@@ -343,6 +370,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: SolanaHeader,
 		Entry: SolanaEntry,
 		GitInfo: SolanaGitInfo,
+		AddPaneButton: SolanaAddPaneButton,
 	},
 	Amber: {
 		wrapper: {
@@ -363,6 +391,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: AmberHeader,
 		Entry: AmberEntry,
 		GitInfo: AmberGitInfo,
+		AddPaneButton: AmberAddPaneButton,
 	},
 	Vaporwave: {
 		wrapper: {
@@ -384,6 +413,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: VaporwaveHeader,
 		Entry: VaporwaveEntry,
 		GitInfo: VaporwaveGitInfo,
+		AddPaneButton: VaporwaveAddPaneButton,
 	},
 	Ocean: {
 		wrapper: {
@@ -402,6 +432,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: OceanHeader,
 		Entry: OceanEntry,
 		GitInfo: OceanGitInfo,
+		AddPaneButton: OceanAddPaneButton,
 	},
 	Sunset: {
 		wrapper: {
@@ -426,6 +457,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: SunsetHeader,
 		Entry: SunsetEntry,
 		GitInfo: SunsetGitInfo,
+		AddPaneButton: SunsetAddPaneButton,
 	},
 	Arctic: {
 		wrapper: {
@@ -445,6 +477,7 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 		Header: ArcticHeader,
 		Entry: ArcticEntry,
 		GitInfo: ArcticGitInfo,
+		AddPaneButton: ArcticAddPaneButton,
 	},
 };
 
@@ -508,6 +541,14 @@ export function WorkspaceGitInfoVariant({
 }: BaseWorkspaceGitInfoProps & { preset: ThemePresetName }) {
 	const { GitInfo } = getConfig(preset);
 	return <GitInfo {...props} />;
+}
+
+export function AddPaneButtonVariant({
+	preset,
+	...props
+}: BaseAddPaneButtonProps & { preset: ThemePresetName }) {
+	const { AddPaneButton } = getConfig(preset);
+	return <AddPaneButton {...props} />;
 }
 
 const BRACKET_POSITION_CLASSES: Record<BracketPosition, string> = {

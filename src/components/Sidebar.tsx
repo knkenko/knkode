@@ -1,10 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { type ThemePresetName, toPresetName } from "../data/theme-presets";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useDragReorder } from "../hooks/useDragReorder";
 import type { UpdateActions, UpdateState } from "../hooks/useUpdateChecker";
 import { useWindowDrag } from "../hooks/useWindowDrag";
-import { Fragment } from "react";
 import type { Workspace } from "../shared/types";
 import { findSubgroupForPane, getPaneIdsInOrder, useStore } from "../store";
 import { isMac, MACOS_SIDEBAR_TOP_INSET, modKey } from "../utils/platform";
@@ -13,6 +12,7 @@ import { SidebarWorkspaceGitInfo } from "./SidebarWorkspaceGitInfo";
 import { SidebarWorkspaceHeader } from "./SidebarWorkspaceHeader";
 import { AttentionDot } from "./sidebar-variants/AgentStatusIndicator";
 import {
+	AddPaneButtonVariant,
 	CollapsedWorkspaceVariant,
 	SubgroupBracket,
 	WorkspaceSectionWrapper,
@@ -85,6 +85,7 @@ export function Sidebar({
 	const duplicateWorkspace = useStore((s) => s.duplicateWorkspace);
 	const closePane = useStore((s) => s.closePane);
 	const setActiveSubgroup = useStore((s) => s.setActiveSubgroup);
+	const addSubgroup = useStore((s) => s.addSubgroup);
 	const reorderWorkspaceTabs = useStore((s) => s.reorderWorkspaceTabs);
 
 	const handleBarMouseDown = useWindowDrag();
@@ -329,6 +330,10 @@ export function Sidebar({
 														);
 													})}
 												</div>
+												<AddPaneButtonVariant
+													preset={activePreset}
+													onClick={() => addSubgroup(ws.id)}
+												/>
 											</>
 										)}
 									</WorkspaceSectionWrapper>
