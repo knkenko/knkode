@@ -117,6 +117,7 @@ export const useStore = create<StoreState>((set, get) => ({
 		openWorkspaceIds: [],
 		activeWorkspaceId: null,
 		sidebarCollapsed: false,
+		collapsedWorkspaceIds: [],
 		windowBounds: { x: 100, y: 100, width: 1200, height: 800 },
 	},
 	homeDir: "/tmp",
@@ -161,7 +162,9 @@ export const useStore = create<StoreState>((set, get) => ({
 		const next = new Set(current);
 		if (next.has(workspaceId)) next.delete(workspaceId);
 		else next.add(workspaceId);
-		set({ collapsedSidebarSections: next });
+		const updated = { ...get().appState, collapsedWorkspaceIds: [...next] };
+		set({ collapsedSidebarSections: next, appState: updated });
+		persistAppState(updated);
 	},
 
 	updatePaneAgentStatus: (paneId, status) => {
@@ -242,6 +245,8 @@ export const useStore = create<StoreState>((set, get) => ({
 			let appState: AppState = {
 				...loadedAppState,
 				sidebarCollapsed: (loadedAppState as Partial<AppState>).sidebarCollapsed ?? false,
+				collapsedWorkspaceIds:
+					(loadedAppState as Partial<AppState>).collapsedWorkspaceIds ?? [],
 			};
 
 			// If no workspaces exist, create a default one
@@ -300,6 +305,7 @@ export const useStore = create<StoreState>((set, get) => ({
 				focusGeneration: initialFocusedPaneId ? 1 : 0,
 				paneBranches,
 				panePrs: {},
+				collapsedSidebarSections: new Set(appState.collapsedWorkspaceIds),
 			});
 		} catch (err) {
 			console.error("[store] Failed to initialize:", err);
