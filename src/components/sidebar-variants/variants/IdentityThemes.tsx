@@ -1,4 +1,5 @@
 import type {
+	BaseAddPaneButtonProps,
 	BasePaneEntryProps,
 	BaseWorkspaceGitInfoProps,
 	BaseWorkspaceHeaderProps,
@@ -955,5 +956,110 @@ export function ArcticGitInfo({ branch, pr }: BaseWorkspaceGitInfoProps) {
 				{pr && <span className="text-[9px] text-[#48c8e0] shrink-0">#{pr.number}</span>}
 			</div>
 		</div>
+	);
+}
+
+// ── Add Pane Buttons ────────────────────────────────────────────
+
+export function MatrixAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-full px-2 py-1 text-left text-[10px] text-[#009933] hover:text-[#00ff41] bg-transparent hover:bg-[#00ff41]/5 border-none cursor-pointer transition-none font-mono font-bold uppercase"
+		>
+			&gt; SPAWN_PROCESS
+		</button>
+	);
+}
+
+export function CyberpunkAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-full px-4 py-1 text-left text-[10px] text-[#ff6e96] hover:text-[#05d9e8] bg-transparent hover:bg-[#2a0550]/30 border-none cursor-pointer transition-all duration-200 font-bold uppercase tracking-wider"
+			style={{
+				clipPath:
+					"polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%)",
+			}}
+		>
+			+ NEW PANE
+		</button>
+	);
+}
+
+export function SolanaAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#b380ff] hover:text-[#f5f5ff] bg-transparent hover:bg-gradient-to-r hover:from-[#9945ff]/10 hover:to-[#14f195]/10 border border-dashed border-[#35356a] hover:border-[#9945ff]/40 rounded-full cursor-pointer transition-all duration-200"
+			style={{ width: "calc(100% - 16px)" }}
+		>
+			+ New Pane
+		</button>
+	);
+}
+
+export function AmberAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-full px-3 py-1 text-left text-[10px] text-[#b37a00] hover:text-[#ffb000] bg-transparent hover:bg-[#ffb000]/5 border-none cursor-pointer transition-none font-mono uppercase"
+		>
+			+ new_pane
+		</button>
+	);
+}
+
+export function VaporwaveAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-full px-3 py-1 text-left text-[10px] text-[#a855f7] hover:text-[#ff71ce] bg-transparent hover:bg-[#100024]/50 border-none cursor-pointer transition-all duration-300 italic tracking-widest uppercase"
+		>
+			+ New Pane
+		</button>
+	);
+}
+
+export function OceanAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#2890b8] hover:text-[#00c8ff] bg-transparent hover:bg-[#0070a0]/10 border border-dashed border-[#144a65] hover:border-[#00c8ff]/30 rounded-xl cursor-pointer transition-all duration-300"
+			style={{ width: "calc(100% - 16px)" }}
+		>
+			+ New Pane
+		</button>
+	);
+}
+
+export function SunsetAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="w-full px-3 py-1 text-left text-[10px] text-[#d04830] hover:text-[#e8a040] bg-transparent hover:bg-[#180c0a]/50 border-none cursor-pointer transition-all duration-200 font-bold tracking-wide"
+		>
+			+ New Pane
+		</button>
+	);
+}
+
+export function ArcticAddPaneButton({ onClick }: BaseAddPaneButtonProps) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#78b8d0] hover:text-[#48c8e0] bg-transparent hover:bg-[#1e3550]/30 border border-dashed border-[#1e3550] hover:border-[#48c8e0]/30 rounded-md cursor-pointer transition-all duration-200 uppercase tracking-widest"
+			style={{ width: "calc(100% - 16px)" }}
+		>
+			+ New Pane
+		</button>
 	);
 }
