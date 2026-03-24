@@ -260,6 +260,9 @@ export function createWorkspacePaneSlice(
 				...afterDelete.appState,
 				openWorkspaceIds: newOpen,
 				activeWorkspaceId: newActive,
+				collapsedWorkspaceIds: afterDelete.appState.collapsedWorkspaceIds.filter(
+					(wid) => wid !== id,
+				),
 			};
 			await window.api.saveAppState(newAppState);
 			const latest = get();
