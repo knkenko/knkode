@@ -274,7 +274,8 @@ export interface AgentSession {
 	readonly agent: AgentKind;
 	/** ISO 8601 timestamp of session start. */
 	readonly timestamp: string;
-	/** ISO 8601 timestamp of last activity in the session. */
+	/** ISO 8601 timestamp of last activity. Null when only start time is known;
+	 *  consumers should fall back to `timestamp`. */
 	readonly lastUpdated: string | null;
 	/** Custom session title (Claude /rename, Gemini AI summary, Codex thread name). */
 	readonly title: string | null;

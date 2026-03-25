@@ -96,7 +96,7 @@ export interface SessionHistoryTokens {
 	/** Resume button className. */
 	resumeButton: string;
 	resumeButtonStyle?: CSSProperties;
-	/** Themed label text for the resume button (e.g. "Resume", "> RESUME", "jack_in"). */
+	/** Themed label text for the resume button (e.g. "Resume", "> RESUME", "[ RESUME ]"). */
 	resumeLabel: string;
 	/** Inactive filter tab className. */
 	filterTab: string;
