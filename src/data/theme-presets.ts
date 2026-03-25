@@ -719,7 +719,7 @@ export const THEME_PRESETS = [
 	},
 ] as const satisfies readonly ThemePreset[];
 
-/** Union of all theme preset names. Used for compile-time variant completeness checks. */
+/** Union of all built-in theme preset name literals, derived from the THEME_PRESETS array. */
 export type ThemePresetName = (typeof THEME_PRESETS)[number]["name"];
 
 export const TERMINAL_FONTS = [
@@ -755,11 +755,12 @@ export function buildFontFamily(family?: string): string {
 }
 
 /** Remove keys whose value is `undefined` so they don't poison exactOptionalPropertyTypes.
- *  Returns Partial<T> since required keys with undefined values are dropped. */
+ *  Returns Partial<T> because the result may lack keys that T requires. */
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
 	const result: Partial<T> = {};
 	for (const key of Object.keys(obj) as (keyof T)[]) {
-		if (obj[key] !== undefined) result[key] = obj[key];
+		const val = obj[key];
+		if (val !== undefined) result[key] = val;
 	}
 	return result;
 }
@@ -799,6 +800,8 @@ export function mergeThemeWithPreset(
 	const result = { ...base } as { -readonly [K in keyof PaneTheme]?: PaneTheme[K] };
 	for (const key of PRESET_FILL_KEYS) {
 		if (result[key] === undefined && preset[key] !== undefined) {
+			// Cast needed: PRESET_FILL_KEYS is a compile-time-known subset of PaneTheme keys,
+			// but TS can't prove dynamic key assignment is safe on the mapped type.
 			(result as Record<string, unknown>)[key] = preset[key];
 		}
 	}
@@ -870,14 +873,16 @@ export function buildTerminalTheme(
 
 export const DEFAULT_PRESET_NAME = THEME_PRESETS[0].name;
 
-const PRESET_NAMES = new Set<string>(THEME_PRESETS.map((p) => p.name));
+const PRESET_NAMES = new Set<ThemePresetName>(THEME_PRESETS.map((p) => p.name));
 
-/** Coerce a string to ThemePresetName, falling back to DEFAULT_PRESET_NAME for unknown values. */
-export function toPresetName(name: ThemePresetName | string | undefined): ThemePresetName {
-	return name && PRESET_NAMES.has(name) ? (name as ThemePresetName) : DEFAULT_PRESET_NAME;
+/** Validate a preset name, falling back to DEFAULT_PRESET_NAME for unknown or missing values.
+ *  Accepts plain `string` for deserialization boundaries (persisted config, legacy data). */
+export function toPresetName(name: string | undefined): ThemePresetName {
+	return name && PRESET_NAMES.has(name as ThemePresetName) ? (name as ThemePresetName) : DEFAULT_PRESET_NAME;
 }
 
-/** Look up a theme preset by name. Returns undefined if not found. */
-export function findPreset(name: ThemePresetName | string): ThemePreset | undefined {
+/** Look up a theme preset by name. Returns undefined if not found.
+ *  Accepts plain `string` for deserialization boundaries (persisted config, migration). */
+export function findPreset(name: string): ThemePreset | undefined {
 	return THEME_PRESETS.find((p) => p.name === name);
 }
