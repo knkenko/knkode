@@ -5,7 +5,9 @@ import { getPortalRoot } from "../lib/ui-constants";
 import { AGENT_KINDS, type AgentKind, type AgentSession } from "../shared/types";
 import { useStore } from "../store";
 import { AgentIcon } from "./AgentIcons";
+import { FOCUS_VIS } from "./pane-chrome/shared";
 import { getSessionHistoryTokens } from "./sidebar-variants/ThemeRegistry";
+import type { SessionHistoryTokens } from "./sidebar-variants/types";
 
 const AGENT_LABELS: Record<AgentKind, string> = {
 	claude: "Claude",
@@ -26,36 +28,27 @@ function formatRelativeTime(iso: string): string {
 	return `${days}d ago`;
 }
 
-/** Resolve the display name for a session: custom title > AI summary > first prompt. */
+/** Resolve the display name for a session: title > summary > "Untitled session". */
 function sessionDisplayName(session: AgentSession): string {
 	return session.title ?? session.summary ?? "Untitled session";
 }
-
-const FOCUS_RING = "focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none";
 
 function SessionRow({
 	session,
 	paneId,
 	onResume,
-	rowClass,
-	rowStyle,
-	resumeButtonClass,
-	resumeButtonStyle,
-	resumeLabel,
+	tokens,
 }: {
 	session: AgentSession;
 	paneId: string;
 	onResume: (paneId: string, session: AgentSession, unsafe: boolean) => void;
-	rowClass: string;
-	rowStyle?: React.CSSProperties | undefined;
-	resumeButtonClass: string;
-	resumeButtonStyle?: React.CSSProperties | undefined;
-	resumeLabel: string;
+	tokens: SessionHistoryTokens;
 }) {
-	const timeStr = formatRelativeTime(session.lastUpdated ?? session.timestamp);
+	const timeStr = formatRelativeTime((session.lastUpdated || null) ?? session.timestamp);
 	const name = sessionDisplayName(session);
+
 	return (
-		<div className={`flex items-center gap-3 p-3 ${rowClass}`} style={rowStyle}>
+		<div className={`flex items-center gap-3 p-3 ${tokens.row}`} style={tokens.rowStyle}>
 			<AgentIcon agent={session.agent} className="w-5 h-5 shrink-0 text-accent opacity-70" />
 			<div className="flex-1 min-w-0">
 				<p className="text-xs text-content truncate" title={name}>
@@ -66,16 +59,16 @@ function SessionRow({
 			<div className="flex items-center gap-1.5 shrink-0">
 				<button
 					type="button"
-					className={`${resumeButtonClass} ${FOCUS_RING}`}
-					style={resumeButtonStyle}
+					className={`${tokens.resumeButton} ${FOCUS_VIS}`}
+					style={tokens.resumeButtonStyle}
 					onClick={() => onResume(paneId, session, false)}
 				>
-					{resumeLabel}
+					{tokens.resumeLabel}
 				</button>
 				<button
 					type="button"
-					className={`${resumeButtonClass} ${FOCUS_RING} !text-danger hover:!bg-danger hover:!text-canvas`}
-					style={resumeButtonStyle}
+					className={`${tokens.resumeButton} ${FOCUS_VIS} !text-danger hover:!bg-danger hover:!text-canvas`}
+					style={tokens.resumeButtonStyle}
 					onClick={() => onResume(paneId, session, true)}
 					title="Resume without confirmation prompts"
 				>
@@ -85,6 +78,9 @@ function SessionRow({
 		</div>
 	);
 }
+
+const FOCUSABLE_SELECTOR =
+	'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function SessionHistoryModal() {
 	const paneId = useStore((s) => s.sessionHistoryPaneId);
@@ -109,6 +105,7 @@ export function SessionHistoryModal() {
 		[sessions, agentFilter],
 	);
 
+	// Escape to close
 	useEffect(() => {
 		if (!paneId) return;
 		const handler = (e: KeyboardEvent) => {
@@ -118,10 +115,29 @@ export function SessionHistoryModal() {
 		return () => document.removeEventListener("keydown", handler);
 	}, [paneId, closeSessionHistory]);
 
+	// Focus trap — contain Tab/Shift+Tab within the dialog
 	useEffect(() => {
-		if (paneId && modalRef.current) {
-			modalRef.current.focus();
-		}
+		const dialog = modalRef.current;
+		if (!paneId || !dialog) return;
+		const handler = (e: KeyboardEvent) => {
+			if (e.key !== "Tab") return;
+			const focusable = dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+			if (focusable.length === 0) return;
+			// biome-ignore lint/style/noNonNullAssertion: length > 0 checked above
+			const first = focusable[0]!;
+			// biome-ignore lint/style/noNonNullAssertion: length > 0 checked above
+			const last = focusable[focusable.length - 1]!;
+			if (e.shiftKey && document.activeElement === first) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && document.activeElement === last) {
+				e.preventDefault();
+				first.focus();
+			}
+		};
+		dialog.addEventListener("keydown", handler);
+		dialog.focus();
+		return () => dialog.removeEventListener("keydown", handler);
 	}, [paneId]);
 
 	if (!paneId) return null;
@@ -137,7 +153,7 @@ export function SessionHistoryModal() {
 			<div
 				ref={modalRef}
 				tabIndex={-1}
-				className={`w-full max-w-xl max-w-[calc(100vw-2rem)] max-h-[70vh] flex flex-col overflow-hidden outline-none animate-panel-in ${tokens.modal}`}
+				className={`w-full max-w-[min(36rem,calc(100vw-2rem))] max-h-[70vh] flex flex-col overflow-hidden outline-none animate-panel-in ${tokens.modal}`}
 				style={tokens.modalStyle}
 				role="dialog"
 				aria-modal="true"
@@ -148,7 +164,7 @@ export function SessionHistoryModal() {
 					<h2 className="text-sm font-semibold tracking-wide">Session History</h2>
 					<button
 						type="button"
-						className={`text-content-muted hover:text-content text-sm cursor-pointer ${FOCUS_RING}`}
+						className={`text-content-muted hover:text-content text-sm cursor-pointer ${FOCUS_VIS}`}
 						onClick={closeSessionHistory}
 						aria-label="Close"
 					>
@@ -159,7 +175,7 @@ export function SessionHistoryModal() {
 				<div className="flex items-center gap-1 px-6 py-2">
 					<button
 						type="button"
-						className={agentFilter === null ? tokens.filterTabActive : tokens.filterTab}
+						className={`${agentFilter === null ? tokens.filterTabActive : tokens.filterTab} ${FOCUS_VIS}`}
 						onClick={() => setAgentFilter(null)}
 					>
 						All
@@ -168,7 +184,7 @@ export function SessionHistoryModal() {
 						<button
 							key={kind}
 							type="button"
-							className={agentFilter === kind ? tokens.filterTabActive : tokens.filterTab}
+							className={`${agentFilter === kind ? tokens.filterTabActive : tokens.filterTab} ${FOCUS_VIS}`}
 							onClick={() => setAgentFilter(kind)}
 						>
 							{AGENT_LABELS[kind]}
@@ -190,11 +206,7 @@ export function SessionHistoryModal() {
 								session={session}
 								paneId={paneId}
 								onResume={resumeSession}
-								rowClass={tokens.row}
-								rowStyle={tokens.rowStyle}
-								resumeButtonClass={tokens.resumeButton}
-								resumeButtonStyle={tokens.resumeButtonStyle}
-								resumeLabel={tokens.resumeLabel}
+								tokens={tokens}
 							/>
 						))
 					)}
