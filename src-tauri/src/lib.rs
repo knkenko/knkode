@@ -2,6 +2,7 @@ mod commands;
 mod config;
 mod menu;
 mod pty;
+mod session_scanner;
 mod terminal;
 mod tracker;
 #[cfg(target_os = "windows")]
@@ -47,6 +48,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::scroll_terminal,
             commands::set_terminal_colors,
             commands::get_selection_text,
+            commands::list_agent_sessions,
         ])
         .setup(|app| {
             // On macOS the menu lives in the system menu bar — no extra space.

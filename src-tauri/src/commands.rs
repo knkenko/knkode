@@ -1,5 +1,6 @@
 use crate::config::ConfigStore;
 use crate::pty::PtyManager;
+use crate::session_scanner;
 use crate::terminal::{AnsiThemeColors, GridSnapshot, SelectionRange, TerminalState};
 use crate::tracker::CwdTracker;
 use serde_json::Value;
@@ -179,4 +180,13 @@ pub fn get_selection_text(
     terminal_state: State<'_, Arc<TerminalState>>,
 ) -> Result<String, String> {
     terminal_state.extract_text(&id, &range)
+}
+
+// --- Session history ---
+
+#[tauri::command]
+pub fn list_agent_sessions(
+    project_cwd: String,
+) -> Result<Vec<session_scanner::AgentSession>, String> {
+    Ok(session_scanner::list_sessions(&project_cwd))
 }
