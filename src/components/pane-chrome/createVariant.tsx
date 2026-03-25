@@ -284,7 +284,10 @@ export function createAndRegisterVariant(name: string, config: VariantConfig): P
 				<SnippetTrigger className={actionCls} style={actionStyle}>
 					{sb.snippet.label}
 				</SnippetTrigger>
-				<SessionHistoryTrigger className={actionCls} style={actionStyle}>
+				<SessionHistoryTrigger
+					className={`${actionCls} ${sb.sessionHistory.label.length === 1 ? "text-lg" : ""}`}
+					style={actionStyle}
+				>
 					{sb.sessionHistory.label}
 				</SessionHistoryTrigger>
 				{sb.hoverRevealActions ? (
