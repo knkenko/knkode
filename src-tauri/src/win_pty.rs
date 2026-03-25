@@ -11,6 +11,7 @@ use std::mem;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle};
 use std::ptr;
+use std::sync::Mutex;
 
 use winapi::shared::minwindef::DWORD;
 use winapi::shared::winerror::S_OK;
@@ -41,7 +42,7 @@ struct ConPtyFuncs {
     close: ClosePseudoConsoleFn,
 }
 
-fn load_conpty() -> ConPtyFuncs {
+fn load_conpty() -> Result<ConPtyFuncs, String> {
     use winapi::um::libloaderapi::{GetProcAddress, LoadLibraryW};
 
     unsafe {
@@ -50,30 +51,41 @@ fn load_conpty() -> ConPtyFuncs {
             .chain(Some(0))
             .collect();
         let module = LoadLibraryW(name.as_ptr());
-        assert!(!module.is_null(), "Failed to load kernel32.dll");
+        if module.is_null() {
+            return Err("Failed to load kernel32.dll".to_string());
+        }
 
         let create = GetProcAddress(module, b"CreatePseudoConsole\0".as_ptr() as *const _);
         let resize = GetProcAddress(module, b"ResizePseudoConsole\0".as_ptr() as *const _);
         let close = GetProcAddress(module, b"ClosePseudoConsole\0".as_ptr() as *const _);
 
-        assert!(
-            !create.is_null() && !resize.is_null() && !close.is_null(),
-            "ConPTY not available — Windows 10 October 2018 or newer is required"
-        );
+        if create.is_null() || resize.is_null() || close.is_null() {
+            return Err(
+                "ConPTY not available — Windows 10 October 2018 or newer is required".to_string(),
+            );
+        }
 
-        ConPtyFuncs {
+        Ok(ConPtyFuncs {
             create: mem::transmute(create),
             resize: mem::transmute(resize),
             close: mem::transmute(close),
-        }
+        })
     }
 }
 
-static CONPTY: std::sync::LazyLock<ConPtyFuncs> = std::sync::LazyLock::new(load_conpty);
+static CONPTY: std::sync::LazyLock<Result<ConPtyFuncs, String>> =
+    std::sync::LazyLock::new(load_conpty);
+
+fn conpty() -> Result<&'static ConPtyFuncs, String> {
+    CONPTY.as_ref().map_err(|e| e.clone())
+}
 
 /// A Windows pseudoconsole session.
+///
+/// `hpc` is behind a `Mutex` because `resize()` and `Drop` both call ConPTY
+/// functions on the same HANDLE, and `WinPtySession` is `Send + Sync`.
 pub struct WinPtySession {
-    hpc: HANDLE,
+    hpc: Mutex<HANDLE>,
     process: OwnedHandle,
     pid: u32,
 }
@@ -94,12 +106,13 @@ pub struct PipeReader {
 impl Read for PipeReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         use winapi::um::fileapi::ReadFile;
+        let len = buf.len().min(u32::MAX as usize) as DWORD;
         let mut bytes_read: DWORD = 0;
         let ok = unsafe {
             ReadFile(
                 self.handle.as_raw_handle() as _,
                 buf.as_mut_ptr() as _,
-                buf.len() as DWORD,
+                len,
                 &mut bytes_read,
                 ptr::null_mut(),
             )
@@ -125,12 +138,13 @@ pub struct PipeWriter {
 impl Write for PipeWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         use winapi::um::fileapi::WriteFile;
+        let len = buf.len().min(u32::MAX as usize) as DWORD;
         let mut bytes_written: DWORD = 0;
         let ok = unsafe {
             WriteFile(
                 self.handle.as_raw_handle() as _,
                 buf.as_ptr() as _,
-                buf.len() as DWORD,
+                len,
                 &mut bytes_written,
                 ptr::null_mut(),
             )
@@ -171,7 +185,7 @@ fn create_pipe() -> io::Result<(OwnedHandle, OwnedHandle)> {
 impl WinPtySession {
     /// Create a new ConPTY session and spawn the given command.
     ///
-    /// Only sets `PSEUDOCONSOLE_INHERIT_CURSOR` — no `WIN32_INPUT_MODE`.
+    /// Sets no flags — no `WIN32_INPUT_MODE`, no `INHERIT_CURSOR`.
     pub fn spawn(
         cols: u16,
         rows: u16,
@@ -192,9 +206,10 @@ impl WinPtySession {
 
         // Create pseudoconsole with no flags (matches node-pty behavior).
         // PSEUDOCONSOLE_INHERIT_CURSOR (0x1) can hang when no parent console exists.
+        let funcs = conpty()?;
         let mut hpc: HANDLE = INVALID_HANDLE_VALUE;
         let result = unsafe {
-            (CONPTY.create)(
+            (funcs.create)(
                 size,
                 pty_in_read.as_raw_handle() as _,
                 pty_out_write.as_raw_handle() as _,
@@ -221,7 +236,7 @@ impl WinPtySession {
             use winapi::um::processthreadsapi::InitializeProcThreadAttributeList;
             let ok = InitializeProcThreadAttributeList(attr_list, 1, 0, &mut attr_size);
             if ok == 0 {
-                (CONPTY.close)(hpc);
+                (funcs.close)(hpc);
                 return Err(format!(
                     "InitializeProcThreadAttributeList failed: {}",
                     IoError::last_os_error()
@@ -240,7 +255,7 @@ impl WinPtySession {
                 ptr::null_mut(),
             );
             if ok == 0 {
-                (CONPTY.close)(hpc);
+                (funcs.close)(hpc);
                 return Err(format!(
                     "UpdateProcThreadAttribute failed: {}",
                     IoError::last_os_error()
@@ -291,7 +306,7 @@ impl WinPtySession {
 
         if ok == 0 {
             let err = IoError::last_os_error();
-            unsafe { (CONPTY.close)(hpc) };
+            unsafe { (funcs.close)(hpc) };
             return Err(format!("CreateProcessW failed: {err}"));
         }
 
@@ -301,7 +316,11 @@ impl WinPtySession {
         let pid = unsafe { GetProcessId(process.as_raw_handle() as _) };
 
         Ok((
-            WinPtySession { hpc, process, pid },
+            WinPtySession {
+                hpc: Mutex::new(hpc),
+                process,
+                pid,
+            },
             WinPtyPipes {
                 reader: PipeReader {
                     handle: pty_out_read,
@@ -318,11 +337,16 @@ impl WinPtySession {
     }
 
     pub fn resize(&self, cols: u16, rows: u16) -> Result<(), String> {
+        let funcs = conpty()?;
+        let hpc = self
+            .hpc
+            .lock()
+            .map_err(|e| format!("hpc lock poisoned: {e}"))?;
         let size = COORD {
             X: cols as i16,
             Y: rows as i16,
         };
-        let result = unsafe { (CONPTY.resize)(self.hpc, size) };
+        let result = unsafe { (funcs.resize)(*hpc, size) };
         if result != S_OK {
             Err(format!(
                 "ResizePseudoConsole failed: HRESULT 0x{:08x}",
@@ -351,8 +375,11 @@ impl WinPtySession {
 
 impl Drop for WinPtySession {
     fn drop(&mut self) {
-        unsafe {
-            (CONPTY.close)(self.hpc);
+        if let Ok(funcs) = conpty() {
+            let hpc = self.hpc.get_mut().unwrap_or_else(|e| e.into_inner());
+            unsafe {
+                (funcs.close)(*hpc);
+            }
         }
     }
 }
