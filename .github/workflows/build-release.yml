@@ -1,11 +1,8 @@
 name: Release
 
-# Triggers on tag push (v*) or manual dispatch with --ref.
-# GITHUB_REF_NAME resolves to the tag name for the release job.
+# Manual dispatch only — select the tag in the "Use workflow from" dropdown.
+# GITHUB_REF_NAME resolves to the selected tag for the release job.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions: {}
@@ -107,6 +104,11 @@ jobs:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: node .github/scripts/generate-latest-json.mjs
 
+      - name: Generate release notes from conventional commits
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node .github/scripts/generate-release-notes.mjs
+
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -115,5 +117,5 @@ jobs:
           if gh release view "$RELEASE_TAG" &>/dev/null; then
             gh release upload "$RELEASE_TAG" release-files/* --clobber
           else
-            gh release create "$RELEASE_TAG" release-files/* --draft --generate-notes
+            gh release create "$RELEASE_TAG" release-files/* --draft --notes-file release-notes.md
           fi
