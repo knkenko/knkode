@@ -3,6 +3,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { HotkeyPanel } from "./components/HotkeyPanel";
 import { PaneArea } from "./components/PaneArea";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { SessionHistoryModal } from "./components/SessionHistoryModal";
 import { Sidebar } from "./components/Sidebar";
 import { findPreset } from "./data/theme-presets";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -230,6 +231,7 @@ export function App() {
 					)}
 					{showHotkeys && <HotkeyPanel onClose={() => setShowHotkeys(false)} />}
 				</div>
+				<SessionHistoryModal />
 				{/* Portal root for menus that need to escape pane stacking/overflow
 				    but still inherit theme CSS variables */}
 				<div id="portal-root" />
