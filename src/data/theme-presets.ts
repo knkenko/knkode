@@ -757,11 +757,11 @@ export function buildFontFamily(family?: string): string {
 /** Remove keys whose value is `undefined` so they don't poison exactOptionalPropertyTypes.
  *  Returns Partial<T> since required keys with undefined values are dropped. */
 function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
-	const result = {} as Record<string, unknown>;
-	for (const [k, v] of Object.entries(obj)) {
-		if (v !== undefined) result[k] = v;
+	const result: Partial<T> = {};
+	for (const key of Object.keys(obj) as (keyof T)[]) {
+		if (obj[key] !== undefined) result[key] = obj[key];
 	}
-	return result as Partial<T>;
+	return result;
 }
 
 /** PaneTheme fields copied from the matched preset when the user's theme
@@ -796,13 +796,13 @@ export function mergeThemeWithPreset(
 	if (!preset) return base as PaneTheme;
 
 	// Fill in preset values only for missing optional fields
-	const result = { ...base } as Record<string, unknown>;
+	const result = { ...base } as { -readonly [K in keyof PaneTheme]?: PaneTheme[K] };
 	for (const key of PRESET_FILL_KEYS) {
 		if (result[key] === undefined && preset[key] !== undefined) {
-			result[key] = preset[key];
+			(result as Record<string, unknown>)[key] = preset[key];
 		}
 	}
-	return result as unknown as PaneTheme;
+	return result as PaneTheme;
 }
 
 /** Compute scrollbar accent colors for normal/hover/active states.
