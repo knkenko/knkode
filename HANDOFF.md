@@ -58,7 +58,7 @@ Clean removal of unused `logScrollDebug` IPC path across all four layers:
 
 Review completed by 4 agents — zero findings. Net security positive (eliminates unused command accepting untyped input).
 
-### PR #65 — Harden WinPty Safety (in review)
+### PR #65 — Harden WinPty Safety (merged)
 Branch: `fix/rust-safety`
 
 Mutex, Result errors, DWORD guards, and review fixes for `win_pty.rs`:
@@ -76,7 +76,7 @@ All findings addressed in 3 fix commits (c6be584..152724f).
 
 ## What's Next
 
-PR #65 ready for merge. Remaining v2.1.0 polish tasks:
+PR #65 merged. Remaining v2.1.0 polish tasks:
 - PR 5: Accessibility (`fix/accessibility`) — skipped for now
 - PR 8: Documentation (`chore/docs-update`)
 
