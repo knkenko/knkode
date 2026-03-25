@@ -49,9 +49,7 @@ function PaneSessionHistoryTrigger({
 		openSessionHistory(paneId);
 	}, [paneId, cwd, fetchAgentSessions, openSessionHistory]);
 	return (
-		<button type="button" onClick={handleClick} title="Session history" {...rest}>
-			{rest.children}
-		</button>
+		<button type="button" onClick={handleClick} title="Session history" {...rest} />
 	);
 }
 
