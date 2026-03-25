@@ -519,7 +519,7 @@ export const Pane = memo(function Pane({
 		});
 	}, []);
 
-	// Stable snippet trigger props — avoids creating new component type per render
+	// Stable snippet trigger props — avoids re-creating the props object on every render
 	const snippetTriggerProps = useMemo(
 		() => ({ paneId, workspaceId, statusBarPosition }),
 		[paneId, workspaceId, statusBarPosition],

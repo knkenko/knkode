@@ -100,7 +100,7 @@ export function WorkspaceTabPanel({
 				onChange={onStatusBarPositionChange}
 				label="Status bar"
 			/>
-			{/* Snippets */}
+			{/* Snippets (global + workspace) */}
 			<SnippetsSection workspaceId={workspaceId} />
 		</div>
 	);
