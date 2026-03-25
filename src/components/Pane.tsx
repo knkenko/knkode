@@ -29,6 +29,32 @@ import { buildVariantTheme } from "./pane-chrome/shared";
 import { SnippetDropdown } from "./SnippetDropdown";
 import { TerminalContextMenu } from "./TerminalContextMenu";
 
+/** Stable component for session history trigger — defined outside Pane to avoid
+ *  creating a new component type on every render or memo invalidation. */
+function PaneSessionHistoryTrigger({
+	paneId,
+	cwd,
+	...rest
+}: {
+	paneId: string;
+	cwd: string;
+	className?: string | undefined;
+	style?: React.CSSProperties | undefined;
+	children?: React.ReactNode;
+}) {
+	const fetchAgentSessions = useStore((s) => s.fetchAgentSessions);
+	const openSessionHistory = useStore((s) => s.openSessionHistory);
+	const handleClick = useCallback(() => {
+		fetchAgentSessions(cwd);
+		openSessionHistory(paneId);
+	}, [paneId, cwd, fetchAgentSessions, openSessionHistory]);
+	return (
+		<button type="button" onClick={handleClick} title="Session history" {...rest}>
+			{rest.children}
+		</button>
+	);
+}
+
 /** Stable component for snippet trigger — defined outside Pane to avoid
  *  creating a new component type on every render or memo invalidation. */
 function PaneSnippetTrigger({
@@ -525,6 +551,11 @@ export const Pane = memo(function Pane({
 		[paneId, workspaceId, statusBarPosition],
 	);
 
+	const sessionHistoryTriggerProps = useMemo(
+		() => ({ paneId, cwd: config.cwd }),
+		[paneId, config.cwd],
+	);
+
 	const handleFocus = useCallback(() => onFocus(paneId), [paneId, onFocus]);
 
 	// Compute dim opacity once, use inline style exclusively (no class/inline conflict)
@@ -574,6 +605,7 @@ export const Pane = memo(function Pane({
 					isEditing={isEditing}
 					editInputProps={inputProps}
 					SnippetTrigger={(props) => <PaneSnippetTrigger {...snippetTriggerProps} {...props} />}
+					SessionHistoryTrigger={(props) => <PaneSessionHistoryTrigger {...sessionHistoryTriggerProps} {...props} />}
 					shortcuts={{
 						splitV: `${modKey}+D`,
 						splitH: `${modKey}+Shift+D`,
