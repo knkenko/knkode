@@ -2,8 +2,7 @@
 
 ## What Was Done
 
-### PR #73 — Session History v2: Rich Metadata + Themed Modal (review fixes applied)
-Branch: `feature/session-history-v2`
+### PR #73 — Session History v2: Rich Metadata + Themed Modal (merged)
 
 Enhanced session history with per-agent metadata extraction and full themed modal redesign:
 1. **Claude tail scanning** — reads last 8KB of JSONL for `custom-title` and latest timestamp
@@ -29,7 +28,7 @@ Review completed by 11 agents (34 findings: 8 must-fix, 15 suggestions, 11 nitpi
 
 ## What's Next
 
-PR #73 ready for merge.
+No active work.
 
 ## Active Decisions
 
