@@ -127,10 +127,10 @@ function Frame({
 				{">_"}
 			</SnippetTrigger>
 			<SessionHistoryTrigger
-				className={`bg-transparent border-none cursor-pointer text-[11px] px-0.5 leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
+				className={`bg-transparent border-none cursor-pointer text-sm px-0.5 leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
 				style={{ color: theme.accent }}
 			>
-				⏱
+				⟳
 			</SessionHistoryTrigger>
 
 			<button
