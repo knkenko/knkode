@@ -284,20 +284,23 @@ export const useStore = create<StoreState>((set, get) => ({
 
 			// Migrate workspaces from single `layout` to `subgroups` array.
 			// Configs saved before subgroups was added will have `layout` but no `subgroups`.
-			interface LegacyWorkspace {
-				layout?: { type: string; tree: unknown; preset?: string };
+			type LegacyLayout = { type: string; tree: unknown; preset?: string };
+			function hasLegacyLayout(obj: unknown): obj is { layout: LegacyLayout } {
+				if (typeof obj !== "object" || obj === null) return false;
+				const rec = obj as Record<string, unknown>;
+				if (typeof rec.layout !== "object" || rec.layout === null) return false;
+				const layout = rec.layout as Record<string, unknown>;
+				return typeof layout.type === "string" && layout.tree != null;
 			}
 			const migrationPromises: Promise<void>[] = [];
 			let workspaces = loadedWorkspaces.map((ws) => {
 				if (Array.isArray(ws.subgroups) && ws.subgroups.length > 0) return ws;
-				const legacy = ws as unknown as LegacyWorkspace;
-				if (!legacy.layout || typeof legacy.layout.type !== "string" || !legacy.layout.tree)
-					return ws;
+				if (!hasLegacyLayout(ws)) return ws;
 				const migrated: Workspace = {
 					id: ws.id,
 					name: ws.name,
 					theme: ws.theme,
-					...makeSingleSubgroup(legacy.layout as Workspace["subgroups"][0]["layout"]),
+					...makeSingleSubgroup(ws.layout as Workspace["subgroups"][0]["layout"]),
 					panes: ws.panes,
 				};
 				migrationPromises.push(
