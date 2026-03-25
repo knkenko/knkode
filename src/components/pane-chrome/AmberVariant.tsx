@@ -54,7 +54,7 @@ createAndRegisterVariant("Amber", {
 			labels: { splitV: "[SPLIT-V]", splitH: "[SPLIT-H]", close: "[CLOSE]" },
 		},
 		snippet: { label: "[CMD]" },
-		sessionHistory: { label: "[HST]" },
+		sessionHistory: { label: "[LOG]" },
 	},
 	activity: {
 		gradient: (theme) => `linear-gradient(90deg, ${theme.accent}88, ${theme.accent}, ${theme.accent}88)`,

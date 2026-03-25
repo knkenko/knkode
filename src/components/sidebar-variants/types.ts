@@ -81,6 +81,29 @@ export interface BracketColors {
 	inactive: string;
 }
 
+/** Styling tokens for the themed session history modal.
+ *  The shared `SessionHistoryModal` component renders all elements from these tokens,
+ *  following the same pattern as `AddPaneButtonTokens`. */
+export interface SessionHistoryTokens {
+	/** Modal panel className (bg, border, shadow, radius, effects). */
+	modal: string;
+	modalStyle?: CSSProperties;
+	/** Header bar className. */
+	header: string;
+	/** Session row className (card appearance). */
+	row: string;
+	rowStyle?: CSSProperties;
+	/** Resume button className. */
+	resumeButton: string;
+	resumeButtonStyle?: CSSProperties;
+	/** Themed label text for the resume button (e.g. "Resume", "> RESUME", "[ RESUME ]"). */
+	resumeLabel: string;
+	/** Inactive filter tab className. */
+	filterTab: string;
+	/** Active filter tab className. */
+	filterTabActive: string;
+}
+
 export interface ThemeVariantConfig {
 	wrapper: WrapperTokens;
 	collapsed: CollapsedTokens;
@@ -89,4 +112,5 @@ export interface ThemeVariantConfig {
 	Entry: ComponentType<BasePaneEntryProps>;
 	GitInfo: ComponentType<BaseWorkspaceGitInfoProps>;
 	addPaneButton: AddPaneButtonTokens;
+	sessionHistory: SessionHistoryTokens;
 }

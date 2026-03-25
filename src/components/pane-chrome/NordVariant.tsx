@@ -27,7 +27,7 @@ createAndRegisterVariant("Nord", {
 			style: (theme, _isFocused) => ({ color: theme.foreground }),
 		},
 		snippet: { label: ">_" },
-		sessionHistory: { label: "⏱" },
+		sessionHistory: { label: "☰" },
 	},
 	activity: {
 		gradient: (theme) => `linear-gradient(90deg, ${theme.accent}66, ${theme.accent}, ${theme.accent}66)`,

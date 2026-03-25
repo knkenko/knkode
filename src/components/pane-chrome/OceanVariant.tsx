@@ -44,7 +44,7 @@ createAndRegisterVariant("Ocean", {
 			style: (theme, _isFocused) => ({ color: theme.accent }),
 		},
 		snippet: { label: ">_" },
-		sessionHistory: { label: "⏱" },
+		sessionHistory: { label: "☰" },
 		hoverRevealActions: {
 			className:
 				"flex items-center gap-0.5 opacity-0 hover:opacity-70 focus-within:opacity-70 has-[:focus-visible]:opacity-70 transition-opacity duration-200",

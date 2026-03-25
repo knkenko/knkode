@@ -90,9 +90,9 @@ function Frame({
 				{">_"}
 			</SnippetTrigger>
 			<SessionHistoryTrigger
-				className={`bg-transparent border-none text-content-muted cursor-pointer px-0.5 text-[11px] leading-none hover:text-content ${FOCUS_VIS}`}
+				className={`bg-transparent border-none text-content-muted cursor-pointer px-0.5 text-lg leading-none hover:text-content ${FOCUS_VIS}`}
 			>
-				⏱
+				☰
 			</SessionHistoryTrigger>
 
 			<span className="text-content-muted text-[10px]">·</span>

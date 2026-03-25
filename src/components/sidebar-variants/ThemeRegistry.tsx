@@ -8,6 +8,7 @@ import type {
 	BracketPosition,
 	CollapsedTokens,
 	CollapsedVariantProps,
+	SessionHistoryTokens,
 	ThemeVariantConfig,
 } from "./types";
 import {
@@ -173,6 +174,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-4 py-1 text-left text-[10px] text-[#5a6380] hover:text-[#8892b0] bg-transparent border-none cursor-pointer transition-colors duration-150",
 			label: "+ new",
 		},
+		sessionHistory: {
+			modal: "bg-[#0f1626]/95 backdrop-blur-2xl border border-[#4a5280]/50 rounded-md shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+			header: "border-b border-[#3a4070] text-[#e0e0e0]",
+			row: "bg-[#232946]/30 border border-[#3a4070]/60 hover:border-[#6c63ff]/40 rounded-md transition-colors",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#5a6380] hover:text-[#e0e0e0] bg-transparent hover:bg-[#232946] border border-[#3a4070]/60 hover:border-[#6c63ff]/40 rounded cursor-pointer transition-colors duration-150",
+			resumeLabel: "+ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors bg-transparent text-[#5a6380] hover:text-[#8892b0]",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-[#6c63ff] text-[#e0e0e0]",
+		},
 	},
 	Dracula: {
 		wrapper: {
@@ -196,6 +208,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#6272a4] hover:text-[#ff79c6] bg-transparent hover:bg-[#44475a]/20 border border-dashed border-[#44475a]/40 hover:border-[#ff79c6]/40 rounded-md cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
 			label: "+ summon",
+		},
+		sessionHistory: {
+			modal: "bg-[#282a36]/95 backdrop-blur-2xl border border-[#bd93f9]/30 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_16px_rgba(189,147,249,0.1)]",
+			header: "border-b border-[#44475a] text-[#f8f8f2]",
+			row: "bg-[#1e1f29] border border-[#44475a]/60 hover:border-[#bd93f9]/40 rounded-lg transition-all",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#6272a4] hover:text-[#ff79c6] bg-transparent hover:bg-[#44475a]/20 border border-dashed border-[#44475a]/40 hover:border-[#ff79c6]/40 rounded-md cursor-pointer transition-all duration-200",
+			resumeLabel: "+ summon",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded-md cursor-pointer transition-all bg-transparent text-[#6272a4] hover:text-[#f8f8f2] hover:bg-[#44475a]/20",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded-md cursor-pointer bg-[#bd93f9] text-[#282a36]",
 		},
 	},
 	"Tokyo Night": {
@@ -221,6 +244,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-4 py-1 text-left text-[10px] text-[#565f89] hover:text-[#7aa2f7] bg-transparent border-none cursor-pointer transition-colors duration-200 uppercase tracking-wider font-bold",
 			label: "// new",
 		},
+		sessionHistory: {
+			modal: "bg-[#1a1b26]/95 backdrop-blur-2xl border-l-2 border-[#7aa2f7] shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(122,162,247,0.1)]",
+			header: "border-b border-[#3b4261] text-[#c0caf5]",
+			row: "bg-[#1f2335] border-l-2 border-[#3b4261] hover:border-[#7aa2f7] transition-all",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#565f89] hover:text-[#7aa2f7] bg-transparent border-none cursor-pointer transition-colors duration-200 uppercase tracking-wider font-bold",
+			resumeLabel: "// resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors bg-transparent text-[#565f89] hover:text-[#a9b1d6] uppercase tracking-wider font-bold",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-[#7aa2f7] text-[#1a1b26] uppercase tracking-wider font-bold drop-shadow-[0_0_8px_rgba(122,162,247,0.5)]",
+		},
 	},
 	Nord: {
 		wrapper: {
@@ -243,6 +277,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"w-full px-4 py-1 text-left text-[10px] text-[#4c566a] hover:text-[#d8dee9] bg-transparent hover:bg-[#3b4252]/30 border-none cursor-pointer transition-colors duration-200 tracking-wide",
 			label: "+ new",
+		},
+		sessionHistory: {
+			modal: "bg-[#2e3440]/95 backdrop-blur-2xl border border-[#5e81ac]/30 rounded-md shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+			header: "border-b border-[#3b4252] text-[#eceff4]",
+			row: "bg-[#242933] border border-[#3b4252] hover:border-[#5e81ac]/40 rounded-md transition-all duration-300",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#4c566a] hover:text-[#d8dee9] bg-transparent hover:bg-[#3b4252]/30 border-none cursor-pointer transition-colors duration-200 tracking-wide",
+			resumeLabel: "+ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-all bg-transparent text-[#4c566a] hover:text-[#d8dee9] hover:bg-[#3b4252]/50 tracking-wide",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-[#5e81ac] text-[#eceff4] tracking-wide",
 		},
 	},
 	Catppuccin: {
@@ -268,6 +313,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#7f849c] hover:text-[#cba6f7] bg-transparent hover:bg-[#313244]/30 border border-dashed border-[#313244]/60 hover:border-[#cba6f7]/40 rounded-lg cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
 			label: "+ brew",
 		},
+		sessionHistory: {
+			modal: "bg-[#1e1e2e]/95 backdrop-blur-2xl border border-[#313244] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+			header: "border-b border-[#313244] text-[#cdd6f4]",
+			row: "bg-[#11111b] border border-[#313244]/70 hover:border-[#cba6f7]/40 rounded-xl transition-all duration-300",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#7f849c] hover:text-[#cba6f7] bg-transparent hover:bg-[#313244]/30 border border-dashed border-[#313244]/60 hover:border-[#cba6f7]/40 rounded-lg cursor-pointer transition-all duration-200",
+			resumeLabel: "+ brew",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded-lg cursor-pointer transition-all bg-transparent text-[#7f849c] hover:text-[#bac2de] hover:bg-[#313244]/50",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded-lg cursor-pointer bg-[#cba6f7] text-[#1e1e2e]",
+		},
 	},
 	Gruvbox: {
 		wrapper: {
@@ -291,6 +347,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"w-full px-2 py-1 text-left text-[10px] text-[#a89984] hover:text-[#ebdbb2] bg-transparent hover:bg-[#3c3836] border-none cursor-pointer transition-none font-mono font-bold uppercase",
 			label: "[+ NEW]",
+		},
+		sessionHistory: {
+			modal: "bg-[#1d2021]/95 backdrop-blur-2xl border border-[#3c3836] shadow-[0_8px_32px_rgba(0,0,0,0.6)]",
+			header: "border-b border-[#3c3836] text-[#ebdbb2]",
+			row: "bg-[#282828] border-b border-[#3c3836] hover:bg-[#3c3836] transition-none",
+			resumeButton:
+				"text-[10px] px-2 py-1 text-[#a89984] hover:text-[#ebdbb2] bg-transparent hover:bg-[#3c3836] border-none cursor-pointer transition-none font-mono font-bold uppercase",
+			resumeLabel: "[RESUME]",
+			filterTab:
+				"text-[11px] px-2 py-1 cursor-pointer transition-none bg-transparent text-[#a89984] hover:text-[#ebdbb2] hover:bg-[#3c3836] font-mono font-bold uppercase",
+			filterTabActive: "text-[11px] px-2 py-1 cursor-pointer bg-[#d79921] text-[#282828] font-mono font-bold uppercase",
 		},
 	},
 	Monokai: {
@@ -316,6 +383,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-3 py-1 text-left text-[10px] text-[#75715e] hover:text-[#f92672] bg-transparent border-none cursor-pointer transition-colors duration-150",
 			label: "▸ new",
 		},
+		sessionHistory: {
+			modal: "bg-[#272822]/95 backdrop-blur-2xl border border-[#3e3d32] shadow-[0_8px_32px_rgba(0,0,0,0.6)]",
+			header: "border-b border-[#3e3d32] text-[#f8f8f2]",
+			row: "bg-[#1e1f1c] border border-[#3e3d32]/60 hover:border-[#f92672]/40 rounded-sm transition-colors",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#75715e] hover:text-[#f92672] bg-transparent border-none cursor-pointer transition-colors duration-150",
+			resumeLabel: "▸ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors bg-transparent text-[#75715e] hover:text-[#f8f8f2] hover:bg-[#3e3d32]/50",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-[#f92672] text-[#f8f8f2]",
+		},
 	},
 	Everforest: {
 		wrapper: {
@@ -340,6 +418,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-3 py-1 text-left text-[10px] text-[#859289] hover:text-[#a7c080] bg-transparent hover:bg-[#343f44]/40 border-none cursor-pointer transition-colors duration-200",
 			label: "+ grow",
 		},
+		sessionHistory: {
+			modal: "bg-[#2d353b]/95 backdrop-blur-2xl border border-[#3d474d] rounded-md shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+			header: "border-b border-[#3d474d] text-[#d3c6aa]",
+			row: "bg-[#232a2e] border border-[#3d474d]/70 hover:border-[#a7c080]/40 rounded-md transition-colors",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#859289] hover:text-[#a7c080] bg-transparent hover:bg-[#343f44]/40 border-none cursor-pointer transition-colors duration-200",
+			resumeLabel: "+ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors bg-transparent text-[#859289] hover:text-[#d3c6aa] hover:bg-[#343f44]",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-[#a7c080] text-[#2d353b]",
+		},
 	},
 	Matrix: {
 		wrapper: {
@@ -362,6 +451,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"w-full px-2 py-1 text-left text-[10px] text-[#009933] hover:text-[#00ff41] bg-transparent hover:bg-[#00ff41]/5 border-none cursor-pointer transition-none font-mono font-bold uppercase",
 			label: "> SPAWN_PROCESS",
+		},
+		sessionHistory: {
+			modal: "bg-black/95 backdrop-blur-2xl border border-[#00ff41]/35 shadow-[0_0_20px_rgba(0,255,65,0.1),0_8px_32px_rgba(0,0,0,0.8)]",
+			header: "border-b border-[#00ff41]/20 text-[#00ff41]",
+			row: "bg-[#050505] border border-[#00ff41]/20 hover:border-[#00ff41]/60 hover:shadow-[0_0_8px_rgba(0,255,65,0.2)] transition-none",
+			resumeButton:
+				"text-[10px] px-2 py-1 text-[#009933] hover:text-[#00ff41] bg-transparent hover:bg-[#00ff41]/5 border-none cursor-pointer transition-none font-mono font-bold uppercase",
+			resumeLabel: "> RESUME",
+			filterTab:
+				"text-[11px] px-2 py-1 cursor-pointer transition-none bg-transparent text-[#009933] hover:text-[#00ff41] font-mono font-bold uppercase tracking-widest",
+			filterTabActive: "text-[11px] px-2 py-1 cursor-pointer bg-[#00ff41] text-black font-mono font-bold uppercase tracking-widest shadow-[0_0_8px_rgba(0,255,65,0.3)]",
 		},
 	},
 	Cyberpunk: {
@@ -393,6 +493,26 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			},
 			label: "[ JACK_IN ]",
 		},
+		sessionHistory: {
+			modal: "bg-[#0d0221]/95 backdrop-blur-2xl border-l-2 border-b border-[#ff2a6d]/60 shadow-[0_0_20px_rgba(255,42,109,0.15),0_8px_32px_rgba(0,0,0,0.8)]",
+			modalStyle: {
+				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%)",
+			},
+			header: "border-b border-[#5a1080] text-[#ff2a6d] font-bold uppercase tracking-widest",
+			row: "bg-[#130228] border-l-2 border-[#5a1080] hover:border-[#05d9e8] transition-all",
+			rowStyle: {
+				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
+			},
+			resumeButton:
+				"text-[10px] px-4 py-1 text-[#ff6e96] hover:text-[#05d9e8] bg-transparent hover:bg-[#2a0550]/30 border-none cursor-pointer transition-all duration-200 font-bold uppercase tracking-wider",
+			resumeButtonStyle: {
+				clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%)",
+			},
+			resumeLabel: "[ RESUME ]",
+			filterTab:
+				"text-[11px] px-2.5 py-1 cursor-pointer transition-all bg-transparent text-[#ff6e96] hover:text-[#05d9e8] font-bold uppercase tracking-widest",
+			filterTabActive: "text-[11px] px-2.5 py-1 cursor-pointer bg-[#ff2a6d] text-[#0d0221] font-bold uppercase tracking-widest",
+		},
 	},
 	Solana: {
 		wrapper: {
@@ -418,6 +538,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#b380ff] hover:text-[#f5f5ff] bg-transparent hover:bg-gradient-to-r hover:from-[#9945ff]/10 hover:to-[#14f195]/10 border border-dashed border-[#35356a] hover:border-[#9945ff]/40 rounded-full cursor-pointer transition-all duration-200 w-[calc(100%_-_16px)]",
 			label: "◎ spawn",
 		},
+		sessionHistory: {
+			modal: "bg-[#0c0c1d]/95 backdrop-blur-2xl border border-[#35356a] rounded-2xl shadow-[0_0_20px_rgba(153,69,255,0.15),0_8px_32px_rgba(0,0,0,0.6)]",
+			header: "border-b border-[#1e1e3d] text-[#f5f5ff]",
+			row: "bg-[#050510] border border-[#35356a] hover:border-[#9945ff]/40 hover:shadow-[0_0_12px_rgba(153,69,255,0.15)] rounded-2xl transition-all duration-300",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#b380ff] hover:text-[#f5f5ff] bg-transparent hover:bg-gradient-to-r hover:from-[#9945ff]/10 hover:to-[#14f195]/10 border border-dashed border-[#35356a] hover:border-[#9945ff]/40 rounded-full cursor-pointer transition-all duration-200",
+			resumeLabel: "◎ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded-full cursor-pointer transition-all backdrop-blur-sm bg-transparent text-[#b380ff] hover:text-[#e0e0f0] hover:bg-[#1e1e3d]",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded-full cursor-pointer bg-gradient-to-r from-[#9945ff]/40 to-[#14f195]/20 text-[#f5f5ff] shadow-[0_0_12px_rgba(153,69,255,0.3)]",
+		},
 	},
 	Amber: {
 		wrapper: {
@@ -442,6 +573,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"w-full px-3 py-1 text-left text-[10px] text-[#b37a00] hover:text-[#ffb000] bg-transparent hover:bg-[#ffb000]/5 border-none cursor-pointer transition-none font-mono uppercase",
 			label: "> init_pty",
+		},
+		sessionHistory: {
+			modal: "bg-black/95 backdrop-blur-2xl border border-[#5c3d00] shadow-[0_0_15px_rgba(255,176,0,0.1),0_8px_32px_rgba(0,0,0,0.8)]",
+			header: "border-b-2 border-[#5c3d00] text-[#ffb000] font-mono uppercase",
+			row: "bg-[#0c0800] border border-[#5c3d00] hover:border-[#ffb000]/60 hover:shadow-[0_2px_8px_rgba(255,176,0,0.1)] transition-none",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#b37a00] hover:text-[#ffb000] bg-transparent hover:bg-[#ffb000]/5 border-none cursor-pointer transition-none font-mono uppercase",
+			resumeLabel: "> RESUME",
+			filterTab:
+				"text-[11px] px-2 py-1 cursor-pointer transition-none bg-transparent text-[#b37a00] hover:text-[#ffb000] font-mono uppercase tracking-wider",
+			filterTabActive: "text-[11px] px-2 py-1 cursor-pointer bg-[#ffb000]/10 text-[#ffb000] border-b-2 border-[#ffb000] font-mono uppercase tracking-wider shadow-[0_2px_8px_rgba(255,176,0,0.2)]",
 		},
 	},
 	Vaporwave: {
@@ -469,6 +611,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-3 py-1 text-left text-[10px] text-[#a855f7] hover:text-[#ff71ce] bg-transparent hover:bg-[#100024]/50 border-none cursor-pointer transition-all duration-300 italic tracking-widest uppercase",
 			label: "＋ ＮＥＷ",
 		},
+		sessionHistory: {
+			modal: "bg-[#0a0015]/95 backdrop-blur-2xl border border-[#2d1b4e] rounded-md shadow-[0_0_15px_rgba(255,113,206,0.15),0_8px_32px_rgba(0,0,0,0.7)]",
+			header: "border-b border-[#2d1b4e] text-[#ff71ce] italic tracking-widest uppercase",
+			row: "bg-[#05000a] border border-[#2d1b4e] hover:border-[#01cdfe]/40 hover:shadow-[0_1px_8px_rgba(1,205,254,0.2)] rounded-md transition-all duration-300",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#a855f7] hover:text-[#ff71ce] bg-transparent hover:bg-[#100024]/50 border-none cursor-pointer transition-all duration-300 italic tracking-widest uppercase",
+			resumeLabel: "＋ ＲＥＳＵＭＥ",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-all bg-transparent text-[#a855f7] hover:text-[#f0d0ff] hover:bg-[#100024] italic tracking-widest uppercase",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-gradient-to-r from-[#100024] to-[#220050] text-[#ff71ce] border border-[#01cdfe] shadow-[0_1px_8px_rgba(1,205,254,0.4)] italic tracking-widest uppercase",
+		},
 	},
 	Ocean: {
 		wrapper: {
@@ -491,6 +644,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#2890b8] hover:text-[#00c8ff] bg-transparent hover:bg-[#0070a0]/10 border border-dashed border-[#144a65] hover:border-[#00c8ff]/30 rounded-xl cursor-pointer transition-all duration-300 w-[calc(100%_-_16px)]",
 			label: "~ surface",
+		},
+		sessionHistory: {
+			modal: "bg-[#020b14]/95 backdrop-blur-2xl border border-[#144a65] rounded-2xl shadow-[0_0_20px_rgba(0,200,255,0.1),0_8px_32px_rgba(0,0,0,0.6)]",
+			header: "border-b border-[#0a2838] text-[#d0eff8]",
+			row: "bg-[#01050a] border border-[#144a65] hover:border-[#00c8ff]/30 hover:shadow-[inset_0_0_12px_rgba(0,200,255,0.1)] rounded-2xl transition-all duration-500",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#2890b8] hover:text-[#00c8ff] bg-transparent hover:bg-[#0070a0]/10 border border-dashed border-[#144a65] hover:border-[#00c8ff]/30 rounded-xl cursor-pointer transition-all duration-300",
+			resumeLabel: "~ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded-xl cursor-pointer transition-all duration-500 bg-transparent text-[#2890b8] hover:text-[#a0d8e8] hover:bg-[#051218]",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded-xl cursor-pointer bg-[#0070a0]/30 text-[#d0eff8] shadow-[inset_0_0_12px_rgba(0,200,255,0.2)]",
 		},
 	},
 	Sunset: {
@@ -521,6 +685,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 				"w-full px-3 py-1 text-left text-[10px] text-[#d04830] hover:text-[#e8a040] bg-transparent hover:bg-[#180c0a]/50 border-none cursor-pointer transition-all duration-200 font-bold tracking-wide",
 			label: "+ kindle",
 		},
+		sessionHistory: {
+			modal: "bg-[#110808]/95 backdrop-blur-2xl border-l-2 border-b border-[#9a4530] shadow-[0_8px_32px_rgba(0,0,0,0.7)]",
+			header: "border-b border-[#9a4530] text-[#fff0d8] font-bold tracking-wide",
+			row: "bg-[#0a0505] border-l-2 border-[#4d2418] hover:border-[#e8a040] transition-all",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#d04830] hover:text-[#e8a040] bg-transparent hover:bg-[#180c0a]/50 border-none cursor-pointer transition-all duration-200 font-bold tracking-wide",
+			resumeLabel: "+ kindle",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded cursor-pointer transition-all bg-transparent text-[#d04830] hover:text-[#f0d8b0] hover:bg-[#180c0a] font-bold tracking-wide",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded cursor-pointer bg-gradient-to-r from-[#e04028]/20 to-transparent text-[#e8a040] font-bold tracking-wide",
+		},
 	},
 	Arctic: {
 		wrapper: {
@@ -544,6 +719,17 @@ const VARIANT_REGISTRY: Record<ThemePresetName, ThemeVariantConfig> = {
 			className:
 				"mx-2 mt-0.5 mb-1 px-3 py-1 text-[10px] text-[#78b8d0] hover:text-[#48c8e0] bg-transparent hover:bg-[#1e3550]/30 border border-dashed border-[#1e3550] hover:border-[#48c8e0]/30 rounded-md cursor-pointer transition-all duration-200 uppercase tracking-widest w-[calc(100%_-_16px)]",
 			label: "◇ new",
+		},
+		sessionHistory: {
+			modal: "bg-[#050d18]/95 backdrop-blur-2xl border border-[#1e3550] rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+			header: "border-b border-[#1e3550] text-[#f0f8ff] uppercase tracking-widest",
+			row: "bg-[#02060c] border border-[#1e3550]/70 hover:border-[#48c8e0]/30 rounded-lg transition-all backdrop-blur-md",
+			resumeButton:
+				"text-[10px] px-3 py-1 text-[#78b8d0] hover:text-[#48c8e0] bg-transparent hover:bg-[#1e3550]/30 border border-dashed border-[#1e3550] hover:border-[#48c8e0]/30 rounded-md cursor-pointer transition-all duration-200 uppercase tracking-widest",
+			resumeLabel: "◇ resume",
+			filterTab:
+				"text-[11px] px-2.5 py-1 rounded-md cursor-pointer transition-all backdrop-blur-md bg-transparent text-[#78b8d0] hover:text-[#c8e4f0] hover:bg-[#1e3550]/40 uppercase tracking-widest",
+			filterTabActive: "text-[11px] px-2.5 py-1 rounded-md cursor-pointer bg-[#1e3550]/80 text-[#f0f8ff] shadow-sm border-b border-[#48c8e0]/30 uppercase tracking-widest",
 		},
 	},
 };
@@ -619,6 +805,10 @@ export function AddPaneButtonVariant({
 }) {
 	const { addPaneButton } = getConfig(preset);
 	return <AddPaneButton onClick={onClick} tokens={addPaneButton} />;
+}
+
+export function getSessionHistoryTokens(preset: ThemePresetName): SessionHistoryTokens {
+	return getConfig(preset).sessionHistory;
 }
 
 const BRACKET_POSITION_CLASSES: Record<BracketPosition, string> = {

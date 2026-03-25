@@ -3,7 +3,7 @@
 //! Each agent stores sessions in a different format and directory structure.
 //! This module detects which agents are installed, reads session metadata
 //! (without loading full conversation content), and returns a unified list
-//! sorted by timestamp descending.
+//! sorted by last activity descending (falling back to session start time).
 
 use serde::Serialize;
 use std::path::Path;
@@ -42,7 +42,11 @@ pub struct AgentSession {
     pub agent: AgentKind,
     /// ISO 8601 timestamp of the session start.
     pub timestamp: String,
-    /// First user prompt or session name (truncated).
+    /// ISO 8601 timestamp of the last activity in the session.
+    pub last_updated: Option<String>,
+    /// Custom session title (Claude `/rename`, Gemini AI summary, Codex thread name).
+    pub title: Option<String>,
+    /// First user prompt (truncated).
     pub summary: Option<String>,
     /// Git branch active when the session started.
     pub branch: Option<String>,
@@ -50,7 +54,7 @@ pub struct AgentSession {
     pub cwd: Option<String>,
 }
 
-/// List agent sessions matching `project_cwd`, sorted by timestamp descending.
+/// List agent sessions matching `project_cwd`, sorted by last activity descending.
 pub fn list_sessions(project_cwd: &str) -> Vec<AgentSession> {
     let agents = detect_installed_agents();
     let home = match dirs::home_dir() {
@@ -71,8 +75,13 @@ pub fn list_sessions(project_cwd: &str) -> Vec<AgentSession> {
         }
     }
 
-    // Lexicographic sort — works because all agents emit ISO 8601 timestamps
-    sessions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    // Sort by last activity (fall back to session start if no last_updated).
+    // Lexicographic compare works because all values are ISO 8601.
+    sessions.sort_by(|a, b| {
+        let a_time = a.last_updated.as_deref().unwrap_or(&a.timestamp);
+        let b_time = b.last_updated.as_deref().unwrap_or(&b.timestamp);
+        b_time.cmp(a_time)
+    });
     sessions.truncate(MAX_SESSIONS);
     sessions
 }
@@ -82,33 +91,32 @@ pub fn list_sessions(project_cwd: &str) -> Vec<AgentSession> {
 // ---------------------------------------------------------------------------
 
 fn detect_installed_agents() -> Vec<AgentKind> {
+    let augmented_path = crate::tracker::build_augmented_path();
     let mut agents = Vec::new();
     for (name, kind) in [
         ("claude", AgentKind::Claude),
         ("gemini", AgentKind::Gemini),
         ("codex", AgentKind::Codex),
     ] {
-        if is_command_available(name) {
+        if is_command_available(name, &augmented_path) {
             agents.push(kind);
         }
     }
     agents
 }
 
-fn is_command_available(name: &str) -> bool {
-    let augmented_path = crate::tracker::build_augmented_path();
-
+fn is_command_available(name: &str, augmented_path: &str) -> bool {
     #[cfg(target_os = "windows")]
     let result = std::process::Command::new("where")
         .arg(name)
-        .env("PATH", &augmented_path)
+        .env("PATH", augmented_path)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status();
     #[cfg(not(target_os = "windows"))]
     let result = std::process::Command::new("which")
         .arg(name)
-        .env("PATH", &augmented_path)
+        .env("PATH", augmented_path)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status();
@@ -160,8 +168,8 @@ fn cwd_to_claude_dir_name(cwd: &str) -> String {
 fn parse_claude_session(path: &Path) -> Option<AgentSession> {
     use std::io::{BufRead, BufReader};
 
-    let file = std::fs::File::open(path).ok()?;
-    let reader = BufReader::new(file);
+    let mut file = std::fs::File::open(path).ok()?;
+    let reader = BufReader::new(file.try_clone().ok()?);
 
     let mut session_id: Option<String> = None;
     let mut timestamp: Option<String> = None;
@@ -169,6 +177,7 @@ fn parse_claude_session(path: &Path) -> Option<AgentSession> {
     let mut cwd: Option<String> = None;
     let mut summary: Option<String> = None;
 
+    // Pass 1: read first N lines for session metadata + first prompt
     for line in reader.lines().take(MAX_LINES_TO_READ) {
         let line = match line {
             Ok(l) => l,
@@ -196,7 +205,7 @@ fn parse_claude_session(path: &Path) -> Option<AgentSession> {
                 .map(String::from));
         }
 
-        // First user message has session metadata
+        // First user message has session metadata + the user's prompt
         if msg_type == Some("user") {
             session_id = session_id.or(val
                 .get("sessionId")
@@ -211,6 +220,13 @@ fn parse_claude_session(path: &Path) -> Option<AgentSession> {
                 .and_then(|v| v.as_str())
                 .map(String::from));
             cwd = cwd.or(val.get("cwd").and_then(|v| v.as_str()).map(String::from));
+
+            // Extract prompt from message.content (string or [{type:"text",text:"..."}])
+            if summary.is_none() {
+                if let Some(msg) = val.get("message") {
+                    summary = extract_message_content(msg);
+                }
+            }
             break;
         }
     }
@@ -218,14 +234,79 @@ fn parse_claude_session(path: &Path) -> Option<AgentSession> {
     // Fall back to filename as session ID
     let id = session_id.or_else(|| path.file_stem()?.to_str().map(String::from))?;
 
+    // Pass 2: read last TAIL_BYTES of the file for custom-title and last timestamp.
+    let (title, last_updated) = extract_claude_tail_metadata(&mut file);
+
     Some(AgentSession {
         id,
         agent: AgentKind::Claude,
         timestamp: timestamp?,
+        last_updated,
+        title,
         summary: summary.map(|s| truncate_summary(&s)),
         branch,
         cwd,
     })
+}
+
+/// Bytes to read from the end of a Claude JSONL file for tail metadata.
+const CLAUDE_TAIL_BYTES: u64 = 8 * 1024;
+
+/// Extract custom-title and last timestamp from the tail of a Claude session file.
+/// Accepts an already-opened file handle to avoid a second `open()` syscall.
+fn extract_claude_tail_metadata(file: &mut std::fs::File) -> (Option<String>, Option<String>) {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let file_len = file.metadata().map(|m| m.len()).unwrap_or(0);
+    if file_len == 0 {
+        return (None, None);
+    }
+
+    // Seek to near the end (or start if file is small)
+    let seek_pos = file_len.saturating_sub(CLAUDE_TAIL_BYTES);
+    if file.seek(SeekFrom::Start(seek_pos)).is_err() {
+        return (None, None);
+    }
+
+    // Read into bytes and use lossy conversion to handle mid-multibyte seek boundaries
+    let mut raw = Vec::new();
+    if file.read_to_end(&mut raw).is_err() {
+        return (None, None);
+    }
+    let buf = String::from_utf8_lossy(&raw);
+
+    let mut title: Option<String> = None;
+    let mut last_timestamp: Option<String> = None;
+
+    // Process lines in reverse so the LAST custom-title wins
+    for line in buf.lines().rev() {
+        let val: serde_json::Value = match serde_json::from_str(line) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let msg_type = val.get("type").and_then(|t| t.as_str());
+
+        if msg_type == Some("custom-title") && title.is_none() {
+            title = val
+                .get("customTitle")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+        }
+
+        // Grab the latest timestamp from any message that has one
+        if last_timestamp.is_none() {
+            last_timestamp = val
+                .get("timestamp")
+                .and_then(|v| v.as_str())
+                .map(String::from);
+        }
+
+        if title.is_some() && last_timestamp.is_some() {
+            break;
+        }
+    }
+
+    (title, last_timestamp)
 }
 
 /// Extract the user prompt from Claude's queue-operation content.
@@ -244,6 +325,34 @@ fn extract_claude_prompt(content: &str) -> Option<String> {
     } else {
         Some(lines.join(" "))
     }
+}
+
+/// Extract the user prompt from a Claude `message` object.
+/// `message.content` can be a plain string or an array of `{type:"text", text:"..."}`.
+fn extract_message_content(message: &serde_json::Value) -> Option<String> {
+    let content = message.get("content")?;
+    // String content (most common)
+    if let Some(s) = content.as_str() {
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        return Some(trimmed.to_string());
+    }
+    // Array content — find first text block
+    if let Some(arr) = content.as_array() {
+        for item in arr {
+            if item.get("type").and_then(|t| t.as_str()) == Some("text") {
+                if let Some(text) = item.get("text").and_then(|t| t.as_str()) {
+                    let trimmed = text.trim();
+                    if !trimmed.is_empty() {
+                        return Some(trimmed.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 // ---------------------------------------------------------------------------
@@ -280,45 +389,72 @@ fn scan_gemini(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) {
         }
     };
 
+    let mut gemini_sessions = Vec::new();
+
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().is_none_or(|e| e != "json") || !path.is_file() {
             continue;
         }
         if let Some(session) = parse_gemini_session(&path) {
-            out.push(session);
+            gemini_sessions.push(session);
         }
     }
+
+    // Gemini's --resume accepts a 1-based index, ordered by startTime ascending.
+    // Sort and assign the index as the session ID for correct resume behavior.
+    gemini_sessions.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+    for (i, session) in gemini_sessions.iter_mut().enumerate() {
+        session.id = (i + 1).to_string();
+    }
+
+    out.extend(gemini_sessions);
 }
 
 /// Max file size (10 MB) for Gemini session JSON before skipping.
 const MAX_GEMINI_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
 fn parse_gemini_session(path: &Path) -> Option<AgentSession> {
-    // Guard against oversized files — Gemini sessions can contain full conversations
-    if let Ok(meta) = std::fs::metadata(path) {
-        if meta.len() > MAX_GEMINI_FILE_SIZE {
-            eprintln!(
-                "[session_scanner] Skipping oversized Gemini session file ({} bytes): {}",
-                meta.len(),
-                path.display()
-            );
-            return None;
-        }
+    use std::io::Read;
+
+    // Open once and check metadata from the handle to avoid TOCTOU
+    let mut file = std::fs::File::open(path).ok()?;
+    let file_len = file.metadata().map(|m| m.len()).unwrap_or(0);
+    if file_len > MAX_GEMINI_FILE_SIZE {
+        eprintln!(
+            "[session_scanner] Skipping oversized Gemini session file ({file_len} bytes): {}",
+            path.display()
+        );
+        return None;
     }
-    let content = std::fs::read_to_string(path).ok()?;
+    let mut content = String::with_capacity(file_len as usize);
+    file.read_to_string(&mut content).ok()?;
     let val: serde_json::Value = serde_json::from_str(&content).ok()?;
 
     let id = val.get("sessionId").and_then(|v| v.as_str())?.to_string();
     let timestamp = val.get("startTime").and_then(|v| v.as_str())?.to_string();
 
-    // Extract first user message as summary
+    // AI-generated session summary (e.g. "Redesign sidebar visuals and theme them.")
+    let title = val
+        .get("summary")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let last_updated = val
+        .get("lastUpdated")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    // Extract first user message as fallback summary
     let summary = val
         .get("messages")
         .and_then(|m| m.as_array())
         .and_then(|arr| {
             arr.iter().find_map(|msg| {
-                let role = msg.get("role").and_then(|r| r.as_str());
+                let role = msg
+                    .get("role")
+                    .and_then(|r| r.as_str())
+                    .or_else(|| msg.get("type").and_then(|t| t.as_str()));
                 if role != Some("user") {
                     return None;
                 }
@@ -342,6 +478,8 @@ fn parse_gemini_session(path: &Path) -> Option<AgentSession> {
         id,
         agent: AgentKind::Gemini,
         timestamp,
+        last_updated,
+        title,
         summary: summary.map(|s| truncate_summary(&s)),
         branch: None,
         cwd: None,
@@ -349,15 +487,116 @@ fn parse_gemini_session(path: &Path) -> Option<AgentSession> {
 }
 
 // ---------------------------------------------------------------------------
-// Codex CLI — ~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl
+// Codex CLI — reads from ~/.codex/state_5.sqlite (threads table)
+// Falls back to JSONL scanning if sqlite3 is unavailable.
 // ---------------------------------------------------------------------------
 
 fn scan_codex(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) {
-    let sessions_dir = home.join(".codex").join("sessions");
-    if !sessions_dir.is_dir() {
+    // Try SQLite first — much faster and gives us title + updated_at
+    if scan_codex_sqlite(home, project_cwd, out) {
         return;
     }
-    walk_codex_dir(&sessions_dir, project_cwd, out, 0);
+    // Fallback: scan JSONL files
+    let sessions_dir = home.join(".codex").join("sessions");
+    if sessions_dir.is_dir() {
+        walk_codex_dir(&sessions_dir, project_cwd, out, 0);
+    }
+}
+
+/// Read Codex sessions from SQLite via the `sqlite3` CLI.
+/// Returns true if successful, false if we should fall back to JSONL.
+fn scan_codex_sqlite(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) -> bool {
+    let db_path = home.join(".codex").join("state_5.sqlite");
+    if !db_path.is_file() {
+        return false;
+    }
+
+    // Shell out to sqlite3 — ships on macOS/Linux, avoids rusqlite dependency.
+    // Security: reject CWD values with control characters (prevents newline-based
+    // dot-command injection in the sqlite3 CLI). CWD comes from the app's own
+    // workspace config, not user input, but defense-in-depth is warranted.
+    if project_cwd
+        .bytes()
+        .any(|b| b < 0x20 || b == 0x7F || b == b'\\')
+    {
+        eprintln!(
+            "[session_scanner] Rejecting Codex CWD with control/backslash chars: {project_cwd:?}"
+        );
+        return false;
+    }
+
+    // Output format: tab-separated columns — id, title, cwd, git_branch, created_at,
+    // updated_at, first_user_message. Using splitn(7) so the last field captures any
+    // embedded tabs in first_user_message.
+    let result = std::process::Command::new("sqlite3")
+        .arg("-separator")
+        .arg("\t")
+        .arg(db_path.as_os_str())
+        .arg(format!(
+            "SELECT id, title, cwd, git_branch, created_at, updated_at, first_user_message \
+             FROM threads WHERE cwd = '{}' AND archived = 0 \
+             ORDER BY updated_at DESC LIMIT {};",
+            project_cwd.replace('\'', "''"),
+            MAX_SESSIONS,
+        ))
+        .output();
+
+    let output = match result {
+        Ok(o) if o.status.success() => o,
+        Ok(o) => {
+            eprintln!(
+                "[session_scanner] sqlite3 failed (status {:?}): {}",
+                o.status.code(),
+                String::from_utf8_lossy(&o.stderr),
+            );
+            return false;
+        }
+        Err(e) => {
+            // sqlite3 not found — fall back to JSONL
+            eprintln!("[session_scanner] sqlite3 not available: {e}");
+            return false;
+        }
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        // splitn(7) so the last field captures any embedded tabs in first_user_message
+        let cols: Vec<&str> = line.splitn(7, '\t').collect();
+        if cols.len() < 7 {
+            continue;
+        }
+        let id = cols[0].to_string();
+        let title_raw = cols[1];
+        let git_branch = non_empty_str(cols[3]);
+        let created_at = cols[4].parse::<i64>().unwrap_or(0);
+        let updated_at = cols[5].parse::<i64>().unwrap_or(0);
+        let first_user_msg = cols[6];
+
+        // Convert unix timestamps to ISO 8601
+        let timestamp = unix_to_iso(created_at);
+        let last_updated = if updated_at > 0 {
+            Some(unix_to_iso(updated_at))
+        } else {
+            None
+        };
+
+        // Title: use thread title if present
+        let title = non_empty_summary(title_raw);
+        let summary = non_empty_summary(first_user_msg);
+
+        out.push(AgentSession {
+            id,
+            agent: AgentKind::Codex,
+            timestamp,
+            last_updated,
+            title,
+            summary,
+            branch: git_branch,
+            cwd: Some(cols[2].to_string()),
+        });
+    }
+
+    true
 }
 
 fn walk_codex_dir(dir: &Path, project_cwd: &str, out: &mut Vec<AgentSession>, depth: usize) {
@@ -412,6 +651,11 @@ fn parse_codex_session(path: &Path, project_cwd: &str) -> Option<AgentSession> {
         .get("cwd")
         .and_then(|v| v.as_str())
         .map(String::from);
+    let branch = payload
+        .get("git")
+        .and_then(|g| g.get("branch"))
+        .and_then(|b| b.as_str())
+        .map(String::from);
 
     // Filter by CWD — exclude sessions with no CWD or mismatched CWD
     match cwd {
@@ -430,11 +674,9 @@ fn parse_codex_session(path: &Path, project_cwd: &str) -> Option<AgentSession> {
             Ok(v) => v,
             Err(_) => continue,
         };
-        // Look for the first user message with input_text
         if ev.get("type").and_then(|t| t.as_str()) == Some("response_item") {
             if let Some(payload) = ev.get("payload") {
                 let role = payload.get("role").and_then(|r| r.as_str());
-                // Skip developer (system) messages, look for user input
                 if role == Some("user") {
                     summary = payload
                         .get("content")
@@ -460,8 +702,10 @@ fn parse_codex_session(path: &Path, project_cwd: &str) -> Option<AgentSession> {
         id,
         agent: AgentKind::Codex,
         timestamp,
+        last_updated: None,
+        title: None,
         summary: summary.map(|s| truncate_summary(&s)),
-        branch: None,
+        branch,
         cwd,
     })
 }
@@ -478,4 +722,51 @@ fn truncate_summary(s: &str) -> String {
     } else {
         truncated.to_string()
     }
+}
+
+/// Return `Some(truncated)` if the string is non-empty, else `None`.
+fn non_empty_summary(s: &str) -> Option<String> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(truncate_summary(s))
+    }
+}
+
+/// Return `Some(s.to_string())` if the string is non-empty, else `None`.
+fn non_empty_str(s: &str) -> Option<String> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s.to_string())
+    }
+}
+
+/// Convert a Unix timestamp (seconds) to an ISO 8601 string.
+/// Returns `"1970-01-01T00:00:00Z"` for negative or zero values.
+fn unix_to_iso(secs: i64) -> String {
+    let total_secs = secs.max(0) as u64;
+    let days = total_secs / 86400;
+    let time_secs = total_secs % 86400;
+    let hours = time_secs / 3600;
+    let mins = (time_secs % 3600) / 60;
+    let s = time_secs % 60;
+    let (y, m, d) = days_to_ymd(days as i64);
+    format!("{y:04}-{m:02}-{d:02}T{hours:02}:{mins:02}:{s:02}Z")
+}
+
+/// Convert days since Unix epoch (1970-01-01) to (year, month, day).
+fn days_to_ymd(days: i64) -> (i64, u32, u32) {
+    // Algorithm from http://howardhinnant.github.io/date_algorithms.html
+    let z = days + 719468;
+    let era = (if z >= 0 { z } else { z - 146096 }) / 146097;
+    let doe = (z - era * 146097) as u32;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    (y, m, d)
 }

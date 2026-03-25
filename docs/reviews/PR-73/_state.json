@@ -1,0 +1,24 @@
+{
+  "type": "watch-pr",
+  "pr_number": 73,
+  "pr_title": "feat: session history v2 — rich metadata + themed modal",
+  "branch": "feature/session-history-v2",
+  "base_branch": "main",
+  "head_sha": "88d865cd097346ec4379a213969d3bcef32ba970",
+  "started_at": "2026-03-25T12:00:00Z",
+  "agents": {
+    "code-reviewer": { "status": "completed", "file": "code-reviewer.md" },
+    "security-auditor": { "status": "completed", "file": "security-auditor.md" },
+    "silent-failure-hunter": { "status": "completed", "file": "silent-failure-hunter.md" },
+    "code-simplifier": { "status": "completed", "file": "code-simplifier.md" },
+    "dry-reuse": { "status": "completed", "file": "dry-reuse.md" },
+    "comment-analyzer": { "status": "completed", "file": "comment-analyzer.md" },
+    "type-design": { "status": "completed", "file": "type-design.md" },
+    "frontend-ui": { "status": "completed", "file": "frontend-ui.md" },
+    "rust-review": { "status": "completed", "file": "rust-review.md" },
+    "typescript-review": { "status": "completed", "file": "typescript-review.md" },
+    "efficiency": { "status": "completed", "file": "efficiency.md" }
+  },
+  "phase": "done",
+  "compiled": true
+}

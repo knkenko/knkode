@@ -106,7 +106,7 @@ function Frame({
 				className={`bg-transparent border-none cursor-pointer px-0.5 leading-none opacity-60 hover:opacity-100 ${FOCUS_VIS}`}
 				style={{ color: fg }}
 			>
-				[HST]
+				[LOG]
 			</SessionHistoryTrigger>
 
 			<button

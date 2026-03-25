@@ -116,10 +116,10 @@ function Frame({
 				{">_"}
 			</SnippetTrigger>
 			<SessionHistoryTrigger
-				className={`bg-transparent border-none cursor-pointer px-1 leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
+				className={`bg-transparent border-none cursor-pointer px-1 text-lg leading-none opacity-50 hover:opacity-100 transition-opacity ${FOCUS_VIS}`}
 				style={{ color: activeC2 }}
 			>
-				⏱
+				☰
 			</SessionHistoryTrigger>
 
 			<button
