@@ -165,6 +165,14 @@ export const Pane = memo(function Pane({
 				});
 			}
 		});
+
+		// When remounting into an already-active PTY (e.g. subgroup tab switch),
+		// no new render event will arrive until user input. Request a fresh snapshot
+		// so the canvas isn't blank.
+		if (useStore.getState().activePtyIds.has(paneId)) {
+			window.api.scrollTerminal(paneId, 0).then(setGrid).catch(console.error);
+		}
+
 		return () => {
 			unregister();
 			if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
