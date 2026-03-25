@@ -1,5 +1,5 @@
 /** Maps DOM KeyboardEvent to ANSI escape sequences for terminal input.
- *  Simplified version -- no input mode awareness (application cursor mode deferred).
+ *  Simplified version — no application cursor mode (DECCKM) support.
  *  Modifier parameters applied to both CSI and SS3 (F1-F4) sequences.
  *
  *  Returns:

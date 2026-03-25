@@ -401,7 +401,7 @@ impl TerminalState {
         pixel_height: usize,
     ) {
         // NOTE: Terminal writer is sink() — shell DSR responses (e.g. cursor position
-        // reports via \e[6n) are discarded. Known limitation for Phase 5a.
+        // reports via \e[6n) are discarded. Apps relying on DSR won't get replies.
         let terminal = Terminal::new(
             term_size(cols, rows, pixel_width, pixel_height),
             Arc::clone(&self.config),
