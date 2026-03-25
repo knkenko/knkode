@@ -38,7 +38,7 @@ createAndRegisterVariant("Tokyo Night", {
 			style: (theme, _isFocused) => ({ color: theme.foreground }),
 		},
 		snippet: { label: ">_" },
-		sessionHistory: { label: "⟳" },
+		sessionHistory: { label: "☰" },
 		hoverRevealActions: {
 			className:
 				"flex items-center gap-0.5 opacity-0 hover:opacity-60 focus-within:opacity-60 has-[:focus-visible]:opacity-60 transition-opacity duration-300",

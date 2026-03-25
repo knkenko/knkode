@@ -141,7 +141,7 @@ function Frame({
 					boxShadow: isFocused ? `0 0 6px ${c2}44` : "none",
 				}}
 			>
-				⟳
+				☰
 			</SessionHistoryTrigger>
 
 			<button

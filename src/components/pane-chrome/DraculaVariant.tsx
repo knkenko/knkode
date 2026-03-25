@@ -38,7 +38,7 @@ createAndRegisterVariant("Dracula", {
 			style: (theme, _isFocused) => ({ color: theme.accent }),
 		},
 		snippet: { label: ">_" },
-		sessionHistory: { label: "⟳" },
+		sessionHistory: { label: "☰" },
 	},
 	scrollButton: {
 		className: "bottom-3 left-1/4 right-1/4 h-8 rounded-full text-xs hover:brightness-110",

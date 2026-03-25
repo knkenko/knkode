@@ -45,7 +45,7 @@ createAndRegisterVariant("Gruvbox", {
 			style: (theme, _isFocused) => ({ color: theme.accent }),
 		},
 		snippet: { label: ">_" },
-		sessionHistory: { label: "⟳" },
+		sessionHistory: { label: "☰" },
 	},
 	activity: {
 		gradient: (theme) => `linear-gradient(90deg, ${theme.accent}88, ${theme.accent}, ${theme.accent}88)`,
