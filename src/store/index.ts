@@ -315,7 +315,8 @@ export const useStore = create<StoreState>((set, get) => ({
 				// acceptable for migration of arbitrary persisted data.
 				...makeSingleSubgroup(ws.layout as Workspace["subgroups"][0]["layout"]),
 					panes: ws.panes,
-					snippets: ws.snippets ?? [],
+					// Rust backfill_snippets guarantees this field; fallback is a safety net
+				snippets: ws.snippets ?? [],
 				};
 				migrationPromises.push(
 					window.api.saveWorkspace(migrated).catch((err) => {

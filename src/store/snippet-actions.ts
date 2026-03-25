@@ -13,12 +13,21 @@ function persistWorkspace(workspace: Workspace): void {
 	});
 }
 
+/** Execute a snippet command in a terminal pane via PTY write. */
+function executeSnippet(snippet: Snippet, paneId: string): void {
+	window.api.writePty(paneId, `${snippet.command}\r`).catch((err) => {
+		console.error(`[store] Failed to run snippet in pane ${paneId}:`, err);
+	});
+}
+
+/** State required by the snippet slice — includes workspaces for workspace-scoped snippets. */
 interface SnippetState {
 	snippets: Snippet[];
 	workspaces: Workspace[];
 }
 
-/** Update a workspace's snippets in the workspaces array, returning the new array and updated workspace. */
+/** Update a workspace's snippets in the workspaces array.
+ *  Returns the new array and updated workspace, or null if the workspace ID is not found. */
 function updateWorkspaceSnippets(
 	workspaces: readonly Workspace[],
 	wsId: string,
@@ -36,7 +45,7 @@ function updateWorkspaceSnippets(
 	};
 }
 
-/** Zustand slice creator for snippet CRUD actions. Spread into the main store. */
+/** Zustand slice creator for global and workspace-scoped snippet actions. Spread into the main store. */
 export function createSnippetSlice(
 	set: (partial: Partial<SnippetState>) => void,
 	get: () => SnippetState,
@@ -45,6 +54,7 @@ export function createSnippetSlice(
 		// ── Global snippets ──────────────────────────────────────────
 
 		addSnippet: (name: string, command: string) => {
+			if (!name.trim() || !command.trim()) return;
 			const snippet: Snippet = { id: crypto.randomUUID(), name, command };
 			const snippets = [...get().snippets, snippet];
 			set({ snippets });
@@ -52,6 +62,7 @@ export function createSnippetSlice(
 		},
 
 		updateSnippet: (id: string, updates: Pick<Snippet, "name" | "command">) => {
+			if (!updates.name.trim() || !updates.command.trim()) return;
 			const snippets = get().snippets.map((s) => (s.id === id ? { ...s, ...updates } : s));
 			set({ snippets });
 			persistSnippets(snippets);
@@ -76,14 +87,13 @@ export function createSnippetSlice(
 				console.warn("[store] runSnippet: snippet not found", snippetId);
 				return;
 			}
-			window.api.writePty(paneId, `${snippet.command}\r`).catch((err) => {
-				console.error(`[store] Failed to run snippet in pane ${paneId}:`, err);
-			});
+			executeSnippet(snippet, paneId);
 		},
 
 		// ── Workspace-scoped snippets ────────────────────────────────
 
 		addWorkspaceSnippet: (wsId: string, name: string, command: string) => {
+			if (!name.trim() || !command.trim()) return;
 			const snippet: Snippet = { id: crypto.randomUUID(), name, command };
 			const result = updateWorkspaceSnippets(get().workspaces, wsId, (s) => [...s, snippet]);
 			if (!result) return;
@@ -96,6 +106,7 @@ export function createSnippetSlice(
 			id: string,
 			updates: Pick<Snippet, "name" | "command">,
 		) => {
+			if (!updates.name.trim() || !updates.command.trim()) return;
 			const result = updateWorkspaceSnippets(get().workspaces, wsId, (snippets) =>
 				snippets.map((s) => (s.id === id ? { ...s, ...updates } : s)),
 			);
@@ -114,26 +125,30 @@ export function createSnippetSlice(
 		},
 
 		reorderWorkspaceSnippets: (wsId: string, fromIndex: number, toIndex: number) => {
-			const result = updateWorkspaceSnippets(get().workspaces, wsId, (snippets) => {
-				const reordered = reorderArray(snippets, fromIndex, toIndex);
-				return reordered ?? snippets;
-			});
-			if (!result) return;
-			set({ workspaces: result.workspaces });
-			persistWorkspace(result.updated);
+			const ws = get().workspaces.find((w) => w.id === wsId);
+			if (!ws) {
+				console.warn("[store] workspace not found for snippet reorder", wsId);
+				return;
+			}
+			const reordered = reorderArray(ws.snippets, fromIndex, toIndex);
+			if (!reordered) return;
+			const updated: Workspace = { ...ws, snippets: reordered };
+			set({ workspaces: get().workspaces.map((w) => (w.id === wsId ? updated : w)) });
+			persistWorkspace(updated);
 		},
 
 		runWorkspaceSnippet: (wsId: string, snippetId: string, paneId: string) => {
 			const ws = get().workspaces.find((w) => w.id === wsId);
-			if (!ws) return;
+			if (!ws) {
+				console.warn("[store] runWorkspaceSnippet: workspace not found", wsId);
+				return;
+			}
 			const snippet = ws.snippets.find((s) => s.id === snippetId);
 			if (!snippet) {
 				console.warn("[store] runWorkspaceSnippet: snippet not found", snippetId);
 				return;
 			}
-			window.api.writePty(paneId, `${snippet.command}\r`).catch((err) => {
-				console.error(`[store] Failed to run workspace snippet in pane ${paneId}:`, err);
-			});
+			executeSnippet(snippet, paneId);
 		},
 	};
 }

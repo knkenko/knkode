@@ -254,7 +254,7 @@ export function createWorkspacePaneSlice(
 				subgroups: newSubgroups,
 				activeSubgroupId: newActiveSubgroupId,
 				panes: newPanes,
-				snippets: [...source.snippets],
+				snippets: source.snippets,
 			};
 			await window.api.saveWorkspace(workspace);
 			const newAppState = {

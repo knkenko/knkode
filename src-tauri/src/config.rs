@@ -301,8 +301,9 @@ fn default_theme() -> Value {
     })
 }
 
-/// Ensure workspace has a `snippets` array. Existing workspaces saved before
-/// workspace-scoped snippets was added will be missing this field.
+/// Ensure workspace has a valid `snippets` array. Backfills missing field,
+/// validates existing entries (dropping invalid ones with a warning), and
+/// resets non-array values to `[]`.
 fn backfill_snippets(mut ws: Value) -> Value {
     if let Some(obj) = ws.as_object_mut() {
         if !obj.contains_key("snippets") {
@@ -314,9 +315,18 @@ fn backfill_snippets(mut ws: Value) -> Value {
                 .filter(|s| is_valid_snippet(s))
                 .cloned()
                 .collect();
-            obj.insert("snippets".to_string(), Value::Array(valid));
+            let dropped = arr.len() - valid.len();
+            if dropped > 0 {
+                eprintln!(
+                    "[config-store] Filtered {dropped} invalid workspace snippet(s) during migration"
+                );
+                obj.insert("snippets".to_string(), Value::Array(valid));
+            }
         } else {
             // snippets field exists but isn't an array — reset to empty
+            eprintln!(
+                "[config-store] Workspace snippets field is not an array — resetting to empty"
+            );
             obj.insert("snippets".to_string(), json!([]));
         }
     }
