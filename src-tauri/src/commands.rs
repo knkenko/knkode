@@ -180,11 +180,3 @@ pub fn get_selection_text(
 ) -> Result<String, String> {
     terminal_state.extract_text(&id, &range)
 }
-
-// --- Debug ---
-
-#[tauri::command]
-pub fn log_scroll_debug(_event: Value) -> Result<(), String> {
-    // Placeholder — will add optional file logging later.
-    Ok(())
-}

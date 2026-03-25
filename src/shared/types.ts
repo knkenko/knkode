@@ -283,17 +283,6 @@ export interface PaneRenameDetail {
 	readonly paneId: string;
 }
 
-export interface ScrollDebugEvent {
-	readonly paneId: string;
-	readonly workspaceId: string | null;
-	readonly workspaceName: string | null;
-	readonly paneLabel: string | null;
-	readonly activeWorkspaceId: string | null;
-	readonly seq: number;
-	readonly event: string;
-	readonly details?: Record<string, unknown>;
-}
-
 // --- Terminal grid rendering ---
 
 /** A reference to an image slice within a terminal cell. Texture coordinates
@@ -385,7 +374,6 @@ export interface KnkodeApi {
 	// App
 	getHomeDir(): Promise<string>;
 	openExternal(url: string): Promise<void>;
-	logScrollDebug(event: ScrollDebugEvent): void;
 
 	// Config
 	getWorkspaces(): Promise<Workspace[]>;

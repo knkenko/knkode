@@ -56,11 +56,6 @@ const _api: KnkodeApi = {
 		}
 		return open(url);
 	},
-	logScrollDebug: (event) => {
-		invoke("log_scroll_debug", { event }).catch((err) => {
-			if (import.meta.env.DEV) console.warn("[tauri-api] logScrollDebug failed", err);
-		});
-	},
 
 	// Config
 	getWorkspaces: () => invoke<Workspace[]>("get_workspaces"),

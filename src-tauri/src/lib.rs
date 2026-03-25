@@ -47,7 +47,6 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::scroll_terminal,
             commands::set_terminal_colors,
             commands::get_selection_text,
-            commands::log_scroll_debug,
         ])
         .setup(|app| {
             // On macOS the menu lives in the system menu bar — no extra space.

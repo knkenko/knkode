@@ -47,11 +47,21 @@ Branch: `fix/type-safety`
 Review completed by 9 agents (12 findings: 1 must-fix, 6 suggestions, 5 nitpicks).
 All findings addressed in 3 fix commits (f684cca..4f87801).
 
+### PR #64 — Remove Dead `logScrollDebug` IPC Path (in review)
+Branch: `fix/dead-code`
+
+Clean removal of unused `logScrollDebug` IPC path across all four layers:
+1. **Shared types** — removed `ScrollDebugEvent` interface and `logScrollDebug` from `KnkodeApi`
+2. **TypeScript IPC** — removed `logScrollDebug` wrapper from `tauri-api.ts`
+3. **Rust command** — removed `log_scroll_debug` from `commands.rs`
+4. **Tauri registration** — removed `commands::log_scroll_debug` from `lib.rs` handler list
+
+Review completed by 4 agents — zero findings. Net security positive (eliminates unused command accepting untyped input).
+
 ## What's Next
 
-PR #63 merged. Remaining v2.1.0 polish tasks:
-- PR 5: Accessibility (`fix/accessibility`)
-- PR 6: Dead code (`fix/dead-code`)
+PR #64 ready to merge. Remaining v2.1.0 polish tasks:
+- PR 5: Accessibility (`fix/accessibility`) — skipped for now
 - PR 7: Rust safety (`fix/rust-safety`)
 - PR 8: Documentation (`chore/docs-update`)
 
