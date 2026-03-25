@@ -238,6 +238,7 @@ export interface Workspace {
 	readonly subgroups: readonly SubgroupConfig[];
 	readonly activeSubgroupId: string;
 	readonly panes: Record<string, PaneConfig>;
+	readonly snippets: readonly Snippet[];
 }
 
 export interface AppState {
