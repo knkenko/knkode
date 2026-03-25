@@ -28,7 +28,9 @@ use winapi::um::winbase::{
 use winapi::um::wincon::COORD;
 use winapi::um::winnt::HANDLE;
 
-// ConPTY function signatures — loaded from kernel32.dll
+// ConPTY function signatures — loaded from kernel32.dll.
+// These MUST match the Win32 SDK definitions exactly (used with mem::transmute).
+// See: https://learn.microsoft.com/en-us/windows/console/createpseudoconsole
 type CreatePseudoConsoleFn =
     unsafe extern "system" fn(COORD, HANDLE, HANDLE, DWORD, *mut HANDLE) -> i32;
 type ResizePseudoConsoleFn = unsafe extern "system" fn(HANDLE, COORD) -> i32;
@@ -379,6 +381,8 @@ impl WinPtySession {
 
     pub fn resize(&self, cols: u16, rows: u16) -> Result<(), String> {
         let funcs = conpty()?;
+        // Surface poisoning to caller — normal operations should not hide panics.
+        // (Drop recovers from poison via get_mut() because cleanup must always run.)
         let guard = self
             .hpc
             .lock()
