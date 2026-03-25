@@ -13,7 +13,7 @@ function buildResumeCommand(session: AgentSession, unsafe: boolean): string {
 				? `claude --resume ${session.id} --permission-mode bypassPermissions`
 				: `claude --resume ${session.id}`;
 		case "gemini":
-			return unsafe ? `gemini --resume ${session.id} --yolo` : `gemini --resume ${session.id}`;
+			return `gemini --resume ${session.id}`;
 		case "codex":
 			return unsafe ? `codex resume ${session.id} --full-auto` : `codex resume ${session.id}`;
 		default: {

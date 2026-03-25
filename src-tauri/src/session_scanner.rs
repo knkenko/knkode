@@ -355,15 +355,26 @@ fn scan_gemini(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) {
         }
     };
 
+    let mut gemini_sessions = Vec::new();
+
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().is_none_or(|e| e != "json") || !path.is_file() {
             continue;
         }
         if let Some(session) = parse_gemini_session(&path) {
-            out.push(session);
+            gemini_sessions.push(session);
         }
     }
+
+    // Gemini's --resume accepts a 1-based index, ordered by startTime ascending.
+    // Sort and assign the index as the session ID for correct resume behavior.
+    gemini_sessions.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+    for (i, session) in gemini_sessions.iter_mut().enumerate() {
+        session.id = (i + 1).to_string();
+    }
+
+    out.extend(gemini_sessions);
 }
 
 /// Max file size (10 MB) for Gemini session JSON before skipping.
