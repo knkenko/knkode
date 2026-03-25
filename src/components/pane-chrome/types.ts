@@ -39,6 +39,11 @@ export interface StatusBarProps {
 		style?: React.CSSProperties;
 		children?: React.ReactNode;
 	}>;
+	SessionHistoryTrigger: React.ComponentType<{
+		className?: string;
+		style?: React.CSSProperties;
+		children?: React.ReactNode;
+	}>;
 	shortcuts: { splitV: string; splitH: string; close: string };
 }
 
