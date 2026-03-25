@@ -10,8 +10,11 @@ const AGENT_LABELS: Record<AgentKind, string> = {
 	codex: "Codex",
 };
 
+const TRUNCATE_ID_LENGTH = 8;
+
 function formatRelativeTime(iso: string): string {
 	const diff = Date.now() - new Date(iso).getTime();
+	if (!Number.isFinite(diff) || diff < 0) return "unknown";
 	const seconds = Math.floor(diff / 1000);
 	if (seconds < 60) return "just now";
 	const minutes = Math.floor(seconds / 60);
@@ -23,8 +26,10 @@ function formatRelativeTime(iso: string): string {
 }
 
 function truncateId(id: string): string {
-	return id.length > 8 ? id.slice(0, 8) : id;
+	return id.length > TRUNCATE_ID_LENGTH ? id.slice(0, TRUNCATE_ID_LENGTH) : id;
 }
+
+const FOCUS_RING = "focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none";
 
 function SessionRow({
 	session,
@@ -49,16 +54,16 @@ function SessionRow({
 				<div className="flex items-center gap-1.5 shrink-0">
 					<button
 						type="button"
-						className="text-[11px] px-2 py-1 rounded bg-overlay text-content hover:bg-accent hover:text-canvas transition-colors cursor-pointer"
+						className={`text-[11px] px-2 py-1 rounded bg-overlay text-content hover:bg-accent hover:text-canvas transition-colors cursor-pointer ${FOCUS_RING}`}
 						onClick={() => onResume(paneId, session, false)}
 					>
 						Resume
 					</button>
 					<button
 						type="button"
-						className="text-[11px] px-2 py-1 rounded bg-overlay text-amber-400 hover:bg-amber-500 hover:text-canvas transition-colors cursor-pointer"
+						className={`text-[11px] px-2 py-1 rounded bg-overlay text-danger hover:bg-danger hover:text-canvas transition-colors cursor-pointer ${FOCUS_RING}`}
 						onClick={() => onResume(paneId, session, true)}
-						title="Resume with all permissions bypassed"
+						title="Resume without confirmation prompts"
 					>
 						Unsafe
 					</button>
@@ -93,13 +98,6 @@ export function SessionHistoryModal() {
 		[sessions, agentFilter],
 	);
 
-	const handleBackdropClick = useCallback(
-		(e: React.MouseEvent) => {
-			if (e.target === e.currentTarget) closeSessionHistory();
-		},
-		[closeSessionHistory],
-	);
-
 	useEffect(() => {
 		if (!paneId) return;
 		const handler = (e: KeyboardEvent) => {
@@ -109,7 +107,7 @@ export function SessionHistoryModal() {
 		return () => document.removeEventListener("keydown", handler);
 	}, [paneId, closeSessionHistory]);
 
-	// Focus trap — focus modal on open
+	// Focus modal on open so keyboard events (Escape) are captured
 	useEffect(() => {
 		if (paneId && modalRef.current) {
 			modalRef.current.focus();
@@ -119,23 +117,27 @@ export function SessionHistoryModal() {
 	if (!paneId) return null;
 
 	return createPortal(
+		// biome-ignore lint/a11y/useKeyWithClickEvents: Escape key handled via document listener above
 		<div
-			className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-			onClick={handleBackdropClick}
+			role="presentation"
+			className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60"
+			onClick={closeSessionHistory}
 		>
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, keyboard handled by overlay */}
 			<div
 				ref={modalRef}
 				tabIndex={-1}
-				className="w-full max-w-xl max-h-[70vh] flex flex-col bg-elevated border border-edge rounded-lg shadow-menu overflow-hidden outline-none"
+				className="w-full max-w-xl max-w-[calc(100vw-2rem)] max-h-[70vh] flex flex-col bg-canvas/80 backdrop-blur-2xl border border-edge/50 rounded-md shadow-panel animate-panel-in overflow-hidden outline-none"
 				role="dialog"
+				aria-modal="true"
 				aria-label="Session History"
+				onClick={(e) => e.stopPropagation()}
 			>
-				{/* Header */}
-				<div className="flex items-center justify-between px-4 py-3 border-b border-edge">
-					<h2 className="text-sm font-medium text-content">Session History</h2>
+				<div className="flex items-center justify-between px-6 py-4 border-b border-edge">
+					<h2 className="text-sm font-semibold tracking-wide text-content">Session History</h2>
 					<button
 						type="button"
-						className="text-content-muted hover:text-content text-sm cursor-pointer"
+						className={`text-content-muted hover:text-content text-sm cursor-pointer ${FOCUS_RING}`}
 						onClick={closeSessionHistory}
 						aria-label="Close"
 					>
@@ -143,8 +145,7 @@ export function SessionHistoryModal() {
 					</button>
 				</div>
 
-				{/* Filter tabs */}
-				<div className="flex items-center gap-1 px-4 py-2 border-b border-edge">
+				<div className="flex items-center gap-1 px-6 py-2 border-b border-edge">
 					<FilterTab
 						label="All"
 						active={agentFilter === null}
@@ -160,7 +161,6 @@ export function SessionHistoryModal() {
 					))}
 				</div>
 
-				{/* Session list */}
 				<div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
 					{filtered.length === 0 ? (
 						<p className="text-xs text-content-muted text-center py-8">
@@ -197,7 +197,7 @@ function FilterTab({
 	return (
 		<button
 			type="button"
-			className={`text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors ${
+			className={`text-[11px] px-2.5 py-1 rounded cursor-pointer transition-colors ${FOCUS_RING} ${
 				active
 					? "bg-accent text-canvas"
 					: "bg-overlay text-content-muted hover:text-content"
