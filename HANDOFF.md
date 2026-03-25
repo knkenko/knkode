@@ -58,11 +58,26 @@ Clean removal of unused `logScrollDebug` IPC path across all four layers:
 
 Review completed by 4 agents — zero findings. Net security positive (eliminates unused command accepting untyped input).
 
+### PR #65 — Harden WinPty Safety (in review)
+Branch: `fix/rust-safety`
+
+Mutex, Result errors, DWORD guards, and review fixes for `win_pty.rs`:
+1. **Option\<HANDLE\>** — `Mutex<Option<HANDLE>>` prevents use-after-free; `take()` in Drop, `None` check in `resize()`
+2. **Result error propagation** — `load_conpty()` returns `Result<ConPtyFuncs, &'static str>` instead of panicking `assert!`
+3. **DWORD overflow guard** — `clamp_to_dword()` helper prevents silent `usize` → `u32` truncation in ReadFile/WriteFile
+4. **kill/wait hardening** — `TerminateProcess` and `WaitForSingleObject`/`GetExitCodeProcess` return values checked and logged
+5. **Attribute list leak fix** — `DeleteProcThreadAttributeList` always called via closure pattern in `spawn()`
+6. **coord() helper** — eliminates duplicated COORD construction
+7. **SAFETY comments** — documented `unsafe impl Send/Sync`, `mem::transmute`, and poisoning strategy
+8. **Drop logging** — `eprintln!` on unreachable `conpty()` failure path, `debug_assert!` removed in favor of logging
+
+Review completed by 7 agents (19 findings: 5 must-fix, 10 suggestions, 4 nitpicks).
+All findings addressed in 3 fix commits (c6be584..152724f).
+
 ## What's Next
 
-PR #64 merged. Remaining v2.1.0 polish tasks:
+PR #65 ready for merge. Remaining v2.1.0 polish tasks:
 - PR 5: Accessibility (`fix/accessibility`) — skipped for now
-- PR 7: Rust safety (`fix/rust-safety`)
 - PR 8: Documentation (`chore/docs-update`)
 
 ## Active Decisions

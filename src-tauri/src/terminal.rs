@@ -453,7 +453,6 @@ impl TerminalState {
         terminal.advance_bytes(data);
     }
 
-    /// Take a snapshot of the current visible grid (bottom of scrollback) for the
     /// Take a snapshot and check for terminal title changes in a single lock
     /// acquisition. Returns `(GridSnapshot, Option<title>)` where the title
     /// is `Some` when it differs from the previously observed value (or on
