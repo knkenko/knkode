@@ -284,6 +284,8 @@ export const useStore = create<StoreState>((set, get) => ({
 
 			// Migrate workspaces from single `layout` to `subgroups` array.
 			// Configs saved before subgroups was added will have `layout` but no `subgroups`.
+			// preset is intentionally `string` — legacy configs may contain preset names
+			// that no longer exist in the current ThemePresetName union.
 			type LegacyLayout = { type: string; tree: unknown; preset?: string };
 			function hasLegacyLayout(obj: unknown): obj is { layout: LegacyLayout } {
 				if (typeof obj !== "object" || obj === null) return false;
@@ -300,7 +302,9 @@ export const useStore = create<StoreState>((set, get) => ({
 					id: ws.id,
 					name: ws.name,
 					theme: ws.theme,
-					...makeSingleSubgroup(ws.layout as Workspace["subgroups"][0]["layout"]),
+					// Cast: type guard validates shape but not that tree conforms to LayoutNode —
+				// acceptable for migration of arbitrary persisted data.
+				...makeSingleSubgroup(ws.layout as Workspace["subgroups"][0]["layout"]),
 					panes: ws.panes,
 				};
 				migrationPromises.push(
