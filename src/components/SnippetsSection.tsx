@@ -1,25 +1,31 @@
-import { useCallback, useState } from "react";
-import type { Snippet } from "../shared/types";
+import { memo, useCallback, useState } from "react";
 import { useDragReorder } from "../hooks/useDragReorder";
+import type { Snippet } from "../shared/types";
 import { useStore } from "../store";
 import { SettingsSection } from "./SettingsSection";
 
-/** Reusable snippet list with add/edit/delete/reorder. */
-function SnippetList({
+const EMPTY_SNIPPETS: readonly Snippet[] = [];
+
+interface SnippetListProps {
+	snippets: readonly Snippet[];
+	onAdd: (name: string, command: string) => void;
+	onUpdate: (id: string, updates: Pick<Snippet, "name" | "command">) => void;
+	onRemove: (id: string) => void;
+	onReorder: (from: number, to: number) => void;
+	/** Scopes drag-reorder to the correct list when two instances coexist. */
+	listId: "global" | "workspace";
+}
+
+/** Headless snippet list with add/edit/delete/reorder.
+ *  Used for both global and workspace-scoped snippet tiers. */
+const SnippetList = memo(function SnippetList({
 	snippets,
 	onAdd,
 	onUpdate,
 	onRemove,
 	onReorder,
 	listId,
-}: {
-	snippets: readonly Snippet[];
-	onAdd: (name: string, command: string) => void;
-	onUpdate: (id: string, updates: Pick<Snippet, "name" | "command">) => void;
-	onRemove: (id: string) => void;
-	onReorder: (from: number, to: number) => void;
-	listId: string;
-}) {
+}: SnippetListProps) {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editName, setEditName] = useState("");
 	const [editCommand, setEditCommand] = useState("");
@@ -247,27 +253,25 @@ function SnippetList({
 			)}
 		</>
 	);
-}
+});
 
-interface SnippetsSectionProps {
-	workspaceId: string;
-}
-
-export function SnippetsSection({ workspaceId }: SnippetsSectionProps) {
+export function SnippetsSection({ workspaceId }: { workspaceId: string }) {
 	const snippets = useStore((s) => s.snippets);
 	const addSnippet = useStore((s) => s.addSnippet);
 	const updateSnippet = useStore((s) => s.updateSnippet);
 	const removeSnippet = useStore((s) => s.removeSnippet);
 	const reorderSnippets = useStore((s) => s.reorderSnippets);
 
-	const workspace = useStore((s) => s.workspaces.find((w) => w.id === workspaceId));
+	const wsSnippets = useStore(
+		(s) => s.workspaces.find((w) => w.id === workspaceId)?.snippets ?? EMPTY_SNIPPETS,
+	);
+	const wsName = useStore(
+		(s) => s.workspaces.find((w) => w.id === workspaceId)?.name ?? "Workspace",
+	);
 	const addWorkspaceSnippet = useStore((s) => s.addWorkspaceSnippet);
 	const updateWorkspaceSnippet = useStore((s) => s.updateWorkspaceSnippet);
 	const removeWorkspaceSnippet = useStore((s) => s.removeWorkspaceSnippet);
 	const reorderWorkspaceSnippets = useStore((s) => s.reorderWorkspaceSnippets);
-
-	const wsSnippets = workspace?.snippets ?? [];
-	const wsName = workspace?.name ?? "Workspace";
 
 	const handleWsAdd = useCallback(
 		(name: string, command: string) => addWorkspaceSnippet(workspaceId, name, command),
@@ -290,7 +294,7 @@ export function SnippetsSection({ workspaceId }: SnippetsSectionProps) {
 	return (
 		<SettingsSection label="Commands" gap={8}>
 			<span className="text-[10px] text-content-muted -mt-1 mb-1">
-				Global — available from the &gt;_ icon on any pane
+				Global snippets — available from the &gt;_ icon on any pane
 			</span>
 			<SnippetList
 				snippets={snippets}
@@ -300,9 +304,9 @@ export function SnippetsSection({ workspaceId }: SnippetsSectionProps) {
 				onReorder={reorderSnippets}
 				listId="global"
 			/>
-			<div className="border-t border-edge my-2" />
+			<div className="border-t border-edge my-2" role="separator" />
 			<span className="text-[10px] text-content-muted -mt-1 mb-1">
-				{wsName} — only available in this workspace
+				{wsName} snippets — only available in this workspace
 			</span>
 			<SnippetList
 				snippets={wsSnippets}
