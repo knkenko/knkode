@@ -3,7 +3,8 @@
 //! portable-pty sets `PSEUDOCONSOLE_WIN32_INPUT_MODE` (0x4) which tells ConPTY
 //! to expect `INPUT_RECORD` binary structures on the input pipe. Our app writes
 //! UTF-8 bytes, causing ConPTY to stall output. This module wraps the ConPTY API
-//! directly with only the flags we need.
+//! directly with no flags (no `PSEUDOCONSOLE_WIN32_INPUT_MODE`, no
+//! `PSEUDOCONSOLE_INHERIT_CURSOR`).
 
 use std::ffi::OsString;
 use std::io::{self, Error as IoError, Read, Write};
@@ -82,14 +83,21 @@ fn conpty() -> Result<&'static ConPtyFuncs, String> {
 
 /// A Windows pseudoconsole session.
 ///
-/// `hpc` is behind a `Mutex` because `resize()` and `Drop` both call ConPTY
-/// functions on the same HANDLE, and `WinPtySession` is `Send + Sync`.
+/// `hpc` is behind a `Mutex<Option<>>` because concurrent `resize()` calls
+/// (which take `&self`) must be serialized. `Drop` uses `get_mut()` for
+/// exclusive access and `take()`s the handle to prevent use-after-close.
 pub struct WinPtySession {
-    hpc: Mutex<HANDLE>,
+    hpc: Mutex<Option<HANDLE>>,
     process: OwnedHandle,
     pid: u32,
 }
 
+// SAFETY: All fields are safe to send across threads:
+// - `hpc` is guarded by Mutex (shared access via lock(), exclusive via get_mut())
+// - `process` (`OwnedHandle`) is only mutated behind `&mut self` (`kill()`)
+// - `pid` is `Copy`
+// Concurrent `wait()` + `resize()` touch different Win32 handles (process vs hpc),
+// which is safe per the Win32 API contract (kernel handles are thread-safe).
 unsafe impl Send for WinPtySession {}
 unsafe impl Sync for WinPtySession {}
 
@@ -317,7 +325,7 @@ impl WinPtySession {
 
         Ok((
             WinPtySession {
-                hpc: Mutex::new(hpc),
+                hpc: Mutex::new(Some(hpc)),
                 process,
                 pid,
             },
@@ -338,15 +346,16 @@ impl WinPtySession {
 
     pub fn resize(&self, cols: u16, rows: u16) -> Result<(), String> {
         let funcs = conpty()?;
-        let hpc = self
+        let guard = self
             .hpc
             .lock()
             .map_err(|e| format!("hpc lock poisoned: {e}"))?;
+        let hpc = guard.ok_or("pseudoconsole already closed")?;
         let size = COORD {
             X: cols as i16,
             Y: rows as i16,
         };
-        let result = unsafe { (funcs.resize)(*hpc, size) };
+        let result = unsafe { (funcs.resize)(hpc, size) };
         if result != S_OK {
             Err(format!(
                 "ResizePseudoConsole failed: HRESULT 0x{:08x}",
@@ -358,16 +367,40 @@ impl WinPtySession {
     }
 
     pub fn kill(&mut self) {
-        unsafe {
-            TerminateProcess(self.process.as_raw_handle() as _, 1);
+        let ok = unsafe { TerminateProcess(self.process.as_raw_handle() as _, 1) };
+        if ok == 0 {
+            let err = IoError::last_os_error();
+            // ERROR_ACCESS_DENIED (5) is expected if the process already exited
+            if err.raw_os_error() != Some(5) {
+                eprintln!(
+                    "[win_pty] TerminateProcess failed (pid {}): {err}",
+                    self.pid
+                );
+            }
         }
     }
 
     pub fn wait(&self) -> i64 {
         unsafe {
-            WaitForSingleObject(self.process.as_raw_handle() as _, INFINITE);
+            let wait_result = WaitForSingleObject(self.process.as_raw_handle() as _, INFINITE);
+            if wait_result == 0xFFFF_FFFF {
+                eprintln!(
+                    "[win_pty] WaitForSingleObject failed (pid {}): {}",
+                    self.pid,
+                    IoError::last_os_error()
+                );
+                return -1;
+            }
             let mut code: DWORD = 0;
-            GetExitCodeProcess(self.process.as_raw_handle() as _, &mut code);
+            let ok = GetExitCodeProcess(self.process.as_raw_handle() as _, &mut code);
+            if ok == 0 {
+                eprintln!(
+                    "[win_pty] GetExitCodeProcess failed (pid {}): {}",
+                    self.pid,
+                    IoError::last_os_error()
+                );
+                return -1;
+            }
             code as i64
         }
     }
@@ -375,10 +408,21 @@ impl WinPtySession {
 
 impl Drop for WinPtySession {
     fn drop(&mut self) {
-        if let Ok(funcs) = conpty() {
-            let hpc = self.hpc.get_mut().unwrap_or_else(|e| e.into_inner());
-            unsafe {
-                (funcs.close)(*hpc);
+        match conpty() {
+            Ok(funcs) => {
+                // get_mut() is safe here — Drop has exclusive &mut self access.
+                // unwrap_or_else recovers from a poisoned Mutex (best-effort cleanup).
+                let hpc = self.hpc.get_mut().unwrap_or_else(|e| e.into_inner());
+                if let Some(handle) = hpc.take() {
+                    unsafe {
+                        (funcs.close)(handle);
+                    }
+                }
+            }
+            Err(e) => {
+                // Unreachable: if a WinPtySession exists, spawn() succeeded,
+                // which means conpty() returned Ok — and LazyLock caches the result.
+                eprintln!("[win_pty] Drop: cannot close pseudoconsole — {e}");
             }
         }
     }
