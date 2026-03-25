@@ -188,5 +188,12 @@ pub fn get_selection_text(
 pub fn list_agent_sessions(
     project_cwd: String,
 ) -> Result<Vec<session_scanner::AgentSession>, String> {
+    if project_cwd.contains('\0') {
+        return Err("project_cwd must not contain null bytes".to_string());
+    }
+    let p = std::path::Path::new(&project_cwd);
+    if !p.is_absolute() {
+        return Err("project_cwd must be an absolute path".to_string());
+    }
     Ok(session_scanner::list_sessions(&project_cwd))
 }

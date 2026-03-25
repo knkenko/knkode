@@ -11,7 +11,7 @@ use std::path::Path;
 /// Maximum number of sessions returned by [`list_sessions`].
 const MAX_SESSIONS: usize = 50;
 
-/// Maximum characters in a session summary before truncation.
+/// Maximum bytes in a session summary before truncation.
 const MAX_SUMMARY_LEN: usize = 120;
 
 /// Maximum JSONL lines to read when extracting metadata from a session file.
@@ -109,7 +109,7 @@ fn is_command_available(name: &str) -> bool {
 }
 
 // ---------------------------------------------------------------------------
-// Claude Code — ~/.claude/projects/<path-hash>/<uuid>.jsonl
+// Claude Code — ~/.claude/projects/<cwd-slug>/<uuid>.jsonl
 // ---------------------------------------------------------------------------
 
 fn scan_claude(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) {
@@ -382,7 +382,7 @@ fn parse_codex_session(path: &Path, project_cwd: &str) -> Option<AgentSession> {
             Ok(v) => v,
             Err(_) => continue,
         };
-        // Look for the first user/developer message with input_text
+        // Look for the first user message with input_text
         if ev.get("type").and_then(|t| t.as_str()) == Some("response_item") {
             if let Some(payload) = ev.get("payload") {
                 let role = payload.get("role").and_then(|r| r.as_str());

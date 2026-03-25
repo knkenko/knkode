@@ -268,7 +268,7 @@ export interface Snippet {
 export const AGENT_KINDS = ["claude", "gemini", "codex"] as const;
 export type AgentKind = (typeof AGENT_KINDS)[number];
 
-/** A previous coding agent session that can be resumed. */
+/** Metadata for a previous coding agent session. */
 export interface AgentSession {
 	readonly id: string;
 	readonly agent: AgentKind;
