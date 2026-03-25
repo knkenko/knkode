@@ -1,3 +1,7 @@
+// Must remain `import type` — runtime import would create a circular dependency
+// with theme-presets.ts (which imports PaneTheme from this file).
+import type { ThemePresetName } from "../data/theme-presets";
+
 /** Default unfocused pane dimming opacity. */
 export const DEFAULT_UNFOCUSED_DIM = 0.3;
 /** Maximum unfocused dim overlay opacity. UI clamps to [0, MAX_UNFOCUSED_DIM]. */
@@ -132,7 +136,7 @@ export interface PaneTheme {
 	/** Terminal line height multiplier. Range [1.0, 2.0]. Defaults to DEFAULT_LINE_HEIGHT. */
 	readonly lineHeight?: number;
 	/** Theme preset name. Identifies which built-in theme this config was derived from. */
-	readonly preset?: string;
+	readonly preset?: ThemePresetName;
 	/** Status bar position. Defaults to 'top' */
 	readonly statusBarPosition?: "top" | "bottom";
 }

@@ -34,10 +34,22 @@ Branch: `fix/silent-failures`
 Review completed by 9 agents (13 findings: 2 must-fix, 6 suggestions, 5 nitpicks).
 All findings addressed in 3 fix commits (e477c1f..201563f).
 
+### PR #63 — Tighten PaneTheme.preset Typing & Remove Unsafe Casts (in review)
+Branch: `fix/type-safety`
+
+5 type-safety improvements:
+1. **PaneTheme.preset narrowing** — `string` → `ThemePresetName` union type, propagated through SettingsPanel and TerminalTabPanel
+2. **mergeThemeWithPreset** — replaced `as unknown as PaneTheme` double cast with typed mutable spread
+3. **stripUndefined** — typed `Partial<T>` accumulator replaces `Record<string, unknown>` cast
+4. **LegacyWorkspace migration** — runtime `hasLegacyLayout()` type guard replaces `as unknown as` double cast
+5. **SettingsPanel effects** — explicit object literal replaces unsafe `{} as Record<...>` empty-object cast
+
+Review completed by 9 agents (12 findings: 1 must-fix, 6 suggestions, 5 nitpicks).
+All findings addressed in 3 fix commits (f684cca..4f87801).
+
 ## What's Next
 
-PR #62 merged. Remaining v2.1.0 polish tasks:
-- PR 4: Type safety (`fix/type-safety`)
+PR #63 ready for merge. Remaining v2.1.0 polish tasks:
 - PR 5: Accessibility (`fix/accessibility`)
 - PR 6: Dead code (`fix/dead-code`)
 - PR 7: Rust safety (`fix/rust-safety`)

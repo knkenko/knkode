@@ -1,4 +1,4 @@
-import { THEME_PRESETS, type ThemePreset } from "../data/theme-presets";
+import { THEME_PRESETS, type ThemePreset, type ThemePresetName } from "../data/theme-presets";
 import {
 	CURSOR_STYLES,
 	type CursorStyle,
@@ -29,8 +29,8 @@ const EFFECT_ENTRIES: readonly { category: EffectCategory; label: string }[] = [
 ];
 
 interface TerminalTabPanelProps {
-	selectedPreset: string;
-	onPresetChange: (name: string) => void;
+	selectedPreset: ThemePresetName;
+	onPresetChange: (name: ThemePresetName) => void;
 	fontFamily: string;
 	onFontFamilyChange: (family: string) => void;
 	fontSize: number;
@@ -98,7 +98,9 @@ export function TerminalTabPanel({
 						document.getElementById(`theme-preset-${next}`)?.focus();
 					}}
 				>
-					{(THEME_PRESETS as readonly ThemePreset[]).map((preset, index) => {
+					{/* Cast widens as-const elements to ThemePreset (for optional field access like .glow)
+				    while preserving narrow name literals via the intersection */}
+				{(THEME_PRESETS as readonly (ThemePreset & { name: ThemePresetName })[]).map((preset, index) => {
 						const isActive = selectedPreset === preset.name;
 						return (
 							<button
