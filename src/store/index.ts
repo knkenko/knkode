@@ -426,7 +426,7 @@ export const useStore = create<StoreState>((set, get) => ({
 	},
 
 	...createSnippetSlice(set, get),
-	...createSessionHistorySlice(set),
+	...createSessionHistorySlice(set, get),
 }));
 
 export {

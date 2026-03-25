@@ -1,7 +1,12 @@
 import type { AgentKind, AgentSession } from "../shared/types";
 
+const SAFE_SESSION_ID = /^[a-zA-Z0-9_-]+$/;
+
 /** Build the CLI command to resume an agent session. */
 function buildResumeCommand(session: AgentSession, unsafe: boolean): string {
+	if (!SAFE_SESSION_ID.test(session.id)) {
+		throw new Error(`Invalid session ID: ${session.id}`);
+	}
 	switch (session.agent) {
 		case "claude":
 			return unsafe
@@ -15,6 +20,10 @@ function buildResumeCommand(session: AgentSession, unsafe: boolean): string {
 			return unsafe
 				? `codex resume ${session.id} --full-auto`
 				: `codex resume ${session.id}`;
+		default: {
+			const _exhaustive: never = session.agent;
+			throw new Error(`Unknown agent kind: ${_exhaustive}`);
+		}
 	}
 }
 
@@ -27,6 +36,7 @@ export interface SessionHistoryState {
 
 export function createSessionHistorySlice(
 	set: (partial: Partial<SessionHistoryState>) => void,
+	_get: () => SessionHistoryState,
 ) {
 	return {
 		agentSessions: [] as AgentSession[],
@@ -48,19 +58,21 @@ export function createSessionHistorySlice(
 		},
 
 		openSessionHistory: (paneId: string) => {
-			set({ sessionHistoryPaneId: paneId });
+			set({ sessionHistoryPaneId: paneId, agentSessions: [], agentFilter: null });
 		},
 
 		closeSessionHistory: () => {
-			set({ sessionHistoryPaneId: null });
+			set({ sessionHistoryPaneId: null, agentFilter: null, agentSessions: [] });
 		},
 
-		resumeSession: (paneId: string, session: AgentSession, unsafe: boolean) => {
-			const command = buildResumeCommand(session, unsafe);
-			window.api.writePty(paneId, `${command}\r`).catch((err) => {
+		resumeSession: async (paneId: string, session: AgentSession, unsafe: boolean) => {
+			try {
+				const command = buildResumeCommand(session, unsafe);
+				await window.api.writePty(paneId, `${command}\r`);
+				set({ sessionHistoryPaneId: null, agentFilter: null });
+			} catch (err) {
 				console.error(`[store] Failed to resume session in pane ${paneId}:`, err);
-			});
-			set({ sessionHistoryPaneId: null });
+			}
 		},
 	};
 }
