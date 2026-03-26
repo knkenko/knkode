@@ -122,9 +122,11 @@ fn scan_claude(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>) {
 
 /// Convert an absolute CWD path to Claude's project directory name format.
 /// `/Users/sfory/dev/knkode` → `-Users-sfory-dev-knkode`
+/// `C:\Dev\Projects\knkode`  → `C--Dev-Projects-knkode`
 fn cwd_to_claude_dir_name(cwd: &str) -> String {
     cwd.replace(std::path::MAIN_SEPARATOR, "-")
         .replace('/', "-") // Normalize forward slashes on all platforms
+        .replace(':', "-") // Windows drive letter colon (C: → C-)
 }
 
 fn parse_claude_session(path: &Path) -> Option<AgentSession> {
@@ -477,12 +479,12 @@ fn scan_codex_sqlite(home: &Path, project_cwd: &str, out: &mut Vec<AgentSession>
     // Security: reject CWD values with control characters (prevents newline-based
     // dot-command injection in the sqlite3 CLI). CWD comes from the app's own
     // workspace config, not user input, but defense-in-depth is warranted.
-    if project_cwd
-        .bytes()
-        .any(|b| b < 0x20 || b == 0x7F || b == b'\\')
-    {
+    // Note: backslashes are allowed because they are normal path separators on
+    // Windows.  SQLite uses '' (not \') for quote escaping, so backslashes do
+    // not enable SQL injection via the sqlite3 CLI.
+    if project_cwd.bytes().any(|b| b < 0x20 || b == 0x7F) {
         eprintln!(
-            "[session_scanner] Rejecting Codex CWD with control/backslash chars: {project_cwd:?}"
+            "[session_scanner] Rejecting Codex CWD with control chars: {project_cwd:?}"
         );
         return false;
     }
