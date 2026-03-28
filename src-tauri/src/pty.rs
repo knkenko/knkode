@@ -811,6 +811,15 @@ impl PtyManager {
                         // wezterm-term writes these to its writer during advance_bytes().
                         let responses = term_state.drain_responses(&id_clone);
                         if !responses.is_empty() {
+                            let hex: String = responses
+                                .iter()
+                                .map(|b| format!("{b:02x}"))
+                                .collect::<Vec<_>>()
+                                .join(" ");
+                            eprintln!(
+                                "[pty] DA/CPR response for {id_clone}: {} bytes [{hex}], total_bytes_so_far={total_bytes}",
+                                responses.len()
+                            );
                             match pty_writer_for_reader.lock() {
                                 Ok(mut w) => {
                                     if let Err(e) = w.write_all(&responses) {
