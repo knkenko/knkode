@@ -330,15 +330,23 @@ export interface ImageSnapshot {
 	readonly height: number;
 }
 
+export type UnderlineStyle = "none" | "single" | "double" | "curly" | "dotted" | "dashed";
+
 /** A single cell in the terminal grid. Designed to be serialized from Rust (wezterm-term). */
 export interface CellSnapshot {
 	readonly text: string;
 	readonly fg: string;
 	readonly bg: string;
 	readonly bold: boolean;
+	readonly dim: boolean;
 	readonly italic: boolean;
-	readonly underline: boolean;
+	readonly underline: UnderlineStyle;
+	/** Underline color override (SGR 58). Omitted when using default fg color. */
+	readonly underlineColor?: string;
 	readonly strikethrough: boolean;
+	readonly hidden: boolean;
+	readonly overline: boolean;
+	readonly blink: boolean;
 	readonly images?: readonly ImageCellSnapshot[];
 	/** URL if this cell is part of a clickable hyperlink (OSC 8 or regex-detected). */
 	readonly link?: string;
@@ -363,12 +371,13 @@ export interface GridSnapshot {
 	readonly scrollbackRows: number;
 	/** Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows. */
 	readonly scrollOffset: number;
-	/** Terminal palette default background (hex). Cells matching this have no
-	 *  custom background and should be left transparent so theme effects show. */
-	readonly defaultBg: string;
 	/** Unique images visible in the viewport, keyed by hex SHA256 hash.
 	 *  Only includes images not previously sent — frontend caches by hash. */
 	readonly images?: Readonly<Record<string, ImageSnapshot>>;
+	/** The terminal's default background color (from the palette).
+	 *  Used to paint default-bg cells opaque on the alternate screen (TUI apps)
+	 *  while keeping them transparent on the normal screen (gradient shows through). */
+	readonly defaultBg: string;
 	/** Whether the terminal is currently showing the alternate screen buffer
 	 *  (used by TUI apps like vim, htop, less, tmux). */
 	readonly isAltScreen: boolean;

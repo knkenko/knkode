@@ -555,6 +555,8 @@ fn create_platform_pty(
     cmd.arg("-l");
     cmd.cwd(cwd);
     cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor");
+    cmd.env("COLORFGBG", "15;0");
 
     let child = pair
         .slave
@@ -608,7 +610,11 @@ fn create_platform_pty(
 
     eprintln!("[pty] Windows shell detection for {id}: exe={exe}");
 
-    let env_vars = [("TERM", "xterm-256color")];
+    let env_vars = [
+        ("TERM", "xterm-256color"),
+        ("COLORTERM", "truecolor"),
+        ("COLORFGBG", "15;0"),
+    ];
     let (session, pipes) = crate::win_pty::WinPtySession::spawn(
         DEFAULT_COLS as u16,
         DEFAULT_ROWS as u16,
@@ -676,11 +682,23 @@ impl PtyManager {
         let (writer, mut reader, platform) = create_platform_pty(&id, &cwd)?;
         let writer = Arc::new(Mutex::new(writer));
 
+        // Gate for response routing: suppress shell-init OSC/DA responses that
+        // would contaminate the PTY slave input buffer before the startup command
+        // runs.  Without this, stale responses (from shell .zshrc OSC queries)
+        // sit in the buffer and confuse crossterm's OSC 11 detection in Codex,
+        // causing the "no background on first run" bug.
+        //
+        // If there is no startup command, responses are always routed (the user
+        // is interacting with the shell directly).
+        let has_startup_cmd = startup_command.as_ref().is_some_and(|s| !s.is_empty());
+        let route_responses = Arc::new(AtomicBool::new(!has_startup_cmd));
+
         // Delay startup command to let the shell initialize (login profile, prompt)
-        if let Some(cmd_str) = startup_command {
+        if let Some(cmd_str) = startup_command.filter(|s| !s.is_empty()) {
             let writer_clone = Arc::clone(&writer);
             let id_clone = id.clone();
             let sessions_clone = Arc::clone(&self.sessions);
+            let route_flag = Arc::clone(&route_responses);
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(SHELL_READY_DELAY_MS));
                 // Check session still exists, then drop the sessions lock before
@@ -702,8 +720,15 @@ impl PtyManager {
                         let _ = w.flush();
                     }
                 }
+                // Now that the command is sent, allow responses to flow back.
+                // Codex will query OSC 11 shortly after starting.
+                route_flag.store(true, Ordering::Release);
+                eprintln!("[pty] Response routing enabled for {id_clone}");
             });
         }
+
+        // Clone writer for the reader thread to route terminal responses back to PTY
+        let pty_writer_for_reader = Arc::clone(&writer);
 
         // Store session before starting reader — cleanup logic in the reader
         // checks the session map, so it must exist before the reader can race
@@ -775,6 +800,7 @@ impl PtyManager {
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
         let last_output_at = Arc::clone(&self.last_output_at);
+        let route_flag_reader = Arc::clone(&route_responses);
         std::thread::spawn(move || {
             eprintln!("[pty] Reader thread started for {id_clone}");
             let (_, cv) = &*flush_cond;
@@ -789,18 +815,86 @@ impl PtyManager {
                     }
                     Ok(n) => {
                         total_bytes += n;
-                        if total_bytes <= 64 {
-                            let hex: String = buf[..n]
-                                .iter()
-                                .map(|b| format!("{b:02x}"))
-                                .collect::<Vec<_>>()
-                                .join(" ");
-                            eprintln!(
-                                "[pty] Read #{} for {id_clone}: {n} bytes [{hex}]",
-                                total_bytes / n.max(1)
-                            );
+
+                        // Detect OSC 10/11 color queries in the incoming data.
+                        // Track which queries arrived so we can supplement a missing
+                        // OSC 11 (background) response when only OSC 10 (foreground)
+                        // was queried — Codex's crossterm sometimes skips OSC 11.
+                        let mut has_osc10 = false;
+                        let mut has_osc11 = false;
+                        {
+                            let chunk = &buf[..n];
+                            for window in chunk.windows(5) {
+                                if window.starts_with(b"\x1b]1") {
+                                    let next2 = &window[3..5];
+                                    if next2 == b"0;" {
+                                        has_osc10 = true;
+                                    } else if next2 == b"1;" {
+                                        has_osc11 = true;
+                                    }
+                                }
+                            }
+                            if has_osc10 || has_osc11 {
+                                eprintln!(
+                                    "[pty] OSC color queries in chunk for {id_clone}: \
+                                     osc10={has_osc10}, osc11={has_osc11}, \
+                                     gate_open={}, total_bytes={total_bytes}",
+                                    route_flag_reader.load(Ordering::Relaxed),
+                                );
+                            }
                         }
+
                         term_state.advance_only(&id_clone, &buf[..n]);
+
+                        // If a foreground query (OSC 10) arrived without a background
+                        // query (OSC 11), inject a synthetic OSC 11 query so wezterm-term
+                        // generates the background response too. This ensures Codex always
+                        // receives the bg color and can use explicit palette colors for its
+                        // panels, fixing the "no background on first run" race.
+                        if has_osc10 && !has_osc11 && route_flag_reader.load(Ordering::Acquire) {
+                            eprintln!("[pty] injecting synthetic OSC 11 query for {id_clone}");
+                            term_state.advance_only(&id_clone, b"\x1b]11;?\x07");
+                        }
+
+                        // Route terminal responses (DA, CPR, OSC replies) back to PTY.
+                        // wezterm-term writes these to its writer during advance_bytes().
+                        //
+                        // Gated by `route_responses`: during shell init the flag is false
+                        // so stale OSC/DA responses don't pollute the PTY slave buffer.
+                        // Once the startup command is sent the flag flips to true and all
+                        // subsequent responses (including Codex's OSC 11 reply) flow back.
+                        let responses = term_state.drain_responses(&id_clone);
+                        if !responses.is_empty() {
+                            if route_flag_reader.load(Ordering::Acquire) {
+                                match pty_writer_for_reader.lock() {
+                                    Ok(mut w) => {
+                                        if let Err(e) = w.write_all(&responses) {
+                                            eprintln!(
+                                                "[pty] response write failed for {id_clone}: {e}"
+                                            );
+                                        } else {
+                                            eprintln!(
+                                                "[pty] routed {len} response bytes to PTY for {id_clone}",
+                                                len = responses.len(),
+                                            );
+                                        }
+                                        if let Err(e) = w.flush() {
+                                            eprintln!(
+                                                "[pty] response flush failed for {id_clone}: {e}"
+                                            );
+                                        }
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[pty] writer lock failed for {id_clone}: {e}");
+                                    }
+                                }
+                            } else {
+                                eprintln!(
+                                    "[pty] suppressed {len} response bytes during shell init for {id_clone}",
+                                    len = responses.len(),
+                                );
+                            }
+                        }
 
                         if last_emit.elapsed() >= RENDER_INTERVAL {
                             // Record output timestamp for activity detection.

@@ -24,7 +24,7 @@ export type ThemePreset = Pick<
 	};
 
 /** Tango-based ANSI palette used by the Default Dark preset. */
-const DEFAULT_ANSI: AnsiColors = {
+export const DEFAULT_ANSI: AnsiColors = {
 	black: "#000000",
 	red: "#cc0000",
 	green: "#4e9a06",

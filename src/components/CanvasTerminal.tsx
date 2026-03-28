@@ -16,6 +16,7 @@ import type {
 	ImageCellSnapshot,
 	ImageSnapshot,
 	SelectionRange,
+	UnderlineStyle,
 } from "../shared/types";
 import {
 	clampFontSize,
@@ -73,6 +74,8 @@ const CURSOR_MIN_OPACITY = 0.0;
 const CURSOR_STATIC_OPACITY = 0.5;
 /** Stop blinking after this elapsed time since blink phase started (ms). */
 const CURSOR_IDLE_TIMEOUT_MS = 5000;
+/** Text blink toggle interval (ms). Standard terminal blink is ~500ms on/off. */
+const TEXT_BLINK_INTERVAL_MS = 500;
 const RESIZE_DEBOUNCE_MS = 100;
 /** Bar cursor width as fraction of cell width. */
 const BAR_WIDTH_RATIO = 0.12;
@@ -219,7 +222,7 @@ function buildFont(cell: CellSnapshot, scaledSize: number, fontFamily: string): 
 	return `${style}${weight}${scaledSize}px ${fontFamily}`;
 }
 
-/** Draw a horizontal line (used for underline and strikethrough). */
+/** Draw a horizontal line (used for underline, strikethrough, and overline). */
 function drawHLine(
 	ctx: CanvasRenderingContext2D,
 	color: string,
@@ -234,6 +237,116 @@ function drawHLine(
 	ctx.moveTo(x, y);
 	ctx.lineTo(x + width, y);
 	ctx.stroke();
+}
+
+/** Draw a curly/wavy underline using quadratic bezier curves. */
+function drawCurlyLine(
+	ctx: CanvasRenderingContext2D,
+	color: string,
+	lineWidth: number,
+	x: number,
+	y: number,
+	width: number,
+	cellH: number,
+) {
+	const amplitude = cellH * 0.12;
+	const wavelength = cellH * 0.5;
+	ctx.strokeStyle = color;
+	ctx.lineWidth = lineWidth;
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	let penX = x;
+	let up = true;
+	while (penX < x + width) {
+		const nx = Math.min(penX + wavelength, x + width);
+		const cpY = up ? y - amplitude : y + amplitude;
+		ctx.quadraticCurveTo(penX + (nx - penX) / 2, cpY, nx, y);
+		penX = nx;
+		up = !up;
+	}
+	ctx.stroke();
+}
+
+/** Dash patterns for styled underlines. Raw multipliers, scaled by lineWidth internally. */
+const DOTTED_PATTERN = [1, 2];
+const DASHED_PATTERN = [3, 2];
+
+/** Draw a styled (dashed/dotted) horizontal line. Raw pattern values are scaled by lineWidth internally. */
+function drawStyledLine(
+	ctx: CanvasRenderingContext2D,
+	color: string,
+	lineWidth: number,
+	x: number,
+	y: number,
+	width: number,
+	dashPattern: number[],
+) {
+	ctx.strokeStyle = color;
+	ctx.lineWidth = lineWidth;
+	ctx.setLineDash(dashPattern.map((v) => v * lineWidth));
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x + width, y);
+	ctx.stroke();
+	ctx.setLineDash([]);
+}
+
+/** Draw text content and decorations (underline, strikethrough, overline) for a single cell.
+ *  Handles dim alpha, underline styles, and attribute reset. Used by both the main draw
+ *  loop and the cursor-cell repaint path. */
+function drawCellContent(
+	ctx: CanvasRenderingContext2D,
+	cell: CellSnapshot,
+	x: number,
+	y: number,
+	cellW: number,
+	cellH: number,
+	lineWidth: number,
+	baselineOffset: number,
+	scaledSize: number,
+	fontFamily: string,
+) {
+	if (cell.dim) ctx.globalAlpha = 0.5;
+
+	if (cell.text.trim()) {
+		ctx.font = buildFont(cell, scaledSize, fontFamily);
+		ctx.fillStyle = cell.fg;
+		ctx.fillText(cell.text, x, y + baselineOffset);
+	}
+	if (cell.underline !== "none") {
+		const ulColor = cell.underlineColor ?? cell.fg;
+		const ulY = y + cellH - lineWidth;
+		switch (cell.underline as UnderlineStyle) {
+			case "single":
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				break;
+			case "double":
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				drawHLine(ctx, ulColor, lineWidth, x, ulY - lineWidth * 2, cellW);
+				break;
+			case "curly":
+				drawCurlyLine(ctx, ulColor, lineWidth, x, ulY, cellW, cellH);
+				break;
+			case "dotted":
+				drawStyledLine(ctx, ulColor, lineWidth, x, ulY, cellW, DOTTED_PATTERN);
+				break;
+			case "dashed":
+				drawStyledLine(ctx, ulColor, lineWidth, x, ulY, cellW, DASHED_PATTERN);
+				break;
+			default:
+				// Unknown underline style from future wezterm-term update — fall back to single
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				break;
+		}
+	}
+	if (cell.strikethrough) {
+		drawHLine(ctx, cell.fg, lineWidth, x, y + cellH / 2, cellW);
+	}
+	if (cell.overline) {
+		drawHLine(ctx, cell.fg, lineWidth, x, y + lineWidth, cellW);
+	}
+
+	if (cell.dim) ctx.globalAlpha = 1.0;
 }
 
 /** Decode a base64-encoded image into an ImageBitmap. */
@@ -466,6 +579,9 @@ export function CanvasTerminal({
 	const cursorStyleRef = useRef(cursorStyle);
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const blinkTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+	/** Whether blinking text is currently visible (toggled by interval timer). */
+	const textBlinkVisibleRef = useRef(true);
+	const textBlinkTimerRef = useRef<ReturnType<typeof setInterval>>(null);
 	const isFocusedRef = useRef(isFocused);
 	const imageCacheRef = useRef<TerminalImageCache>(null!);
 	if (!imageCacheRef.current) imageCacheRef.current = new TerminalImageCache();
@@ -591,10 +707,10 @@ export function CanvasTerminal({
 		ctx.textBaseline = "alphabetic";
 		ctx.lineWidth = dpr;
 
+		const imgCache = imageCacheRef.current;
+
 		// Clear cursor rect to transparent
 		ctx.clearRect(cx, cy, cellW, cellH);
-
-		const imgCache = imageCacheRef.current;
 
 		// Redraw cell background if it has a custom color
 		if (cursorCell && cursorCell.bg !== snap.defaultBg) {
@@ -609,17 +725,7 @@ export function CanvasTerminal({
 
 		// Redraw cell content
 		if (cursorCell) {
-			if (cursorCell.text.trim()) {
-				ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
-				ctx.fillStyle = cursorCell.fg;
-				ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
-			}
-			if (cursorCell.underline) {
-				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH - dpr, cellW);
-			}
-			if (cursorCell.strikethrough) {
-				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH / 2, cellW);
-			}
+			drawCellContent(ctx, cursorCell, cx, cy, cellW, cellH, dpr, baselineOffset, scaledSize, fontFamily);
 		}
 
 		// Redraw above-text images
@@ -654,7 +760,12 @@ export function CanvasTerminal({
 		const canvas = canvasRef.current;
 		const snap = gridRef.current;
 		const ctx = ctxRef.current;
-		if (!canvas || !snap || !ctx) return;
+		if (!canvas || !ctx) return;
+		if (!snap) {
+			// Grid cleared (e.g. PTY restart) — wipe stale pixels immediately
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			return;
+		}
 
 		const dpr = dprRef.current;
 		const scaledSize = fontSize * dpr;
@@ -674,6 +785,8 @@ export function CanvasTerminal({
 		// grid.images is absent (undefined) when empty, so truthiness suffices.
 		const snapshotHasImages = !!snap.images;
 		let hasImages = false;
+		let hasBlinkingCells = false;
+		const blinkVisible = textBlinkVisibleRef.current;
 
 		// Single pass: backgrounds + below-text images + text + decorations.
 		// Below-text images (zIndex < 0) render after background, before text,
@@ -699,17 +812,13 @@ export function CanvasTerminal({
 					drawCellImages(ctx, cell.images, imgCache, x, y, cellW, cellH, "below");
 				}
 
-				// Text
-				if (cell.text.trim()) {
-					ctx.font = buildFont(cell, scaledSize, fontFamily);
-					ctx.fillStyle = cell.fg;
-					ctx.fillText(cell.text, x, y + baselineOffset);
-				}
-				if (cell.underline) {
-					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
-				}
-				if (cell.strikethrough) {
-					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
+				// Track blinking cells for timer management
+				if (cell.blink) hasBlinkingCells = true;
+
+				// SGR 8: hidden/invisible — skip text and decorations, keep background
+				// SGR 5: blink — hide text during off phase
+				if (!cell.hidden && !(cell.blink && !blinkVisible)) {
+					drawCellContent(ctx, cell, x, y, cellW, cellH, ctx.lineWidth, baselineOffset, scaledSize, fontFamily);
 				}
 			}
 		}
@@ -798,6 +907,18 @@ export function CanvasTerminal({
 				cursorOpacity.current,
 				cursorCell,
 			);
+		}
+
+		// SGR 5 blink timer: start interval when blinking cells exist, stop when none
+		if (hasBlinkingCells && !textBlinkTimerRef.current) {
+			textBlinkTimerRef.current = setInterval(() => {
+				textBlinkVisibleRef.current = !textBlinkVisibleRef.current;
+				drawRef.current();
+			}, TEXT_BLINK_INTERVAL_MS);
+		} else if (!hasBlinkingCells && textBlinkTimerRef.current) {
+			clearInterval(textBlinkTimerRef.current);
+			textBlinkTimerRef.current = null;
+			textBlinkVisibleRef.current = true;
 		}
 	}, [accentColor, background, cursorColor, fontSize, fontFamily, lineHeight]);
 
@@ -1048,6 +1169,19 @@ export function CanvasTerminal({
 		};
 	}, [isFocused, grid, repaintCursor]);
 
+	// Re-focus the terminal container when the OS window regains focus — the initial
+	// useEffect .focus() call can miss if the Tauri window isn't active yet at mount time.
+	useEffect(() => {
+		if (!isFocused) return;
+		const handler = () => {
+			if (containerRef.current && document.activeElement !== containerRef.current) {
+				containerRef.current.focus();
+			}
+		};
+		window.addEventListener("focus", handler);
+		return () => window.removeEventListener("focus", handler);
+	}, [isFocused]);
+
 	// Kill native browser text selection on the terminal container — CSS user-select:none
 	// doesn't prevent keyboard-driven selection in WKWebView.
 	useEffect(() => {
@@ -1058,8 +1192,8 @@ export function CanvasTerminal({
 		return () => el.removeEventListener("selectstart", prevent);
 	}, []);
 
-	// Cleanup drag listeners, selection RAF, and image cache on unmount — prevents leaks if
-	// the component unmounts mid-drag (pane close, workspace switch).
+	// Cleanup drag listeners, selection RAF, text blink timer, and image cache on unmount —
+	// prevents leaks if the component unmounts mid-drag (pane close, workspace switch).
 	useEffect(() => {
 		const cache = imageCacheRef.current;
 		return () => {
@@ -1072,6 +1206,10 @@ export function CanvasTerminal({
 			if (selectionRafRef.current) {
 				cancelAnimationFrame(selectionRafRef.current);
 				selectionRafRef.current = 0;
+			}
+			if (textBlinkTimerRef.current) {
+				clearInterval(textBlinkTimerRef.current);
+				textBlinkTimerRef.current = null;
 			}
 			cache.dispose();
 		};

@@ -8,7 +8,7 @@ use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use tattoy_wezterm_term::config::TerminalConfiguration;
 use tattoy_wezterm_term::image::ImageDataType;
-use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
+use tattoy_wezterm_term::{Blink, Intensity, Terminal, TerminalSize, Underline};
 
 const DEFAULT_DPI: u32 = 96;
 pub const DEFAULT_COLS: usize = 80;
@@ -33,15 +33,19 @@ const MAX_IMAGES_PER_FRAME: usize = 64;
 /// malicious OSC sequences setting multi-megabyte titles.
 const MAX_TITLE_LEN: usize = 4096;
 
-/// Minimal config for wezterm-term. The `TerminalConfiguration` trait has 15+
-/// methods with sensible defaults (scrollback sizing, unicode version, etc.).
-/// Per-pane color palettes are applied separately at snapshot time — see `set_colors`.
+/// Per-pane terminal config. Wraps the base palette so that wezterm-term's
+/// reset operations (ESC c, OSC 104, `implicit_palette_reset_if_same_as_configured`)
+/// fall back to the user's theme colors instead of the built-in black/white defaults.
+///
+/// The inner `Mutex<ColorPalette>` is updated by `set_colors()` at any time;
+/// `color_palette()` always returns the latest value. The mutex is only held
+/// for a clone — no contention with the reader thread.
 #[derive(Debug)]
-struct TermConfig;
+struct PaneTermConfig(Mutex<ColorPalette>);
 
-impl tattoy_wezterm_term::config::TerminalConfiguration for TermConfig {
+impl tattoy_wezterm_term::config::TerminalConfiguration for PaneTermConfig {
     fn color_palette(&self) -> ColorPalette {
-        ColorPalette::default()
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     fn enable_kitty_graphics(&self) -> bool {
@@ -90,14 +94,24 @@ pub struct ImageSnapshot {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CellSnapshot {
     pub text: String,
     pub fg: String,
     pub bg: String,
     pub bold: bool,
+    pub dim: bool,
     pub italic: bool,
-    pub underline: bool,
+    /// Underline style: "none", "single", "double", "curly", "dotted", "dashed".
+    /// Uses `&'static str` to avoid per-cell heap allocation (~115k/sec at 60fps).
+    pub underline: &'static str,
+    /// Underline color override (SGR 58). Omitted when using default fg color.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub underline_color: Option<String>,
     pub strikethrough: bool,
+    pub hidden: bool,
+    pub overline: bool,
+    pub blink: bool,
     /// Image slices attached to this cell (omitted when empty).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<ImageCellSnapshot>>,
@@ -124,16 +138,16 @@ pub struct GridSnapshot {
     pub scrollback_rows: usize,
     /// Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows.
     pub scroll_offset: usize,
-    /// The terminal palette's default background color (hex string, e.g. "#000000").
-    /// The frontend uses this to distinguish "no custom background" cells from cells
-    /// with an explicit colored background — only the latter get drawn, leaving
-    /// default-bg cells transparent so PaneBackgroundEffects show through.
-    pub default_bg: String,
     /// Unique images visible in the current viewport, keyed by hex SHA256 hash.
     /// Only includes images not previously sent (tracked per-session).
     /// Frontend caches decoded ImageBitmaps by hash.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub images: HashMap<String, ImageSnapshot>,
+    /// The terminal's default background color (from the palette).
+    /// Frontend uses this to paint default-bg cells opaque on the alternate
+    /// screen (TUI apps) while keeping them transparent on the normal screen
+    /// (shell output) so the CSS gradient/effects show through.
+    pub default_bg: String,
     /// Whether the terminal is currently showing the alternate screen buffer
     /// (used by TUI apps like vim, htop, less, tmux).
     pub is_alt_screen: bool,
@@ -255,13 +269,42 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
     palette
 }
 
+/// Maximum response buffer size (64 KB). Prevents unbounded growth if a
+/// malicious program triggers thousands of DA/CPR/OSC queries per second.
+const MAX_RESPONSE_BUFFER_BYTES: usize = 64 * 1024;
+
+/// Writer that captures terminal responses (DA, CPR, OSC replies) into a shared
+/// buffer. The PTY reader thread drains the buffer after each `advance_only()`
+/// call and routes responses back to the PTY master fd.
+struct SharedWriter(Arc<Mutex<Vec<u8>>>);
+
+impl std::io::Write for SharedWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut inner = self
+            .0
+            .lock()
+            .map_err(|_| std::io::Error::other("response buffer lock poisoned"))?;
+        if inner.len() + buf.len() > MAX_RESPONSE_BUFFER_BYTES {
+            return Err(std::io::Error::other("response buffer overflow"));
+        }
+        inner.extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Manages one `wezterm-term::Terminal` per PTY session. Each terminal
 /// processes raw PTY bytes through `advance_bytes()` and produces
 /// `GridSnapshot`s for the frontend canvas renderer.
 ///
-/// Each terminal has its own `ColorPalette` so themes are applied per-pane.
+/// Each terminal has its own `PaneTermConfig` whose `color_palette()` returns
+/// the user's theme colors. This ensures palette resets (ESC c, OSC 104)
+/// fall back to theme colors instead of built-in defaults.
 ///
-/// Lock ordering: `terminals` → `palettes` → `sent_image_hashes` → `last_titles`.
+/// Lock ordering: `terminals` → `palettes` → `pane_configs` → `sent_image_hashes` → `last_titles` → `response_buffers`.
 /// Never acquire these locks in a different order to prevent deadlocks.
 pub struct TerminalState {
     terminals: Mutex<HashMap<String, Terminal>>,
@@ -269,14 +312,18 @@ pub struct TerminalState {
     /// terminals so palettes survive PTY restart (remove → create cycle).
     /// Cleaned up in `remove_all()` on app shutdown.
     palettes: Mutex<HashMap<String, Arc<ColorPalette>>>,
+    /// Per-pane configs — each wraps the pane's palette so wezterm-term resets
+    /// fall back to theme colors. Survives PTY restart alongside `palettes`.
+    pane_configs: Mutex<HashMap<String, Arc<PaneTermConfig>>>,
     /// Per-session set of image hashes already sent to the frontend.
     /// Prevents re-sending the same image data on every snapshot frame.
     sent_image_hashes: Mutex<HashMap<String, HashSet<[u8; 32]>>>,
     /// Last-seen terminal title per pane (OSC 1/2). Used to detect title
     /// changes between snapshot cycles.
     last_titles: Mutex<HashMap<String, String>>,
+    /// Per-terminal response buffers for DA/CPR/OSC replies from wezterm-term.
+    response_buffers: Mutex<HashMap<String, Arc<Mutex<Vec<u8>>>>>,
     default_palette: Arc<ColorPalette>,
-    config: Arc<dyn TerminalConfiguration + Send + Sync>,
 }
 
 /// Encode a [u8; 32] hash as a lowercase hex string.
@@ -385,10 +432,11 @@ impl TerminalState {
         Self {
             terminals: Mutex::new(HashMap::new()),
             palettes: Mutex::new(HashMap::new()),
+            pane_configs: Mutex::new(HashMap::new()),
             sent_image_hashes: Mutex::new(HashMap::new()),
             last_titles: Mutex::new(HashMap::new()),
+            response_buffers: Mutex::new(HashMap::new()),
             default_palette: Arc::new(ColorPalette::default()),
-            config: Arc::new(TermConfig),
         }
     }
 
@@ -400,20 +448,65 @@ impl TerminalState {
         pixel_width: usize,
         pixel_height: usize,
     ) {
-        // NOTE: Terminal writer is sink() — shell DSR responses (e.g. cursor position
-        // reports via \e[6n) are discarded. Apps relying on DSR won't get replies.
+        // Build a per-pane config from the stored palette (or default).
+        // This config is what wezterm-term falls back to on palette resets
+        // (ESC c, OSC 104), so it MUST carry the user's theme colors.
+        let pane_palette = match self.lock_palettes() {
+            Ok(palettes) => palettes
+                .get(id)
+                .map(|p| p.as_ref().clone())
+                .unwrap_or_default(),
+            Err(e) => {
+                eprintln!("[terminal] palette lock failed during create for {id}: {e}");
+                ColorPalette::default()
+            }
+        };
+        eprintln!(
+            "[terminal] create {id}: palette bg={:?}, fg={:?}",
+            pane_palette.background.to_rgb_string(),
+            pane_palette.foreground.to_rgb_string(),
+        );
+        let pane_config = Arc::new(PaneTermConfig(Mutex::new(pane_palette.clone())));
+
+        let response_buf = Arc::new(Mutex::new(Vec::new()));
+        let writer = SharedWriter(Arc::clone(&response_buf));
         let terminal = Terminal::new(
             term_size(cols, rows, pixel_width, pixel_height),
-            Arc::clone(&self.config),
+            Arc::clone(&pane_config) as Arc<dyn TerminalConfiguration>,
             "knkode",
             env!("CARGO_PKG_VERSION"),
-            Box::new(std::io::sink()),
+            Box::new(writer),
         );
+
+        // Do NOT call `terminal.palette_mut()` here — the terminal's internal
+        // palette starts as None, which means `palette()` falls back to
+        // `config.color_palette()` (our PaneTermConfig). This is correct:
+        // the config is the authoritative palette source after resets.
+        // Setting `palette_mut` would create a `Some` that
+        // `implicit_palette_reset_if_same_as_configured` immediately clears.
+
+        // Store the pane config for later updates by set_colors()
+        match self.lock_pane_configs() {
+            Ok(mut configs) => {
+                configs.insert(id.to_string(), pane_config);
+            }
+            Err(e) => eprintln!("[terminal] pane_configs lock failed during create for {id}: {e}"),
+        }
+
         match self.lock_terminals() {
             Ok(mut terminals) => {
                 terminals.insert(id.to_string(), terminal);
             }
-            Err(e) => eprintln!("[terminal] create failed for {id}: {e}"),
+            Err(e) => {
+                eprintln!("[terminal] create failed for {id}: {e}");
+                return;
+            }
+        }
+        match self.lock_response_buffers() {
+            Ok(mut buffers) => {
+                buffers.insert(id.to_string(), response_buf);
+            }
+            Err(e) => eprintln!("[terminal] create response_buffers lock failed for {id}: {e}"),
         }
     }
 
@@ -426,10 +519,78 @@ impl TerminalState {
         foreground: &str,
         background: &str,
     ) -> Result<(), String> {
-        let palette = Arc::new(build_palette(ansi, foreground, background));
+        eprintln!("[terminal] set_colors {id}: bg={background:?}, fg={foreground:?}");
+        let palette = build_palette(ansi, foreground, background);
+
+        // Update the pane config so wezterm-term's reset operations fall back
+        // to the user's theme colors (not the built-in defaults).
+        match self.lock_pane_configs() {
+            Ok(configs) => {
+                if let Some(config) = configs.get(id) {
+                    *config.0.lock().unwrap_or_else(|e| e.into_inner()) = palette.clone();
+                }
+            }
+            Err(e) => eprintln!("[terminal] pane_configs lock failed in set_colors for {id}: {e}"),
+        }
+
+        // Apply palette to the terminal's own state so that OSC 10/11 color
+        // queries (used by CLI tools like Codex to detect background color)
+        // return the correct theme colors instead of the default black/white.
+        {
+            let mut terminals = self.lock_terminals()?;
+            if let Some(terminal) = terminals.get_mut(id) {
+                *terminal.palette_mut() = palette.clone();
+            }
+        }
+
         let mut palettes = self.lock_palettes()?;
-        palettes.insert(id.to_string(), palette);
+        palettes.insert(id.to_string(), Arc::new(palette));
         Ok(())
+    }
+
+    /// Drain any pending terminal responses (DA, CPR, OSC replies) that
+    /// wezterm-term wrote to the response buffer during `advance_bytes()`.
+    /// Returns the bytes to be written back to the PTY master fd.
+    pub fn drain_responses(&self, id: &str) -> Vec<u8> {
+        match self.lock_response_buffers() {
+            Ok(buffers) => {
+                if let Some(buf) = buffers.get(id) {
+                    match buf.lock() {
+                        Ok(mut inner) => {
+                            let data = std::mem::take(&mut *inner);
+                            if !data.is_empty() {
+                                // Show printable ASCII + hex for control chars
+                                let readable: String = data
+                                    .iter()
+                                    .map(|&b| {
+                                        if b >= 0x20 && b < 0x7f {
+                                            (b as char).to_string()
+                                        } else {
+                                            format!("\\x{b:02x}")
+                                        }
+                                    })
+                                    .collect();
+                                eprintln!(
+                                    "[terminal] drain_responses {id}: {len} bytes [{readable}]",
+                                    len = data.len(),
+                                );
+                            }
+                            data
+                        }
+                        Err(e) => {
+                            eprintln!("[terminal] drain_responses inner lock failed for {id}: {e}");
+                            Vec::new()
+                        }
+                    }
+                } else {
+                    Vec::new()
+                }
+            }
+            Err(e) => {
+                eprintln!("[terminal] drain_responses lock failed for {id}: {e}");
+                Vec::new()
+            }
+        }
     }
 
     /// Advance the terminal state machine with raw PTY output, without
@@ -656,6 +817,13 @@ impl TerminalState {
             }
             Err(e) => eprintln!("[terminal] remove last_titles lock failed for {id}: {e}"),
         }
+        // Clean up response buffer for this session
+        match self.lock_response_buffers() {
+            Ok(mut buffers) => {
+                buffers.remove(id);
+            }
+            Err(e) => eprintln!("[terminal] remove response_buffers lock failed for {id}: {e}"),
+        }
         // Palette intentionally NOT removed — survives pane restart.
         // Cleaned up in remove_all() on app shutdown.
     }
@@ -671,6 +839,10 @@ impl TerminalState {
             Ok(mut palettes) => palettes.clear(),
             Err(e) => eprintln!("[terminal] remove_all palettes lock failed: {e}"),
         }
+        match self.lock_pane_configs() {
+            Ok(mut configs) => configs.clear(),
+            Err(e) => eprintln!("[terminal] remove_all pane_configs lock failed: {e}"),
+        }
         match self.lock_sent_hashes() {
             Ok(mut hashes) => hashes.clear(),
             Err(e) => eprintln!("[terminal] remove_all sent_image_hashes lock failed: {e}"),
@@ -678,6 +850,10 @@ impl TerminalState {
         match self.lock_last_titles() {
             Ok(mut titles) => titles.clear(),
             Err(e) => eprintln!("[terminal] remove_all last_titles lock failed: {e}"),
+        }
+        match self.lock_response_buffers() {
+            Ok(mut buffers) => buffers.clear(),
+            Err(e) => eprintln!("[terminal] remove_all response_buffers lock failed: {e}"),
         }
     }
 
@@ -771,8 +947,20 @@ impl TerminalState {
                 let attrs = cell_ref.attrs();
                 let reverse = attrs.reverse();
 
-                let fg_attr = attrs.foreground();
+                let mut fg_attr = attrs.foreground();
                 let bg_attr = attrs.background();
+
+                // Bold-as-bright: shift ANSI colors 0-7 to their bright variants 8-15
+                // when the cell is bold. Standard terminal behavior that many CLI tools
+                // depend on for color variety.
+                if matches!(attrs.intensity(), Intensity::Bold) {
+                    if let ColorAttribute::PaletteIndex(idx) = fg_attr {
+                        if idx < 8 {
+                            fg_attr = ColorAttribute::PaletteIndex(idx + 8);
+                        }
+                    }
+                }
+
                 let (fg, bg) = if reverse {
                     (intern_color(bg_attr, false), intern_color(fg_attr, true))
                 } else {
@@ -847,9 +1035,28 @@ impl TerminalState {
                     fg,
                     bg,
                     bold: matches!(attrs.intensity(), Intensity::Bold),
+                    dim: matches!(attrs.intensity(), Intensity::Half),
                     italic: attrs.italic(),
-                    underline: !matches!(attrs.underline(), Underline::None),
+                    underline: match attrs.underline() {
+                        Underline::None => "none",
+                        Underline::Single => "single",
+                        Underline::Double => "double",
+                        Underline::Curly => "curly",
+                        Underline::Dotted => "dotted",
+                        Underline::Dashed => "dashed",
+                    },
+                    underline_color: {
+                        let uc = attrs.underline_color();
+                        if matches!(uc, ColorAttribute::Default) {
+                            None
+                        } else {
+                            Some(intern_color(uc, true))
+                        }
+                    },
                     strikethrough: attrs.strikethrough(),
+                    hidden: attrs.invisible(),
+                    overline: attrs.overline(),
+                    blink: !matches!(attrs.blink(), Blink::None),
                     images,
                     link,
                 });
@@ -881,8 +1088,8 @@ impl TerminalState {
             total_rows: phys_rows,
             scrollback_rows: max_offset,
             scroll_offset: clamped_offset,
-            default_bg: palette.background.to_rgb_string(),
             images: frame_images,
+            default_bg: palette.background.to_rgb_string(),
             is_alt_screen: terminal.is_alt_screen_active(),
             is_mouse_grabbed: terminal.is_mouse_grabbed(),
         }
@@ -951,6 +1158,14 @@ impl TerminalState {
             .map_err(|e| format!("Palettes lock poisoned: {e}"))
     }
 
+    fn lock_pane_configs(
+        &self,
+    ) -> Result<MutexGuard<'_, HashMap<String, Arc<PaneTermConfig>>>, String> {
+        self.pane_configs
+            .lock()
+            .map_err(|e| format!("Pane configs lock poisoned: {e}"))
+    }
+
     fn lock_sent_hashes(
         &self,
     ) -> Result<MutexGuard<'_, HashMap<String, HashSet<[u8; 32]>>>, String> {
@@ -963,5 +1178,13 @@ impl TerminalState {
         self.last_titles
             .lock()
             .map_err(|e| format!("Last titles lock poisoned: {e}"))
+    }
+
+    fn lock_response_buffers(
+        &self,
+    ) -> Result<MutexGuard<'_, HashMap<String, Arc<Mutex<Vec<u8>>>>>, String> {
+        self.response_buffers
+            .lock()
+            .map_err(|e| format!("Response buffers lock poisoned: {e}"))
     }
 }
