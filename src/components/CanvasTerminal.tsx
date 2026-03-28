@@ -680,17 +680,43 @@ export function CanvasTerminal({
 
 		// Redraw cell content
 		if (cursorCell) {
+			if (cursorCell.dim) ctx.globalAlpha = 0.5;
+
 			if (cursorCell.text.trim()) {
 				ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
 				ctx.fillStyle = cursorCell.fg;
 				ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
 			}
-			if (cursorCell.underline) {
-				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH - dpr, cellW);
+			if (cursorCell.underline !== "none") {
+				const ulColor = cursorCell.underlineColor ?? cursorCell.fg;
+				const ulY = cy + cellH - dpr;
+				switch (cursorCell.underline) {
+					case "single":
+						drawHLine(ctx, ulColor, dpr, cx, ulY, cellW);
+						break;
+					case "double":
+						drawHLine(ctx, ulColor, dpr, cx, ulY, cellW);
+						drawHLine(ctx, ulColor, dpr, cx, ulY - dpr * 2, cellW);
+						break;
+					case "curly":
+						drawCurlyLine(ctx, ulColor, dpr, cx, ulY, cellW, cellH);
+						break;
+					case "dotted":
+						drawDottedLine(ctx, ulColor, dpr, cx, ulY, cellW);
+						break;
+					case "dashed":
+						drawDashedLine(ctx, ulColor, dpr, cx, ulY, cellW);
+						break;
+				}
 			}
 			if (cursorCell.strikethrough) {
 				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH / 2, cellW);
 			}
+			if (cursorCell.overline) {
+				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + dpr, cellW);
+			}
+
+			if (cursorCell.dim) ctx.globalAlpha = 1.0;
 		}
 
 		// Redraw above-text images
