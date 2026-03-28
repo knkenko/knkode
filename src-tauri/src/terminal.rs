@@ -543,16 +543,7 @@ impl TerminalState {
                 return;
             }
         };
-        let was_alt = terminal.is_alt_screen_active();
         terminal.advance_bytes(data);
-        let is_alt = terminal.is_alt_screen_active();
-        if was_alt != is_alt {
-            eprintln!(
-                "[terminal] alt screen transition for {id}: {} → {}",
-                if was_alt { "alt" } else { "main" },
-                if is_alt { "alt" } else { "main" },
-            );
-        }
     }
 
     /// Take a snapshot and check for terminal title changes in a single lock
@@ -1028,18 +1019,6 @@ impl TerminalState {
             CursorShape::SteadyBar => ("bar", false),
         };
         let default_bg_str = palette.background.to_rgb_string();
-        // Debug: detect alt screen and count explicit background cells
-        let is_alt = terminal.is_alt_screen_active();
-        let explicit_bg_count = rows
-            .iter()
-            .flat_map(|r| r.iter())
-            .filter(|c| c.bg.is_some())
-            .count();
-        if explicit_bg_count > 0 || is_alt {
-            eprintln!(
-                "[terminal] snapshot: alt_screen={is_alt}, explicit_bg_cells={explicit_bg_count}"
-            );
-        }
 
         GridSnapshot {
             rows,
@@ -1054,7 +1033,7 @@ impl TerminalState {
             scroll_offset: clamped_offset,
             default_bg: default_bg_str,
             images: frame_images,
-            is_alt_screen: is_alt,
+            is_alt_screen: terminal.is_alt_screen_active(),
             is_mouse_grabbed: terminal.is_mouse_grabbed(),
         }
     }

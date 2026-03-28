@@ -794,32 +794,12 @@ impl PtyManager {
                     }
                     Ok(n) => {
                         total_bytes += n;
-                        if total_bytes <= 64 {
-                            let hex: String = buf[..n]
-                                .iter()
-                                .map(|b| format!("{b:02x}"))
-                                .collect::<Vec<_>>()
-                                .join(" ");
-                            eprintln!(
-                                "[pty] Read #{} for {id_clone}: {n} bytes [{hex}]",
-                                total_bytes / n.max(1)
-                            );
-                        }
                         term_state.advance_only(&id_clone, &buf[..n]);
 
                         // Route terminal responses (DA, CPR, OSC replies) back to PTY.
                         // wezterm-term writes these to its writer during advance_bytes().
                         let responses = term_state.drain_responses(&id_clone);
                         if !responses.is_empty() {
-                            let hex: String = responses
-                                .iter()
-                                .map(|b| format!("{b:02x}"))
-                                .collect::<Vec<_>>()
-                                .join(" ");
-                            eprintln!(
-                                "[pty] DA/CPR response for {id_clone}: {} bytes [{hex}], total_bytes_so_far={total_bytes}",
-                                responses.len()
-                            );
                             match pty_writer_for_reader.lock() {
                                 Ok(mut w) => {
                                     if let Err(e) = w.write_all(&responses) {
