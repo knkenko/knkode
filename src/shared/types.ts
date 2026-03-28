@@ -372,9 +372,6 @@ export interface GridSnapshot {
 	readonly scrollbackRows: number;
 	/** Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows. */
 	readonly scrollOffset: number;
-	/** Terminal palette default background (hex). Cells matching this have no
-	 *  custom background and should be left transparent so theme effects show. */
-	readonly defaultBg: string;
 	/** Unique images visible in the viewport, keyed by hex SHA256 hash.
 	 *  Only includes images not previously sent — frontend caches by hash. */
 	readonly images?: Readonly<Record<string, ImageSnapshot>>;

@@ -35,7 +35,9 @@ const MAX_TITLE_LEN: usize = 4096;
 
 /// Minimal config for wezterm-term. The `TerminalConfiguration` trait has 15+
 /// methods with sensible defaults (scrollback sizing, unicode version, etc.).
-/// Per-pane color palettes are applied separately at snapshot time — see `set_colors`.
+/// Per-pane color palettes are applied both to the terminal's internal state
+/// (for OSC 10/11 query responses) and at snapshot time (for rendering) — see
+/// `set_colors` and `create`.
 #[derive(Debug)]
 struct TermConfig;
 
@@ -95,11 +97,8 @@ pub struct CellSnapshot {
     pub text: String,
     pub fg: String,
     /// Explicit background color, or `None` for default/transparent.
-    /// Programs that query the terminal bg (OSC 11) and set their UI bg
-    /// to match would produce cells where the resolved color equals
-    /// `defaultBg`. Using `Option` preserves the distinction: `None` means
-    /// the cell inherited the terminal default (render as transparent),
-    /// while `Some(color)` means the program explicitly set a bg (always render).
+    /// `None` means the cell inherited the terminal default (render as transparent),
+    /// `Some(color)` means the program explicitly set a bg (always render).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bg: Option<String>,
     pub bold: bool,
@@ -140,11 +139,6 @@ pub struct GridSnapshot {
     pub scrollback_rows: usize,
     /// Current scroll position: 0 = at bottom (live), >0 = scrolled up N rows.
     pub scroll_offset: usize,
-    /// The terminal palette's default background color (hex string, e.g. "#000000").
-    /// The frontend uses this to distinguish "no custom background" cells from cells
-    /// with an explicit colored background — only the latter get drawn, leaving
-    /// default-bg cells transparent so PaneBackgroundEffects show through.
-    pub default_bg: String,
     /// Unique images visible in the current viewport, keyed by hex SHA256 hash.
     /// Only includes images not previously sent (tracked per-session).
     /// Frontend caches decoded ImageBitmaps by hash.
@@ -276,8 +270,8 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
 const MAX_RESPONSE_BUFFER_BYTES: usize = 64 * 1024;
 
 /// Writer that captures terminal responses (DA, CPR, OSC replies) into a shared
-/// buffer. Callers must drain the buffer after each `advance_only()` call and
-/// route responses back to the PTY master fd.
+/// buffer. The PTY reader thread drains the buffer after each `advance_only()`
+/// call and routes responses back to the PTY master fd.
 struct SharedWriter(Arc<Mutex<Vec<u8>>>);
 
 impl std::io::Write for SharedWriter {
@@ -1031,8 +1025,6 @@ impl TerminalState {
             CursorShape::BlinkingBar => ("bar", true),
             CursorShape::SteadyBar => ("bar", false),
         };
-        let default_bg_str = palette.background.to_rgb_string();
-
         GridSnapshot {
             rows,
             cursor_row: cursor.y.try_into().unwrap_or(0),
@@ -1044,7 +1036,6 @@ impl TerminalState {
             total_rows: phys_rows,
             scrollback_rows: max_offset,
             scroll_offset: clamped_offset,
-            default_bg: default_bg_str,
             images: frame_images,
             is_alt_screen: terminal.is_alt_screen_active(),
             is_mouse_grabbed: terminal.is_mouse_grabbed(),
