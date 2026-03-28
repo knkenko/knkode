@@ -90,6 +90,7 @@ pub struct ImageSnapshot {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CellSnapshot {
     pub text: String,
     pub fg: String,
