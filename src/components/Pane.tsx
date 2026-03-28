@@ -350,6 +350,7 @@ export const Pane = memo(function Pane({
 			if (useStore.getState().exitedPtyIds.has(paneId)) {
 				clearPtyExited(paneId);
 				setPtyError(false);
+				setGrid(null);
 				// Re-create PTY. If creation fails, ensurePty's catch rolls back
 				// activePtyIds, but we also need to restore the error overlay.
 				window.api.createPty(paneId, initialCwdRef.current, initialCmdRef.current ?? "").catch((err: unknown) => {

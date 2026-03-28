@@ -556,6 +556,8 @@ fn create_platform_pty(
     cmd.cwd(cwd);
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
+    cmd.env("TERM_PROGRAM", "knkode");
+    cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
 
     let child = pair
         .slave
@@ -609,7 +611,13 @@ fn create_platform_pty(
 
     eprintln!("[pty] Windows shell detection for {id}: exe={exe}");
 
-    let env_vars = [("TERM", "xterm-256color"), ("COLORTERM", "truecolor")];
+    let version = env!("CARGO_PKG_VERSION");
+    let env_vars = [
+        ("TERM", "xterm-256color"),
+        ("COLORTERM", "truecolor"),
+        ("TERM_PROGRAM", "knkode"),
+        ("TERM_PROGRAM_VERSION", version),
+    ];
     let (session, pipes) = crate::win_pty::WinPtySession::spawn(
         DEFAULT_COLS as u16,
         DEFAULT_ROWS as u16,
@@ -731,6 +739,10 @@ impl PtyManager {
             default_ph as usize,
         );
         eprintln!("[pty] Terminal state created for {id}");
+
+        // Emit a blank snapshot immediately so the frontend clears any stale
+        // content from a previous session before the new shell produces output.
+        emit_snapshot(&app, &self.terminal_state, &id);
 
         // Shared state between reader and flush threads.
         // `dirty`: set when terminal state advances but no snapshot was emitted (throttled).
