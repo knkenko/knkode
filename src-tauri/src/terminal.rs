@@ -100,6 +100,7 @@ pub struct CellSnapshot {
     pub underline: bool,
     pub strikethrough: bool,
     pub hidden: bool,
+    pub overline: bool,
     /// Image slices attached to this cell (omitted when empty).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<ImageCellSnapshot>>,
@@ -866,6 +867,7 @@ impl TerminalState {
                     underline: !matches!(attrs.underline(), Underline::None),
                     strikethrough: attrs.strikethrough(),
                     hidden: attrs.invisible(),
+                    overline: attrs.overline(),
                     images,
                     link,
                 });

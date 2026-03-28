@@ -716,6 +716,9 @@ export function CanvasTerminal({
 					if (cell.strikethrough) {
 						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
 					}
+					if (cell.overline) {
+						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + ctx.lineWidth, cellW);
+					}
 
 					if (cell.dim) ctx.globalAlpha = 1.0;
 				}

@@ -341,6 +341,7 @@ export interface CellSnapshot {
 	readonly underline: boolean;
 	readonly strikethrough: boolean;
 	readonly hidden: boolean;
+	readonly overline: boolean;
 	readonly images?: readonly ImageCellSnapshot[];
 	/** URL if this cell is part of a clickable hyperlink (OSC 8 or regex-detected). */
 	readonly link?: string;
