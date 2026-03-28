@@ -772,8 +772,20 @@ impl TerminalState {
                 let attrs = cell_ref.attrs();
                 let reverse = attrs.reverse();
 
-                let fg_attr = attrs.foreground();
+                let mut fg_attr = attrs.foreground();
                 let bg_attr = attrs.background();
+
+                // Bold-as-bright: shift ANSI colors 0-7 to their bright variants 8-15
+                // when the cell is bold. Standard terminal behavior that many CLI tools
+                // depend on for color variety.
+                if matches!(attrs.intensity(), Intensity::Bold) {
+                    if let ColorAttribute::PaletteIndex(idx) = fg_attr {
+                        if idx < 8 {
+                            fg_attr = ColorAttribute::PaletteIndex(idx + 8);
+                        }
+                    }
+                }
+
                 let (fg, bg) = if reverse {
                     (intern_color(bg_attr, false), intern_color(fg_attr, true))
                 } else {
