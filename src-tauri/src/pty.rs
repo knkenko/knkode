@@ -807,7 +807,11 @@ impl PtyManager {
                                             "[pty] response write failed for {id_clone}: {e}"
                                         );
                                     }
-                                    let _ = w.flush();
+                                    if let Err(e) = w.flush() {
+                                        eprintln!(
+                                            "[pty] response flush failed for {id_clone}: {e}"
+                                        );
+                                    }
                                 }
                                 Err(e) => {
                                     eprintln!("[pty] writer lock failed for {id_clone}: {e}");

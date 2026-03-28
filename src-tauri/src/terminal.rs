@@ -271,8 +271,12 @@ fn build_palette(ansi: &AnsiThemeColors, foreground: &str, background: &str) -> 
     palette
 }
 
+/// Maximum response buffer size (64 KB). Prevents unbounded growth if a
+/// malicious program triggers thousands of DA/CPR/OSC queries per second.
+const MAX_RESPONSE_BUFFER_BYTES: usize = 64 * 1024;
+
 /// Writer that captures terminal responses (DA, CPR, OSC replies) into a shared
-/// buffer. Callers must drain the buffer after each `advance_bytes()` call and
+/// buffer. Callers must drain the buffer after each `advance_only()` call and
 /// route responses back to the PTY master fd.
 struct SharedWriter(Arc<Mutex<Vec<u8>>>);
 
@@ -282,6 +286,9 @@ impl std::io::Write for SharedWriter {
             .0
             .lock()
             .map_err(|_| std::io::Error::other("response buffer lock poisoned"))?;
+        if inner.len() + buf.len() > MAX_RESPONSE_BUFFER_BYTES {
+            return Err(std::io::Error::other("response buffer overflow"));
+        }
         inner.extend_from_slice(buf);
         Ok(buf.len())
     }
@@ -452,8 +459,14 @@ impl TerminalState {
         // Apply any existing palette to the terminal's own state so that
         // OSC 10/11 color queries return correct colors from the first byte.
         // The palette survives pane restart, so this covers the common case.
-        if let Some(palette) = self.palettes.lock().ok().and_then(|p| p.get(id).cloned()) {
-            *terminal.palette_mut() = (*palette).clone();
+        // palettes guard is dropped before terminals lock is acquired (lock ordering safe)
+        match self.lock_palettes() {
+            Ok(palettes) => {
+                if let Some(palette) = palettes.get(id) {
+                    *terminal.palette_mut() = palette.as_ref().clone();
+                }
+            }
+            Err(e) => eprintln!("[terminal] palette lock failed during create for {id}: {e}"),
         }
 
         match self.lock_terminals() {
