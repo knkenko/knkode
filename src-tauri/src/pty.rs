@@ -732,10 +732,6 @@ impl PtyManager {
         );
         eprintln!("[pty] Terminal state created for {id}");
 
-        // Emit a blank snapshot immediately so the frontend clears any stale
-        // content from a previous session before the new shell produces output.
-        emit_snapshot(&app, &self.terminal_state, &id);
-
         // Shared state between reader and flush threads.
         // `dirty`: set when terminal state advances but no snapshot was emitted (throttled).
         // `alive`: cleared when the reader exits so the flush thread can stop.
