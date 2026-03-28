@@ -80,6 +80,8 @@ const BAR_WIDTH_RATIO = 0.12;
 const UNDERLINE_HEIGHT_RATIO = 0.12;
 /** Selection highlight overlay opacity — balances visibility against text readability. */
 const SELECTION_HIGHLIGHT_OPACITY = 0.33;
+/** Text blink toggle interval (ms). Standard terminal blink is ~500ms on/off. */
+const TEXT_BLINK_INTERVAL_MS = 500;
 /** Maximum elapsed time between clicks for a click streak to continue. */
 const CLICK_STREAK_TIMEOUT_MS = 400;
 /** Click streak values — also used as drag granularity mode. */
@@ -532,6 +534,9 @@ export function CanvasTerminal({
 	const cursorStyleRef = useRef(cursorStyle);
 	const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
 	const blinkTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+	/** Whether blinking text is currently visible (toggled by interval timer). */
+	const textBlinkVisibleRef = useRef(true);
+	const textBlinkTimerRef = useRef<ReturnType<typeof setInterval>>(null);
 	const isFocusedRef = useRef(isFocused);
 	const imageCacheRef = useRef<TerminalImageCache>(null!);
 	if (!imageCacheRef.current) imageCacheRef.current = new TerminalImageCache();
@@ -740,6 +745,8 @@ export function CanvasTerminal({
 		// grid.images is absent (undefined) when empty, so truthiness suffices.
 		const snapshotHasImages = !!snap.images;
 		let hasImages = false;
+		let hasBlinkingCells = false;
+		const blinkVisible = textBlinkVisibleRef.current;
 
 		// Single pass: backgrounds + below-text images + text + decorations.
 		// Below-text images (zIndex < 0) render after background, before text,
@@ -765,8 +772,12 @@ export function CanvasTerminal({
 					drawCellImages(ctx, cell.images, imgCache, x, y, cellW, cellH, "below");
 				}
 
+				// Track blinking cells for timer management
+				if (cell.blink) hasBlinkingCells = true;
+
 				// SGR 8: hidden/invisible — skip text and decorations, keep background
-				if (!cell.hidden) {
+				// SGR 5: blink — hide text during off phase
+				if (!cell.hidden && !(cell.blink && !blinkVisible)) {
 					// Dim text: reduce opacity for SGR 2 (faint/dim)
 					if (cell.dim) ctx.globalAlpha = 0.5;
 
@@ -894,6 +905,18 @@ export function CanvasTerminal({
 				cursorOpacity.current,
 				cursorCell,
 			);
+		}
+
+		// SGR 5 blink timer: start interval when blinking cells exist, stop when none
+		if (hasBlinkingCells && !textBlinkTimerRef.current) {
+			textBlinkTimerRef.current = setInterval(() => {
+				textBlinkVisibleRef.current = !textBlinkVisibleRef.current;
+				drawRef.current();
+			}, TEXT_BLINK_INTERVAL_MS);
+		} else if (!hasBlinkingCells && textBlinkTimerRef.current) {
+			clearInterval(textBlinkTimerRef.current);
+			textBlinkTimerRef.current = null;
+			textBlinkVisibleRef.current = true;
 		}
 	}, [accentColor, background, cursorColor, fontSize, fontFamily, lineHeight]);
 

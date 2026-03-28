@@ -8,7 +8,7 @@ use tattoy_termwiz::surface::{CursorShape, CursorVisibility};
 use tattoy_wezterm_term::color::{ColorAttribute, ColorPalette, RgbColor};
 use tattoy_wezterm_term::config::TerminalConfiguration;
 use tattoy_wezterm_term::image::ImageDataType;
-use tattoy_wezterm_term::{Intensity, Terminal, TerminalSize, Underline};
+use tattoy_wezterm_term::{Blink, Intensity, Terminal, TerminalSize, Underline};
 
 const DEFAULT_DPI: u32 = 96;
 pub const DEFAULT_COLS: usize = 80;
@@ -105,6 +105,7 @@ pub struct CellSnapshot {
     pub strikethrough: bool,
     pub hidden: bool,
     pub overline: bool,
+    pub blink: bool,
     /// Image slices attached to this cell (omitted when empty).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub images: Option<Vec<ImageCellSnapshot>>,
@@ -888,6 +889,7 @@ impl TerminalState {
                     strikethrough: attrs.strikethrough(),
                     hidden: attrs.invisible(),
                     overline: attrs.overline(),
+                    blink: !matches!(attrs.blink(), Blink::None),
                     images,
                     link,
                 });
