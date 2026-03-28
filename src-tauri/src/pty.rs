@@ -555,6 +555,7 @@ fn create_platform_pty(
     cmd.arg("-l");
     cmd.cwd(cwd);
     cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor");
 
     let child = pair
         .slave
@@ -608,7 +609,7 @@ fn create_platform_pty(
 
     eprintln!("[pty] Windows shell detection for {id}: exe={exe}");
 
-    let env_vars = [("TERM", "xterm-256color")];
+    let env_vars = [("TERM", "xterm-256color"), ("COLORTERM", "truecolor")];
     let (session, pipes) = crate::win_pty::WinPtySession::spawn(
         DEFAULT_COLS as u16,
         DEFAULT_ROWS as u16,
