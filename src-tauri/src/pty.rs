@@ -707,7 +707,7 @@ impl PtyManager {
         }
 
         // Clone writer for the reader thread to route terminal responses back to PTY
-        let pty_writer = Arc::clone(&writer);
+        let pty_writer_for_reader = Arc::clone(&writer);
 
         // Store session before starting reader — cleanup logic in the reader
         // checks the session map, so it must exist before the reader can race
@@ -779,7 +779,6 @@ impl PtyManager {
         let sessions_clone = Arc::clone(&self.sessions);
         let term_state = Arc::clone(&self.terminal_state);
         let last_output_at = Arc::clone(&self.last_output_at);
-        let pty_writer_for_reader = pty_writer;
         std::thread::spawn(move || {
             eprintln!("[pty] Reader thread started for {id_clone}");
             let (_, cv) = &*flush_cond;
