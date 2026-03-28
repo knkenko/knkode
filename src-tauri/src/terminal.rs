@@ -434,13 +434,21 @@ impl TerminalState {
     ) {
         let response_buf = Arc::new(Mutex::new(Vec::new()));
         let writer = SharedWriter(Arc::clone(&response_buf));
-        let terminal = Terminal::new(
+        let mut terminal = Terminal::new(
             term_size(cols, rows, pixel_width, pixel_height),
             Arc::clone(&self.config),
             "knkode",
             env!("CARGO_PKG_VERSION"),
             Box::new(writer),
         );
+
+        // Apply any existing palette to the terminal's own state so that
+        // OSC 10/11 color queries return correct colors from the first byte.
+        // The palette survives pane restart, so this covers the common case.
+        if let Some(palette) = self.palettes.lock().ok().and_then(|p| p.get(id).cloned()) {
+            *terminal.palette_mut() = (*palette).clone();
+        }
+
         match self.lock_terminals() {
             Ok(mut terminals) => {
                 terminals.insert(id.to_string(), terminal);
@@ -467,9 +475,21 @@ impl TerminalState {
         foreground: &str,
         background: &str,
     ) -> Result<(), String> {
-        let palette = Arc::new(build_palette(ansi, foreground, background));
+        let palette = build_palette(ansi, foreground, background);
+
+        // Apply palette to the terminal's own state so that OSC 10/11 color
+        // queries (used by CLI tools like Codex to detect background color)
+        // return the correct theme colors instead of the default black/white.
+        {
+            let mut terminals = self.lock_terminals()?;
+            if let Some(terminal) = terminals.get_mut(id) {
+                let tp = terminal.palette_mut();
+                *tp = palette.clone();
+            }
+        }
+
         let mut palettes = self.lock_palettes()?;
-        palettes.insert(id.to_string(), palette);
+        palettes.insert(id.to_string(), Arc::new(palette));
         Ok(())
     }
 
