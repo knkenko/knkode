@@ -699,23 +699,26 @@ export function CanvasTerminal({
 					drawCellImages(ctx, cell.images, imgCache, x, y, cellW, cellH, "below");
 				}
 
-				// Dim text: reduce opacity for SGR 2 (faint/dim)
-				if (cell.dim) ctx.globalAlpha = 0.5;
+				// SGR 8: hidden/invisible — skip text and decorations, keep background
+				if (!cell.hidden) {
+					// Dim text: reduce opacity for SGR 2 (faint/dim)
+					if (cell.dim) ctx.globalAlpha = 0.5;
 
-				// Text
-				if (cell.text.trim()) {
-					ctx.font = buildFont(cell, scaledSize, fontFamily);
-					ctx.fillStyle = cell.fg;
-					ctx.fillText(cell.text, x, y + baselineOffset);
-				}
-				if (cell.underline) {
-					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
-				}
-				if (cell.strikethrough) {
-					drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
-				}
+					// Text
+					if (cell.text.trim()) {
+						ctx.font = buildFont(cell, scaledSize, fontFamily);
+						ctx.fillStyle = cell.fg;
+						ctx.fillText(cell.text, x, y + baselineOffset);
+					}
+					if (cell.underline) {
+						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH - ctx.lineWidth, cellW);
+					}
+					if (cell.strikethrough) {
+						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
+					}
 
-				if (cell.dim) ctx.globalAlpha = 1.0;
+					if (cell.dim) ctx.globalAlpha = 1.0;
+				}
 			}
 		}
 
