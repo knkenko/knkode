@@ -16,6 +16,7 @@ import type {
 	ImageCellSnapshot,
 	ImageSnapshot,
 	SelectionRange,
+	UnderlineStyle,
 } from "../shared/types";
 import {
 	clampFontSize,
@@ -73,6 +74,8 @@ const CURSOR_MIN_OPACITY = 0.0;
 const CURSOR_STATIC_OPACITY = 0.5;
 /** Stop blinking after this elapsed time since blink phase started (ms). */
 const CURSOR_IDLE_TIMEOUT_MS = 5000;
+/** Text blink toggle interval (ms). Standard terminal blink is ~500ms on/off. */
+const TEXT_BLINK_INTERVAL_MS = 500;
 const RESIZE_DEBOUNCE_MS = 100;
 /** Bar cursor width as fraction of cell width. */
 const BAR_WIDTH_RATIO = 0.12;
@@ -80,8 +83,6 @@ const BAR_WIDTH_RATIO = 0.12;
 const UNDERLINE_HEIGHT_RATIO = 0.12;
 /** Selection highlight overlay opacity — balances visibility against text readability. */
 const SELECTION_HIGHLIGHT_OPACITY = 0.33;
-/** Text blink toggle interval (ms). Standard terminal blink is ~500ms on/off. */
-const TEXT_BLINK_INTERVAL_MS = 500;
 /** Maximum elapsed time between clicks for a click streak to continue. */
 const CLICK_STREAK_TIMEOUT_MS = 400;
 /** Click streak values — also used as drag granularity mode. */
@@ -254,19 +255,23 @@ function drawCurlyLine(
 	ctx.lineWidth = lineWidth;
 	ctx.beginPath();
 	ctx.moveTo(x, y);
-	let cx = x;
+	let penX = x;
 	let up = true;
-	while (cx < x + width) {
-		const nx = Math.min(cx + wavelength, x + width);
+	while (penX < x + width) {
+		const nx = Math.min(penX + wavelength, x + width);
 		const cpY = up ? y - amplitude : y + amplitude;
-		ctx.quadraticCurveTo(cx + (nx - cx) / 2, cpY, nx, y);
-		cx = nx;
+		ctx.quadraticCurveTo(penX + (nx - penX) / 2, cpY, nx, y);
+		penX = nx;
 		up = !up;
 	}
 	ctx.stroke();
 }
 
-/** Draw a styled (dashed/dotted) horizontal line. Pattern values are DPR-scaled. */
+/** Dash patterns for styled underlines. Raw multipliers, scaled by lineWidth internally. */
+const DOTTED_PATTERN = [1, 2];
+const DASHED_PATTERN = [3, 2];
+
+/** Draw a styled (dashed/dotted) horizontal line. Raw pattern values are scaled by lineWidth internally. */
 function drawStyledLine(
 	ctx: CanvasRenderingContext2D,
 	color: string,
@@ -284,6 +289,64 @@ function drawStyledLine(
 	ctx.lineTo(x + width, y);
 	ctx.stroke();
 	ctx.setLineDash([]);
+}
+
+/** Draw text content and decorations (underline, strikethrough, overline) for a single cell.
+ *  Handles dim alpha, underline styles, and attribute reset. Used by both the main draw
+ *  loop and the cursor-cell repaint path. */
+function drawCellContent(
+	ctx: CanvasRenderingContext2D,
+	cell: CellSnapshot,
+	x: number,
+	y: number,
+	cellW: number,
+	cellH: number,
+	lineWidth: number,
+	baselineOffset: number,
+	scaledSize: number,
+	fontFamily: string,
+) {
+	if (cell.dim) ctx.globalAlpha = 0.5;
+
+	if (cell.text.trim()) {
+		ctx.font = buildFont(cell, scaledSize, fontFamily);
+		ctx.fillStyle = cell.fg;
+		ctx.fillText(cell.text, x, y + baselineOffset);
+	}
+	if (cell.underline !== "none") {
+		const ulColor = cell.underlineColor ?? cell.fg;
+		const ulY = y + cellH - lineWidth;
+		switch (cell.underline as UnderlineStyle) {
+			case "single":
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				break;
+			case "double":
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				drawHLine(ctx, ulColor, lineWidth, x, ulY - lineWidth * 2, cellW);
+				break;
+			case "curly":
+				drawCurlyLine(ctx, ulColor, lineWidth, x, ulY, cellW, cellH);
+				break;
+			case "dotted":
+				drawStyledLine(ctx, ulColor, lineWidth, x, ulY, cellW, DOTTED_PATTERN);
+				break;
+			case "dashed":
+				drawStyledLine(ctx, ulColor, lineWidth, x, ulY, cellW, DASHED_PATTERN);
+				break;
+			default:
+				// Unknown underline style from future wezterm-term update — fall back to single
+				drawHLine(ctx, ulColor, lineWidth, x, ulY, cellW);
+				break;
+		}
+	}
+	if (cell.strikethrough) {
+		drawHLine(ctx, cell.fg, lineWidth, x, y + cellH / 2, cellW);
+	}
+	if (cell.overline) {
+		drawHLine(ctx, cell.fg, lineWidth, x, y + lineWidth, cellW);
+	}
+
+	if (cell.dim) ctx.globalAlpha = 1.0;
 }
 
 /** Decode a base64-encoded image into an ImageBitmap. */
@@ -662,43 +725,7 @@ export function CanvasTerminal({
 
 		// Redraw cell content
 		if (cursorCell) {
-			if (cursorCell.dim) ctx.globalAlpha = 0.5;
-
-			if (cursorCell.text.trim()) {
-				ctx.font = buildFont(cursorCell, scaledSize, fontFamily);
-				ctx.fillStyle = cursorCell.fg;
-				ctx.fillText(cursorCell.text, cx, cy + baselineOffset);
-			}
-			if (cursorCell.underline !== "none") {
-				const ulColor = cursorCell.underlineColor ?? cursorCell.fg;
-				const ulY = cy + cellH - dpr;
-				switch (cursorCell.underline) {
-					case "single":
-						drawHLine(ctx, ulColor, dpr, cx, ulY, cellW);
-						break;
-					case "double":
-						drawHLine(ctx, ulColor, dpr, cx, ulY, cellW);
-						drawHLine(ctx, ulColor, dpr, cx, ulY - dpr * 2, cellW);
-						break;
-					case "curly":
-						drawCurlyLine(ctx, ulColor, dpr, cx, ulY, cellW, cellH);
-						break;
-					case "dotted":
-						drawStyledLine(ctx, ulColor, dpr, cx, ulY, cellW, [1, 2]);
-						break;
-					case "dashed":
-						drawStyledLine(ctx, ulColor, dpr, cx, ulY, cellW, [3, 2]);
-						break;
-				}
-			}
-			if (cursorCell.strikethrough) {
-				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + cellH / 2, cellW);
-			}
-			if (cursorCell.overline) {
-				drawHLine(ctx, cursorCell.fg, dpr, cx, cy + dpr, cellW);
-			}
-
-			if (cursorCell.dim) ctx.globalAlpha = 1.0;
+			drawCellContent(ctx, cursorCell, cx, cy, cellW, cellH, dpr, baselineOffset, scaledSize, fontFamily);
 		}
 
 		// Redraw above-text images
@@ -790,45 +817,7 @@ export function CanvasTerminal({
 				// SGR 8: hidden/invisible — skip text and decorations, keep background
 				// SGR 5: blink — hide text during off phase
 				if (!cell.hidden && !(cell.blink && !blinkVisible)) {
-					// Dim text: reduce opacity for SGR 2 (faint/dim)
-					if (cell.dim) ctx.globalAlpha = 0.5;
-
-					// Text
-					if (cell.text.trim()) {
-						ctx.font = buildFont(cell, scaledSize, fontFamily);
-						ctx.fillStyle = cell.fg;
-						ctx.fillText(cell.text, x, y + baselineOffset);
-					}
-					if (cell.underline !== "none") {
-						const ulColor = cell.underlineColor ?? cell.fg;
-						const ulY = y + cellH - ctx.lineWidth;
-						switch (cell.underline) {
-							case "single":
-								drawHLine(ctx, ulColor, ctx.lineWidth, x, ulY, cellW);
-								break;
-							case "double":
-								drawHLine(ctx, ulColor, ctx.lineWidth, x, ulY, cellW);
-								drawHLine(ctx, ulColor, ctx.lineWidth, x, ulY - ctx.lineWidth * 2, cellW);
-								break;
-							case "curly":
-								drawCurlyLine(ctx, ulColor, ctx.lineWidth, x, ulY, cellW, cellH);
-								break;
-							case "dotted":
-								drawStyledLine(ctx, ulColor, ctx.lineWidth, x, ulY, cellW, [1, 2]);
-								break;
-							case "dashed":
-								drawStyledLine(ctx, ulColor, ctx.lineWidth, x, ulY, cellW, [3, 2]);
-								break;
-						}
-					}
-					if (cell.strikethrough) {
-						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + cellH / 2, cellW);
-					}
-					if (cell.overline) {
-						drawHLine(ctx, cell.fg, ctx.lineWidth, x, y + ctx.lineWidth, cellW);
-					}
-
-					ctx.globalAlpha = 1.0;
+					drawCellContent(ctx, cell, x, y, cellW, cellH, ctx.lineWidth, baselineOffset, scaledSize, fontFamily);
 				}
 			}
 		}
